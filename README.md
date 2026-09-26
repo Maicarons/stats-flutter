@@ -129,11 +129,11 @@ Tag a release and GitHub Actions publishes `packages/statkit` to pub.dev automat
 
 ```bash
 # bump version in packages/statkit/pubspec.yaml + CHANGELOG
-git tag statkit-0.2.0
-git push origin main statkit-0.2.0
+git tag v0.2.0
+git push origin main v0.2.0
 ```
 
-Workflow: `.github/workflows/publish-statkit.yml` · Guide: [docs/guide/publish-statkit.md](docs/guide/publish-statkit.md)
+Workflow: `.github/workflows/publish.yml` · Guide: [docs/guide/publish-statkit.md](docs/guide/publish-statkit.md)
 
 One-time: enable **Automated publishing from GitHub Actions** on [pub.dev/packages/statkit/admin](https://pub.dev/packages/statkit/admin).
 

@@ -1,57 +1,50 @@
-# Release statkit to pub.dev
+# Publish statkit to pub.dev
 
-This repository can automatically upload `packages/statkit` to [pub.dev](https://pub.dev/packages/statkit) when a new version is tagged.
+`packages/statkit` is published automatically via **pub.dev OIDC** + the official Dart reusable workflow.
 
-## How it works
+Workflow file (required name): **`.github/workflows/publish.yml`**
 
-Workflow: `.github/workflows/publish-statkit.yml`
+```yaml
+name: Publish to pub.dev
 
-| Trigger | Action |
-|---------|--------|
-| Push tag `statkit-vX.Y.Z` or `vX.Y.Z` | Publish that version |
-| GitHub Release published | Publish |
-| `workflow_dispatch` | Manual publish |
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
 
-Before publishing, CI runs `dart analyze`, `dart test`, and `dart pub publish --dry-run`.
-
-## One-time setup (required)
-
-1. Open [pub.dev → statkit → Admin](https://pub.dev/packages/statkit/admin)
-2. Enable **Automated publishing from GitHub Actions**
-3. Set repository to `Maicarons/stats-flutter`
-4. Optional: tag pattern `statkit-v` (or leave `v`)
-
-Without this, `dart pub publish` from CI cannot authenticate via OIDC.
-
-### Fallback secret (optional)
-
-If you prefer credentials over OIDC:
-
-```bash
-dart pub token add https://pub.dev
-# or copy credentials.json from ~/.config/dart/
+jobs:
+  publish:
+    permissions:
+      id-token: write
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
+    with:
+      working-directory: packages/statkit
 ```
 
-Add GitHub secret `PUB_CREDENTIALS` with that JSON.
+## Prerequisites (already done)
 
-## Release a new version
+On [pub.dev/packages/statkit/admin](https://pub.dev/packages/statkit/admin):
+
+- Enable **Automated publishing from GitHub Actions**
+- Repository: `Maicarons/stats-flutter`
+
+## How to release
+
+1. Bump `version` in `packages/statkit/pubspec.yaml` (e.g. `0.2.0`)
+2. Update `packages/statkit/CHANGELOG.md`
+3. Commit and push a matching **v** tag:
 
 ```bash
-# 1. Bump version in packages/statkit/pubspec.yaml
-# 2. Update packages/statkit/CHANGELOG.md
-# 3. Commit & tag
-cd packages/statkit   # from repo root:
-# edit pubspec.yaml version: x.y.z
 git add packages/statkit
-git commit -m "chore(statkit): release x.y.z"
-git tag statkit-x.y.z
-git push origin main statkit-x.y.z
+git commit -m "chore(statkit): release 0.2.0"
+git tag v0.2.0
+git push origin main v0.2.0
 ```
 
-CI will verify tag ↔ pubspec version, run tests, then upload to pub.dev.
+The tag **must** match the package `version` (`v` + version).  
+pub.dev rejects duplicate versions — always bump `version` first.
 
 ## Notes
 
-- Publishing the **same version twice** fails on pub.dev — always bump `version`.
-- Tag version must match `packages/statkit/pubspec.yaml` → `version:`.
-- `v*` tags also work if they match the statkit version (e.g. `v0.1.0`).
+- Only packages under `packages/statkit` are uploaded (see `working-directory`).
+- If you also tag app releases like `app-v1.0.0`, those tags do **not** trigger publish (pattern is `vX.Y.Z`).

@@ -1,0 +1,21 @@
+# Official pub.dev automated publishing workflow (OIDC).
+# Configured on https://pub.dev/packages/statkit/admin
+# for repository Maicarons/stats-flutter
+#
+# Required file name: .github/workflows/publish.yml
+# Tags: v1.2.3 (must match packages/statkit/pubspec.yaml version)
+
+name: Publish to pub.dev
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+jobs:
+  publish:
+    permissions:
+      id-token: write # Required for authentication using OIDC
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
+    with:
+      working-directory: packages/statkit
