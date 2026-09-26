@@ -1,45 +1,50 @@
 # Stats-flutter
 
-A mobile-first statistical analysis suite inspired by [GNU PSPP](https://www.gnu.org/software/pspp/), rewritten in Flutter with **Learn** and **Quiz** modules.
+A **project-based** statistical analysis suite inspired by [GNU PSPP](https://www.gnu.org/software/pspp/), written in Flutter with Learn & Quiz modules.
+
+**GitHub**: https://github.com/Maicarons/stats-flutter
+
+## Navigation
+
+```
+Splash → Global tabs
+  ├─ Projects   ← multi-project dataset manager (home)
+  ├─ Learn      ← 8 lessons
+  ├─ Quiz       ← 20-question bank
+  └─ Settings   ← theme / language / about
+
+Open project → Workspace
+  ├─ Data       ← editable grid, variables, CSV
+  ├─ Analysis   ← full statistical procedures
+  └─ Transform  ← COMPUTE / RECODE / SORT …
+```
 
 ## Features
 
-- **Data editor**: data / variable views, double-click editing, add/edit/delete value labels, missing values
+- **Projects**: create/open/rename/duplicate/delete, JSON persistence
+- **Data**: double-click edit, value-label CRUD, missing values, CSV
 - **Transforms**: COMPUTE, RECODE, COUNT, RANK, SORT, SELECT IF, AGGREGATE, FLIP
-- **Descriptives & Explore**: descriptives, frequencies, histogram, bar, scatter, normality tests
-- **Compare means**: one-sample / independent / paired t-tests, Oneway ANOVA, Means, Tukey HSD
-- **Association & prediction**: Pearson/Spearman, linear regression, crosstabs chi-square, K-Means, ROC
-- **Nonparametric & reliability**: Mann-Whitney, Wilcoxon, Kruskal-Wallis, Cronbach α
-- **Learn**: 8 concept lessons with core formulas
-- **Quiz**: 20-question bank, instant scoring, answer review
-- **CSV import/export**, share reports
-- **Theme**: light / dark / system + 8 seed colors
-- **i18n**: Chinese / English, switch instantly
+- **Stats**: descriptives, t-tests, ANOVA, correlation, regression, logistic, chi-square, nonparametric, reliability, clustering, ROC, PCA
+- **Syntax editor**: executable PSPP command subset
+- **Learn & Quiz** as global modules
+- **i18n** zh/en, theme colors, unified brand logo
 
 ## Stats kernel
 
-Computation lives in the pure-Dart package [`packages/statkit`](packages/statkit) — no Flutter dependency, reusable anywhere.
+Pure Dart package `packages/statkit` (13 test groups):
 
 ```dart
 import 'package:statkit/statkit.dart';
-
 final d = Descriptives.compute([1, 2, 3, 4, 5]);
-final t = TTest.oneSample(data, mu0: 70);
 ```
 
-## Getting started
+## Quick start
 
 ```bash
 flutter pub get
-flutter run -d windows   # or chrome / macos / linux
+flutter run -d windows
 ```
-
-## Build mirrors
-
-- Gradle distribution: `https://mirrors.cloud.tencent.com/gradle/`
-- Maven: Aliyun `maven.aliyun.com`
 
 ## License
 
-- Source code in this repo: MIT
-- PSPP research reference: GNU PSPP is GPL; this is an independent implementation
+MIT (independent implementation; PSPP is GPL).

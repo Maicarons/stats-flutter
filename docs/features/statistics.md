@@ -1,50 +1,39 @@
 # 统计过程
 
-StatLab 的计算由独立包 [`statkit`](/api/statkit) 完成，纯 Dart 实现，无 Flutter 依赖。
+计算由纯 Dart 包 [`statkit`](/api/statkit) 完成。
 
-## 描述统计
+## 对照表
 
-```dart
-final d = Descriptives.compute([1.0, 2, 3, 4, 5]);
-// d.mean, d.sd, d.skewness, d.ciLower95 …
+| 类别 | 入口 API |
+|------|----------|
+| 描述 | `Descriptives.compute` |
+| 频率 | `Frequencies.compute` / `histogramBins` |
+| t 检验 | `TTest.oneSample` / `independentSamples` / `paired` |
+| ANOVA | `OnewayAnova.compute`、`tukeyHsd` |
+| 相关 | `Correlation.pearson` / `spearman` / `matrix` |
+| 回归 | `Regression.simple` / `multiple` |
+| 逻辑回归 | `logisticRegression` |
+| 因子 | `factorPca` |
+| 卡方 | `ChiSquareTest.goodnessOfFit` / `independence` |
+| 非参数 | `Nonparametric.mannWhitney` / `wilcoxon` / `kruskalWallis` … |
+| 信度 | `Reliability.cronbachAlpha` |
+| 聚类 | `KMeans.cluster` |
+| ROC | `rocCurve` |
+| 正态性 | `normalityTest` |
+| 均值表 | `meansTable` |
+
+## 数值实现
+
+- 正态 CDF：Abramowitz & Stegun
+- 不完全 Gamma：级数 + Lentz 连分式
+- 不完全 Beta：连分式
+- Gamma：Lanczos
+- 回归：高斯消元 / 约当求逆
+
+## 测试
+
+```bash
+cd packages/statkit && dart test
 ```
 
-提供：N、均值、样本标准差、方差、极值、全距、中位数、Q1/Q3/IQR、偏度、超额峰度、标准误、95% 置信区间。
-
-## 假设检验
-
-| 函数 | 说明 |
-|------|------|
-| `TTest.oneSample` | 单样本 t |
-| `TTest.independentSamples` | 独立样本 t（自动 Levene → 合并/Welch） |
-| `TTest.paired` | 配对样本 t |
-| `OnewayAnova.compute` | 单因素 ANOVA |
-| `leveneTest` | Levene / Brown-Forsythe |
-| `ChiSquareTest.goodnessOfFit` | 拟合优度 |
-| `ChiSquareTest.independence` | 列联表独立性 |
-
-## 相关与回归
-
-- `Correlation.pearson` / `Correlation.spearman`
-- `Correlation.matrix` 相关矩阵
-- `Regression.simple` / `Regression.multiple`（含 VIF、DW、标准化 β）
-
-## 非参数
-
-`Nonparametric.mannWhitney` / `wilcoxon` / `kruskalWallis` / `friedman` / `signTest` / `runsTest` / `kolmogorovSmirnovNormal`
-
-## 信度与聚类
-
-- `Reliability.cronbachAlpha`
-- `KMeans.cluster`（k-means++ 初始化）
-
-## 分布函数
-
-`normCdf` `tTwoTail` `chiSquareSf` `fSf` `tCritical` `chiSquareCritical` `fCritical` `betaInc` `lnGamma` 等。
-
-数值实现细节：
-
-- 正态 CDF 使用 Abramowitz & Stegun 逼近
-- 不完全 Gamma：级数 + Lentz 连分式（正则化）
-- 不完全 Beta：连分式
-- Gamma：Lanczos 近似
+13 组用例覆盖描述、分布、t、ANOVA、相关、回归、非参数、信度、K-Means。

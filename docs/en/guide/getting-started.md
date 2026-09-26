@@ -1,36 +1,46 @@
 # Getting Started
 
-StatLab is a Flutter statistical suite inspired by [GNU PSPP](https://www.gnu.org/software/pspp/), with mobile-first UX, learning and testing modules.
+**Stats-flutter** is a Flutter statistical suite inspired by [GNU PSPP](https://www.gnu.org/software/pspp/), with **project-based** dataset management.
+
+- GitHub: https://github.com/Maicarons/stats-flutter
+- Release: [v1.0.0](https://github.com/Maicarons/stats-flutter/releases/tag/v1.0.0)
 
 ## Requirements
 
-| Component | Version |
-|------|------|
-| Flutter | ≥ 3.41 (stable) |
-| Dart | ≥ 3.11 |
-| Node.js | ≥ 20 (docs only) |
+Flutter ≥ 3.41, Dart ≥ 3.11.
 
 ## Install & Run
 
 ```bash
-git clone https://github.com/statlab/stats-flutter.git
+git clone https://github.com/Maicarons/stats-flutter.git
 cd stats-flutter
-
 flutter pub get
 flutter run -d windows   # or chrome / macos / linux
+```
 
-cd packages/statkit && dart test
+## Navigation
 
-cd docs && npm install && npm run docs:dev
+```
+Splash → Global shell
+  ├─ Projects   ← home / project list
+  ├─ Learn      ← global
+  ├─ Quiz       ← global
+  └─ Settings   ← global
+
+Open a project → Workspace
+  ├─ Data
+  ├─ Analysis
+  └─ Transform
 ```
 
 ## Mirrors (China)
 
-- **Gradle distribution**: Tencent Cloud `https://mirrors.cloud.tencent.com/gradle/`
-- **Maven**: Aliyun `maven.aliyun.com`
+- Gradle distribution: Tencent Cloud
+- Maven: Aliyun
 
 ## Next
 
+- [Projects](/en/guide/projects)
 - [Data Editor](/en/guide/data-editor)
 - [Analysis](/en/guide/analysis)
-- [Learn & Quiz](/en/guide/learn-quiz)
+- [Transforms](/en/guide/transforms)

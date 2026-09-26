@@ -21,8 +21,10 @@ export default defineConfig({
             text: '指南',
             items: [
               { text: '快速开始', link: '/guide/getting-started' },
+              { text: '工程管理', link: '/guide/projects' },
               { text: '数据编辑器', link: '/guide/data-editor' },
               { text: '统计分析', link: '/guide/analysis' },
+              { text: '数据变换', link: '/guide/transforms' },
               { text: '学习与测试', link: '/guide/learn-quiz' },
             ],
           },
@@ -78,8 +80,10 @@ export default defineConfig({
             text: 'Guide',
             items: [
               { text: 'Getting Started', link: '/en/guide/getting-started' },
+              { text: 'Projects', link: '/en/guide/projects' },
               { text: 'Data Editor', link: '/en/guide/data-editor' },
               { text: 'Analysis', link: '/en/guide/analysis' },
+              { text: 'Transforms', link: '/en/guide/transforms' },
               { text: 'Learn & Quiz', link: '/en/guide/learn-quiz' },
             ],
           },
