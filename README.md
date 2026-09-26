@@ -123,6 +123,20 @@ stats-flutter/
 └── android/              # Tencent Gradle + Aliyun Maven
 ```
 
+## Publishing statkit
+
+Tag a release and GitHub Actions publishes `packages/statkit` to pub.dev automatically.
+
+```bash
+# bump version in packages/statkit/pubspec.yaml + CHANGELOG
+git tag statkit-0.2.0
+git push origin main statkit-0.2.0
+```
+
+Workflow: `.github/workflows/publish-statkit.yml` · Guide: [docs/guide/publish-statkit.md](docs/guide/publish-statkit.md)
+
+One-time: enable **Automated publishing from GitHub Actions** on [pub.dev/packages/statkit/admin](https://pub.dev/packages/statkit/admin).
+
 ## License
 
 - Source code in this repository: AGPL-3.0

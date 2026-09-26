@@ -47,6 +47,7 @@ export default defineConfig({
             text: '开发',
             items: [
               { text: 'statkit API', link: '/api/statkit' },
+              { text: '发布到 pub.dev', link: '/guide/publish-statkit' },
               { text: 'PSPP 研究纪要', link: '/research/pspp' },
             ],
           },
@@ -115,7 +116,10 @@ export default defineConfig({
           },
           {
             text: 'Development',
-            items: [{ text: 'statkit API', link: '/en/api/statkit' }],
+            items: [
+              { text: 'statkit API', link: '/en/api/statkit' },
+              { text: 'Publish to pub.dev', link: '/en/guide/publish-statkit' },
+            ],
           },
         ],
       },
