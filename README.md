@@ -125,5 +125,5 @@ stats-flutter/
 
 ## License
 
-- Source code in this repository: MIT
+- Source code in this repository: AGPL-3.0
 - PSPP research reference: GNU PSPP is GPL; this is an independent implementation

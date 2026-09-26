@@ -1,8 +1,23 @@
 name: statkit
-description: "纯 Dart 统计分析内核：描述统计、假设检验、回归、相关、非参数、信度、聚类。灵感来自 GNU PSPP。"
+description: >-
+  Pure Dart statistics kernel: descriptives, hypothesis tests (t, ANOVA,
+  chi-square), correlation, regression, nonparametric tests, reliability,
+  clustering, ROC, PCA and logistic regression. Zero Flutter dependency.
 version: 0.1.0
-homepage: https://github.com/statlab/statkit
-repository: https://github.com/statlab/statkit
+homepage: https://maicarons.github.io/stats-flutter/
+repository: https://github.com/Maicarons/stats-flutter/tree/main/packages/statkit
+issue_tracker: https://github.com/Maicarons/stats-flutter/issues
+documentation: https://maicarons.github.io/stats-flutter/api/statkit
+
+license: AGPL-3.0
+
+topics:
+  - statistics
+  - statistics-analysis
+  - math
+  - data-science
+  - dart
+  - hypothesis-testing
 
 environment:
   sdk: ^3.5.0

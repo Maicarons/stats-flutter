@@ -50,4 +50,4 @@ flutter run -d windows
 
 ## 许可
 
-MIT（独立实现；PSPP 为 GPL）
+AGPL-3.0（独立实现；PSPP 为 GPL）

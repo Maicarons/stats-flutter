@@ -1,33 +1,65 @@
 # statkit
 
-纯 Dart 统计分析内核，零 Flutter 依赖，可在 VM / Flutter / Web 复用。
-功能对齐 GNU PSPP 常用统计过程，并做数值稳定性优化。
+Pure Dart statistics kernel: descriptives, hypothesis tests, correlation,
+regression, nonparametric tests, reliability, clustering, ROC, PCA and
+logistic regression.
 
-## 能力
+- **Zero Flutter dependency** — works in Dart VM, Flutter, and web.
+- Numerically robust (Lanczos gamma, incomplete beta/gamma, Welch t-test).
+- Used by [Stats-flutter](https://github.com/Maicarons/stats-flutter).
 
-| 模块 | 内容 |
-|------|------|
-| 描述 | N/均值/SD/方差/偏度/峰度/分位数/CI/众数 |
-| 分布 | 正态、t、χ²、F 的 CDF/PDF/临界值/ p 值 |
-| 频率 | 频数表、百分比、累计 |
-| 检验 | 单样本/独立/配对 t 检验，单因素 ANOVA，卡方拟合与独立性 |
-| 相关 | Pearson / Spearman |
-| 回归 | 简单与多元线性回归、系数表、ANOVA 表 |
-| 非参数 | Mann-Whitney、Wilcoxon、Kruskal-Wallis、Friedman、符号、游程、KS |
-| 信度 | Cronbach α |
-| 聚类 | K-Means |
-| 方差齐性 | Levene / Brown-Forsythe |
+## Install
 
-## 用法
+```yaml
+dependencies:
+  statkit: ^0.1.0
+```
+
+## Quick start
 
 ```dart
 import 'package:statkit/statkit.dart';
 
 void main() {
-  final d = Descriptives.compute([1.0, 2, 3, 4, 5]);
-  print(d.mean); // 3.0
+  final data = [2.1, 2.5, 2.8, 2.3, 2.6];
 
-  final t = TTest.oneSample([2.1, 2.5, 2.8, 2.3, 2.6], mu0: 2.0);
-  print(t.t, t.pTwoTail);
+  final d = Descriptives.compute(data);
+  print('mean=${d.mean}  sd=${d.sd}  95% CI=[${d.ciLower95}, ${d.ciUpper95}]');
+
+  final t = TTest.oneSample(data, mu0: 2.0);
+  print('t=${t.t}  p=${formatP(t.pTwoTail)}');
+
+  final r = Regression.simple([1.0, 2, 3, 4, 5], [2.0, 4, 6, 8, 10]);
+  print('R²=${r.r2}  slope=${r.coefficients[1].beta}');
 }
 ```
+
+## API overview
+
+| Module | Entry points |
+|--------|----------------|
+| Descriptives | `Descriptives.compute`, `percentile`, `modes` |
+| Frequencies | `Frequencies.compute`, `Frequencies.histogramBins` |
+| t-tests | `TTest.oneSample` / `independentSamples` / `paired` |
+| ANOVA | `OnewayAnova.compute`, `leveneTest`, `tukeyHsd` |
+| Correlation | `Correlation.pearson` / `spearman` / `matrix` |
+| Regression | `Regression.simple` / `multiple` |
+| Chi-square | `ChiSquareTest.goodnessOfFit` / `independence` |
+| Nonparametric | `Nonparametric.mannWhitney` / `wilcoxon` / `kruskalWallis` / … |
+| Reliability | `Reliability.cronbachAlpha` |
+| Clustering | `KMeans.cluster` |
+| ROC / Normality | `rocCurve`, `normalityTest` |
+| PCA / Logistic | `factorPca`, `logisticRegression` |
+| Distributions | `normCdf`, `tTwoTail`, `chiSquareSf`, `fSf`, `lnGamma`, … |
+| Format | `formatNum`, `formatP`, `significanceStars` |
+
+## Testing
+
+```bash
+dart pub get
+dart test
+```
+
+## License
+
+GNU Affero General Public License v3.0 (AGPL-3.0) — see [LICENSE](LICENSE).

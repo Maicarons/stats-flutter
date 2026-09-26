@@ -50,4 +50,4 @@ flutter run -d windows
 
 ## License
 
-MIT (independent implementation; PSPP is GPL).
+AGPL-3.0 (independent implementation; PSPP is GPL).

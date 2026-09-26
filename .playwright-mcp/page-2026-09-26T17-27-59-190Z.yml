@@ -1,0 +1,60 @@
+- generic [ref=e3]:
+  - link "Skip to content" [ref=e4] [cursor=pointer]:
+    - /url: "#VPContent"
+  - banner:
+    - generic:
+      - generic:
+        - generic:
+          - link "Stats-flutter" [ref=e6] [cursor=pointer]:
+            - /url: /stats-flutter/
+          - generic [ref=e8]:
+            - navigation "Main Navigation" [ref=e9]:
+              - link "指南" [ref=e11] [cursor=pointer]:
+                - /url: /stats-flutter/guide/getting-started
+              - link "功能" [ref=e13] [cursor=pointer]:
+                - /url: /stats-flutter/features/statistics
+              - link "API" [ref=e15] [cursor=pointer]:
+                - /url: /stats-flutter/api/statkit
+              - link "GitHub" [ref=e17] [cursor=pointer]:
+                - /url: https://github.com/Maicarons/stats-flutter
+            - button "extra navigation" [ref=e20] [cursor=pointer]
+  - generic [ref=e23]:
+    - generic [ref=e26]:
+      - heading "Stats-flutter 工程化统计分析套件" [level=1] [ref=e27]:
+        - generic [ref=e28]: Stats-flutter
+        - generic [ref=e29]: 工程化统计分析套件
+      - paragraph [ref=e30]: 灵感来自 GNU PSPP · Flutter 全平台 · 学习与测试内置
+      - generic [ref=e31]:
+        - link "快速开始" [ref=e33] [cursor=pointer]:
+          - /url: /stats-flutter/guide/getting-started
+        - link "GitHub" [ref=e35] [cursor=pointer]:
+          - /url: https://github.com/Maicarons/stats-flutter
+    - generic [ref=e38]:
+      - article [ref=e41]:
+        - generic [ref=e42]: 📁
+        - heading "工程化管理" [level=2] [ref=e43]
+        - paragraph [ref=e44]: 主页即工程列表。多工程独立统计表，新建/打开/重命名/复制/删除，JSON 持久化。
+      - article [ref=e47]:
+        - generic [ref=e48]: 📊
+        - heading "完整统计过程" [level=2] [ref=e49]
+        - paragraph [ref=e50]: 描述、t 检验、ANOVA、相关、回归、卡方、非参数、信度、聚类、ROC、因子、逻辑回归。
+      - article [ref=e53]:
+        - generic [ref=e54]: 📝
+        - heading "双击编辑表格" [level=2] [ref=e55]
+        - paragraph [ref=e56]: 电子表格体验，值标签增删改、缺失值、CSV 导入导出、加权/拆分/查找。
+      - article [ref=e59]:
+        - generic [ref=e60]: 🔧
+        - heading "PSPP 变换与语法" [level=2] [ref=e61]
+        - paragraph [ref=e62]: COMPUTE / RECODE / SORT / SELECT IF 等，以及可执行的语法子集编辑器。
+      - article [ref=e65]:
+        - generic [ref=e66]: 🎓
+        - heading "学习 + 测试" [level=2] [ref=e67]
+        - paragraph [ref=e68]: 8 课概念短课、20 题随机测验，即时判分与错题解析。
+      - article [ref=e71]:
+        - generic [ref=e72]: 🌗
+        - heading "主题与多语言" [level=2] [ref=e73]
+        - paragraph [ref=e74]: 浅色/深色/跟随系统、8 种主题色、中英即时切换、统一品牌 Logo。
+  - contentinfo [ref=e75]:
+    - generic [ref=e76]:
+      - paragraph [ref=e77]: Released under the MIT License.
+      - paragraph [ref=e78]: Inspired by GNU PSPP · Built with Flutter

@@ -94,5 +94,5 @@ cd docs && npm install && npm run docs:dev
 
 ## 许可
 
-- 本仓库代码：MIT
+- 本仓库代码：AGPL-3.0
 - PSPP 研究参考：GNU PSPP 为 GPL；本项目为独立实现
