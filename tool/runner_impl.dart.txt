@@ -1,0 +1,154 @@
+  void _runMeans() {
+    final vName = _selectedVars.isNotEmpty ? _selectedVars.first : null;
+    if (vName == null || _groupVar == null) throw '请选择分析变量与分组变量';
+    final groups = _splitByGroup(vName, _groupVar!);
+    final r = meansTable(groups, layerVar: _groupVar!, valueVar: vName);
+    _report = AnalysisReport(
+      title: '分层均值',
+      subtitle: '$vName by ${_groupVar!}',
+      sections: [
+        ReportSection(
+          heading: 'Means',
+          tables: [
+            ReportTable(
+              headers: const ['组', 'N', '均值', '标准差', '标准误', '中位数', '最小', '最大'],
+              rows: [
+                for (final g in r.rows)
+                  [
+                    g.group,
+                    '${g.n}',
+                    formatNum(g.mean),
+                    formatNum(g.sd),
+                    formatNum(g.se),
+                    formatNum(g.median),
+                    formatNum(g.min),
+                    formatNum(g.max),
+                  ],
+                [
+                  '总计',
+                  '${r.total.n}',
+                  formatNum(r.total.mean),
+                  formatNum(r.total.sd),
+                  formatNum(r.total.se),
+                  formatNum(r.total.median),
+                  formatNum(r.total.min),
+                  formatNum(r.total.max),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _runNormality() {
+    final name = _selectedVars.isNotEmpty ? _selectedVars.first : null;
+    if (name == null) throw '请选择变量';
+    final v = ds.numericColumn(name);
+    final r = normalityTest(v);
+    _report = AnalysisReport(
+      title: '正态性检验',
+      subtitle: name,
+      sections: [
+        ReportSection(
+          heading: '结果',
+          tables: [
+            ReportTable(
+              headers: const ['检验', '统计量', 'p', '偏度', '峰度', '判断'],
+              rows: [
+                [
+                  r.test,
+                  formatNum(r.statistic),
+                  formatP(r.p),
+                  formatNum(r.skewness),
+                  formatNum(r.kurtosis),
+                  r.looksNormal ? '近似正态' : '偏离正态',
+                ],
+              ],
+            ),
+          ],
+          notes: 'p>0.05 且 |偏度|<1.5、|峰度|<3 时可近似认为正态。',
+        ),
+      ],
+    );
+  }
+
+  void _runRoc() {
+    if (_yVar == null || _xVar == null) throw '请选择状态变量与检验变量';
+    final y = ds.numericColumn(_yVar!);
+    final x = ds.numericColumn(_xVar!);
+    final n = x.length < y.length ? x.length : y.length;
+    final med = percentile(List.of(y.sublist(0, n))..sort(), 50);
+    final pos = <double>[];
+    final neg = <double>[];
+    for (var i = 0; i < n; i++) {
+      if (y[i] >= med) {
+        pos.add(x[i]);
+      } else {
+        neg.add(x[i]);
+      }
+    }
+    final r = rocCurve(pos, neg);
+    _report = AnalysisReport(
+      title: 'ROC 曲线',
+      subtitle: '${_yVar!} (>=median) × ${_xVar!}',
+      sections: [
+        ReportSection(
+          heading: '曲线下面积',
+          tables: [
+            ReportTable(
+              headers: const ['AUC', 'SE', '95%CI下', '95%CI上', 'N+', 'N-'],
+              rows: [
+                [
+                  formatNum(r.auc),
+                  formatNum(r.se),
+                  formatNum(r.ciLower),
+                  formatNum(r.ciUpper),
+                  '${r.nPos}',
+                  '${r.nNeg}',
+                ],
+              ],
+            ),
+          ],
+          notes: 'AUC 0.5=无诊断力，0.7-0.8 中等，>0.8 较好。',
+        ),
+      ],
+    );
+  }
+
+  void _runTukey() {
+    final vName = _selectedVars.isNotEmpty ? _selectedVars.first : null;
+    if (vName == null || _groupVar == null) throw '请选择分析变量与分组变量';
+    final groups = _splitByGroup(vName, _groupVar!);
+    final labels = groups.keys.toList();
+    final anova = OnewayAnova.compute(
+      labels.map((k) => groups[k]!).toList(),
+      labels: labels,
+    );
+    final pairs = tukeyHsd(anova);
+    _report = AnalysisReport(
+      title: '事后两两比较',
+      subtitle: 'Tukey HSD · $vName by ${_groupVar!}',
+      sections: [
+        ReportSection(
+          heading: 'Pairwise',
+          tables: [
+            ReportTable(
+              headers: const ['组1', '组2', '均值差', 'p', '显著'],
+              rows: pairs
+                  .map((e) => [
+                        e.g1,
+                        e.g2,
+                        formatNum(e.meanDiff),
+                        formatP(e.p),
+                        e.significant ? 'Y' : '',
+                      ])
+                  .toList(),
+            ),
+          ],
+          notes: '整体 F=${formatNum(anova.f)}, p=${formatP(anova.p)}。',
+        ),
+      ],
+    );
+  }
