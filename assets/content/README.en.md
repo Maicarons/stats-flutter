@@ -4,6 +4,9 @@ A **project-based** statistical analysis suite inspired by [GNU PSPP](https://ww
 
 **GitHub**: https://github.com/Maicarons/stats-flutter
 
+**Docs site:** https://maicarons.github.io/stats-flutter/
+
+
 ## Navigation
 
 ```

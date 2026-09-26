@@ -1,10 +1,17 @@
 import { defineConfig } from 'vitepress'
 
+// GitHub Project Pages: https://<user>.github.io/<repo>/
+// base 必须是 /<repo>/，否则 CSS/JS 404（站点「无样式」的常见原因）
+const base = '/stats-flutter/'
+
 export default defineConfig({
-  title: 'StatLab',
-  description: '移动优先的统计分析套件 · 灵感来自 GNU PSPP',
+  title: 'Stats-flutter',
+  description: '工程化统计分析套件 · 灵感来自 GNU PSPP',
+  base,
   cleanUrls: true,
   lastUpdated: true,
+  // 构建产物相对 base，便于 Pages 托管
+  ignoreDeadLinks: true,
   locales: {
     root: {
       label: '简体中文',
@@ -14,7 +21,7 @@ export default defineConfig({
           { text: '指南', link: '/guide/getting-started' },
           { text: '功能', link: '/features/statistics' },
           { text: 'API', link: '/api/statkit' },
-          { text: '研究', link: '/research/pspp' },
+          { text: 'GitHub', link: 'https://github.com/Maicarons/stats-flutter' },
         ],
         sidebar: [
           {
@@ -58,7 +65,11 @@ export default defineConfig({
               modal: {
                 noResultsText: '没有找到结果',
                 resetButtonTitle: '清除',
-                footer: { selectText: '选择', navigateText: '切换', closeText: '关闭' },
+                footer: {
+                  selectText: '选择',
+                  navigateText: '切换',
+                  closeText: '关闭',
+                },
               },
             },
           },
@@ -74,6 +85,7 @@ export default defineConfig({
           { text: 'Guide', link: '/en/guide/getting-started' },
           { text: 'Features', link: '/en/features/statistics' },
           { text: 'API', link: '/en/api/statkit' },
+          { text: 'GitHub', link: 'https://github.com/Maicarons/stats-flutter' },
         ],
         sidebar: [
           {
@@ -90,16 +102,20 @@ export default defineConfig({
           {
             text: 'Features',
             items: [
-              { text: 'Statistical Procedures', link: '/en/features/statistics' },
+              {
+                text: 'Statistical Procedures',
+                link: '/en/features/statistics',
+              },
               { text: 'Settings & Theme', link: '/en/features/settings' },
-              { text: 'Internationalization', link: '/en/features/i18n' },
+              {
+                text: 'Internationalization',
+                link: '/en/features/i18n',
+              },
             ],
           },
           {
             text: 'Development',
-            items: [
-              { text: 'statkit API', link: '/en/api/statkit' },
-            ],
+            items: [{ text: 'statkit API', link: '/en/api/statkit' }],
           },
         ],
       },
@@ -107,7 +123,9 @@ export default defineConfig({
   },
   themeConfig: {
     logo: '/logo.svg',
-    socialLinks: [{ icon: 'github', link: 'https://github.com/statlab/stats-flutter' }],
+    socialLinks: [
+      { icon: 'github', link: 'https://github.com/Maicarons/stats-flutter' },
+    ],
     footer: {
       message: 'Released under the MIT License.',
       copyright: 'Inspired by GNU PSPP · Built with Flutter',

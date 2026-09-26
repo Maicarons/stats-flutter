@@ -124,12 +124,12 @@ class _AboutPageState extends State<AboutPage>
               ListTile(
                 leading: const Icon(Icons.book),
                 title: const Text('文档站'),
-                subtitle: const Text('docs/ · VitePress 中英双语'),
+                subtitle: const Text('https://maicarons.github.io/stats-flutter/'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('请在仓库 docs/ 目录运行 npm run docs:dev'),
+                      content: Text('文档站：https://maicarons.github.io/stats-flutter/'),
                     ),
                   );
                 },

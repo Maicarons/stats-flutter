@@ -4,6 +4,9 @@
 
 **GitHub**: https://github.com/Maicarons/stats-flutter
 
+**Docs site:** https://maicarons.github.io/stats-flutter/
+
+
 ## 界面
 
 ```
