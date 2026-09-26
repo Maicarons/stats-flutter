@@ -1,0 +1,12 @@
+name: statkit
+description: "纯 Dart 统计分析内核：描述统计、假设检验、回归、相关、非参数、信度、聚类。灵感来自 GNU PSPP。"
+version: 0.1.0
+homepage: https://github.com/statlab/statkit
+repository: https://github.com/statlab/statkit
+
+environment:
+  sdk: ^3.5.0
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0
