@@ -37,11 +37,15 @@ class AnalysisHub extends StatelessWidget {
     _Cat('补充过程', Icons.extension, [
       _Item('分层均值 MEANS', '分组均值表', 'means'),
       _Item('正态性检验', 'KS / 偏度峰度', 'normality'),
+      _Item('EXAMINE 全套', '百分位/极值/茎叶/箱线/Q-Q', 'examine_full'),
+      _Item('箱线图', '多组分布对比', 'boxplot'),
+      _Item('Q-Q 图', '正态分位图', 'qqplot'),
       _Item('ROC 曲线', 'AUC 与诊断', 'roc'),
       _Item('事后比较 Tukey', 'ANOVA 两两差异', 'tukey'),
     ]),
     _Cat('降维与分类', Icons.auto_graph, [
       _Item('主成分因子分析', 'PCA 载荷矩阵', 'factor_pca'),
+      _Item('因子分析（全）', 'varimax / KMO / Bartlett', 'factor_full'),
       _Item('逻辑回归', '二分类预测', 'logistic'),
     ]),
     _Cat('图表', Icons.bar_chart, [

@@ -16,3 +16,5 @@ export 'src/factor_logistic.dart';
 export 'src/weights.dart';
 export 'src/exact_tests.dart';
 export 'src/npar_extended.dart';
+export 'src/examine.dart';
+export 'src/factor_advanced.dart';

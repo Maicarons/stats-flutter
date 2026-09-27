@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0
+
+Exploratory analysis: EXAMINE suite, chart data, enhanced normality and factor analysis.
+
+### Added
+- examine()\ — descriptives, percentiles, extremes, box plot, stem-and-leaf, Q-Q, D'Agostino-Pearson
+- \percentiles\, \extremes\, \oxPlot\, \oxPlotGroups\, \stemAndLeaf- ormalQQPoints\ / ormalQQPointsStandardized- \errorBarsFromGroups- \dagostinoPearson\ normality test
+- Factor: \arimax\, \kmo\, \artlettSphericity\, \actorAnalyze
+### Tests
+- \statkit_v03_test.dart\ (examine, charts, KMO/Bartlett, varimax)
+
 ## 0.2.0
 
 Weighted estimation, SPLIT FILE helpers, complete NPAR set additions, and exact tests.
