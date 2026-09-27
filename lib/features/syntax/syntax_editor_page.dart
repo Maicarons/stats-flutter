@@ -63,11 +63,11 @@ LIST.
   Future<void> _saveSyntax() async {
     final dir = await getApplicationDocumentsDirectory();
     final path =
-        dir.path + '/syntax_' + DateTime.now().millisecondsSinceEpoch.toString() + '.sps';
+        '${dir.path}/syntax_${DateTime.now().millisecondsSinceEpoch}.sps';
     await File(path).writeAsString(_codeCtrl.text);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Saved: ' + path)),
+      SnackBar(content: Text('Saved: $path')),
     );
   }
 

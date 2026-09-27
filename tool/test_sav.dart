@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 import 'dart:io';
 import 'package:stats_flutter/core/io/sav_io.dart';
 
