@@ -3,7 +3,7 @@ description: >-
   Pure Dart statistics kernel: descriptives, hypothesis tests (t, ANOVA,
   chi-square), correlation, regression, nonparametric tests, reliability,
   clustering, ROC, PCA and logistic regression. Zero Flutter dependency.
-version: 0.3.0
+version: 0.4.0
 homepage: https://maicarons.github.io/stats-flutter/
 repository: https://github.com/Maicarons/stats-flutter/tree/main/packages/statkit
 issue_tracker: https://github.com/Maicarons/stats-flutter/issues

@@ -18,3 +18,7 @@ export 'src/exact_tests.dart';
 export 'src/npar_extended.dart';
 export 'src/examine.dart';
 export 'src/factor_advanced.dart';
+export 'src/logistic_full.dart';
+export 'src/glm.dart';
+export 'src/stepwise.dart';
+export 'src/ctables.dart';

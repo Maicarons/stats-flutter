@@ -47,6 +47,10 @@ class AnalysisHub extends StatelessWidget {
       _Item('主成分因子分析', 'PCA 载荷矩阵', 'factor_pca'),
       _Item('因子分析（全）', 'varimax / KMO / Bartlett', 'factor_full'),
       _Item('逻辑回归', '二分类预测', 'logistic'),
+      _Item('逻辑回归（全）', 'Wald/OR CI/分类表/HL', 'logistic_full'),
+      _Item('GLM 双元 ANOVA', 'A×B 固定效应', 'glm_two'),
+      _Item('逐步回归', '前进/后退筛选', 'stepwise'),
+      _Item('CTABLES 透视表', '行列汇总', 'ctables'),
     ]),
     _Cat('图表', Icons.bar_chart, [
       _Item('直方图', '分布形态', 'histogram'),

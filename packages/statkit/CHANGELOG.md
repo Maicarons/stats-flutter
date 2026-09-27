@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0
+
+Modeling enhancements.
+
+### Added
+- logisticRegressionFull: IRLS, Wald SE, OR 95% CI, classification table, Hosmer-Lemeshow
+- glmOneWay / glmTwoWay fixed-effects ANOVA (A, B, A×B, partial eta²)
+- stepwiseRegression (forward / backward / both)
+- crosstabSummary CTABLES-lite (count / mean / sum / sd / min / max / median)
+
+### Tests
+- statkit_v04_test.dart
+
 ## 0.3.0
 
 Exploratory analysis: EXAMINE suite, chart data, enhanced normality and factor analysis.
