@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.0
+
+Weighted estimation, SPLIT FILE helpers, complete NPAR set additions, and exact tests.
+
+### Added
+- `WeightedDescriptives` — frequency-weighted mean, variance, SE, CI
+- `WeightedTTest.oneSample` / `independent`
+- `WeightedCorrelation.pearson`
+- `weightedSimpleRegression`
+- `splitGroups()` / `applyWeights()` for SPLIT FILE & WEIGHT CASES semantics
+- `exactBinomial`, `exactSignTest`, `fisherExact` (2×2)
+- `NparExtended.binomial`, `kendallTau`, `mcnemar`, `cochranQ`, `medianTest`, `friedman`
+
+### Tests
+- New `statkit_v02_test.dart` covering weights, split, exact tests, NPAR extensions
+
 ## 0.1.0
 
 Initial release of `statkit`, a pure-Dart statistics kernel inspired by GNU PSPP.

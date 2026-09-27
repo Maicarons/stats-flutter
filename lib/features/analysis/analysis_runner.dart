@@ -342,6 +342,27 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     }
     if (map.isEmpty) throw '请至少选择一个变量';
     _report = reportDescriptives(map, datasetName: ds.name);
+    final wName = ds.weightVariable;
+    if (wName != null && wName.isNotEmpty) {
+      final w = ds.numericColumn(wName);
+      final notes = StringBuffer('WEIGHT CASES: ');
+      notes.writeln(wName);
+      for (final name in _selectedVars) {
+        final v = ds.numericColumn(name);
+        final ww = WeightedDescriptives.compute(v, w);
+        notes.writeln(
+            '$name  weighted mean=${ww.mean.toStringAsFixed(4)}  N_w=${ww.nWeighted}');
+      }
+      final prev = _report!;
+      _report = AnalysisReport(
+        title: prev.title,
+        subtitle: prev.subtitle,
+        sections: [
+          ...prev.sections,
+          ReportSection(heading: 'WEIGHT CASES', body: notes.toString()),
+        ],
+      );
+    }
   }
 
   void _runTTestOne() {
