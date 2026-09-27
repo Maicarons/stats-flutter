@@ -6,6 +6,7 @@ import '../../shared/dataset_store.dart';
 import '../syntax/syntax_editor_page.dart';
 import '../transform/transform_page.dart';
 import 'csv_io.dart';
+import 'sav_import.dart';
 import 'editable_data_grid.dart';
 import 'missing_values_dialog.dart';
 import 'value_labels_dialog.dart';
@@ -113,6 +114,7 @@ class _DataEditorPageState extends State<DataEditorPage>
                 itemBuilder: (_) => [
                   PopupMenuItem(value: 'demo', child: Text(l10n.loadDemo)),
                   PopupMenuItem(value: 'import', child: Text(l10n.importCsv)),
+                  const PopupMenuItem(value: 'import_sav', child: Text('导入 SPSS .sav…')),
                   PopupMenuItem(value: 'export', child: Text(l10n.exportCsv)),
                   PopupMenuItem(
                       value: 'addvar', child: Text(l10n.addVariable)),
@@ -168,6 +170,9 @@ class _DataEditorPageState extends State<DataEditorPage>
         break;
       case 'import':
         await importCsvInteractive(context);
+        break;
+      case 'import_sav':
+        await importSavInteractive(context);
         break;
       case 'export':
         await exportCsvInteractive(context);

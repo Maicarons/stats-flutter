@@ -1,13 +1,17 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:statkit/statkit.dart';
 
 import '../../core/models/dataset.dart';
 import '../../shared/dataset_store.dart';
+import '../../core/io/missing_aware.dart';
 import '../output/report_builder.dart';
+import '../output/report_export.dart';
 
 class AnalysisRunner extends StatefulWidget {
   final String analysisId;
@@ -55,6 +59,12 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               icon: const Icon(Icons.share),
               onPressed: () => Share.share(_report!.toPlainText(),
                   subject: _report!.title),
+            ),
+          if (_report != null)
+            IconButton(
+              tooltip: '导出 HTML',
+              icon: const Icon(Icons.html),
+              onPressed: () => _exportHtml(),
             ),
         ],
       ),
@@ -233,6 +243,24 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     );
   }
 
+  Future<void> _exportHtml() async {
+    final r = _report;
+    if (r == null) return;
+    final html = reportToHtml(r);
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final f = File('${dir.path}/${r.title.replaceAll(RegExp(r"\s+"), "_")}.html');
+      await f.writeAsString(html);
+      await Share.shareXFiles([XFile(f.path)], subject: r.title);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导出失败: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _run() async {
     setState(() {
       _busy = true;
@@ -362,7 +390,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   void _runDescriptives() {
     final map = <String, Descriptives>{};
     for (final name in _selectedVars) {
-      map[name] = Descriptives.compute(ds.numericColumn(name));
+      map[name] = Descriptives.compute(MissingAware.numeric(ds, name));
     }
     if (map.isEmpty) throw '请至少选择一个变量';
     _report = reportDescriptives(map, datasetName: ds.name);

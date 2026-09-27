@@ -1,6 +1,10 @@
 /// 语法编辑器（对应 PSPP Syntax Editor）
 library;
 
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/models/dataset.dart';
@@ -34,6 +38,37 @@ LIST.
     _codeCtrl.dispose();
     _outCtrl.dispose();
     super.dispose();
+  }
+
+
+  Future<void> _openSyntax() async {
+    final r = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['sps', 'txt'],
+      withData: true,
+    );
+    if (r == null || r.files.isEmpty) return;
+    final f = r.files.first;
+    String text;
+    if (f.bytes != null) {
+      text = String.fromCharCodes(f.bytes!);
+    } else if (f.path != null) {
+      text = await File(f.path!).readAsString();
+    } else {
+      return;
+    }
+    setState(() => _codeCtrl.text = text);
+  }
+
+  Future<void> _saveSyntax() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final path =
+        dir.path + '/syntax_' + DateTime.now().millisecondsSinceEpoch.toString() + '.sps';
+    await File(path).writeAsString(_codeCtrl.text);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved: ' + path)),
+    );
   }
 
   void _run() {
@@ -78,7 +113,17 @@ LIST.
         title: const Text('语法编辑器'),
         actions: [
           IconButton(
-            tooltip: '运行',
+            tooltip: 'Open .sps',
+            icon: const Icon(Icons.folder_open),
+            onPressed: _openSyntax,
+          ),
+          IconButton(
+            tooltip: 'Save .sps',
+            icon: const Icon(Icons.save_outlined),
+            onPressed: _saveSyntax,
+          ),
+          IconButton(
+            tooltip: 'Run',
             icon: const Icon(Icons.play_arrow),
             onPressed: _run,
           ),
