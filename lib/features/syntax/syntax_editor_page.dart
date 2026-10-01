@@ -1,4 +1,4 @@
-/// 语法编辑器（对应 PSPP Syntax Editor）
+/// 语法编辑器（带语法高亮）
 library;
 
 import 'dart:io';
@@ -6,10 +6,12 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/models/dataset.dart';
 import '../../core/syntax/syntax_engine.dart';
 import '../../shared/dataset_store.dart';
+import 'syntax_highlight_controller.dart';
 
 class SyntaxEditorPage extends StatefulWidget {
   const SyntaxEditorPage({super.key});
@@ -19,8 +21,17 @@ class SyntaxEditorPage extends StatefulWidget {
 }
 
 class _SyntaxEditorPageState extends State<SyntaxEditorPage> {
-  final _codeCtrl = TextEditingController(text: '''
-* Stats-flutter 语法示例
+  late final SyntaxHighlightController _codeCtrl;
+  final _outCtrl = TextEditingController();
+  bool _ran = false;
+
+  Dataset get ds => datasetStore.data;
+
+  @override
+  void initState() {
+    super.initState();
+    _codeCtrl = SyntaxHighlightController(text: '''
+* Stats-flutter syntax demo
 DESCRIPTIVES pre post hours.
 FREQUENCIES gender method.
 T-TEST /TESTVAL=60 /VARIABLES=post.
@@ -28,10 +39,7 @@ CORRELATIONS /VARIABLES=pre post hours.
 COMPUTE gain = post - pre.
 LIST.
 ''');
-  final _outCtrl = TextEditingController();
-  bool _ran = false;
-
-  Dataset get ds => datasetStore.data;
+  }
 
   @override
   void dispose() {
@@ -67,11 +75,14 @@ LIST.
     await File(path).writeAsString(_codeCtrl.text);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Saved: $path')),
+      SnackBar(
+          content: Text(
+              AppLocalizations.of(context).savedTo(path))),
     );
   }
 
   void _run() {
+    final l10n = AppLocalizations.of(context);
     final results = SyntaxExecutor.run(_codeCtrl.text, ds);
     final buf = StringBuffer();
     var ok = 0, fail = 0;
@@ -86,7 +97,7 @@ LIST.
       }
     }
     buf.writeln('═' * 40);
-    buf.writeln('完成: $ok 成功, $fail 失败');
+    buf.writeln(l10n.syntaxDone(ok, fail));
     setState(() {
       _outCtrl.text = buf.toString();
       _ran = true;
@@ -107,23 +118,24 @@ LIST.
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('语法编辑器'),
+        title: Text(l10n.syntaxTitle),
         actions: [
           IconButton(
-            tooltip: 'Open .sps',
+            tooltip: l10n.openSps,
             icon: const Icon(Icons.folder_open),
             onPressed: _openSyntax,
           ),
           IconButton(
-            tooltip: 'Save .sps',
+            tooltip: l10n.saveSps,
             icon: const Icon(Icons.save_outlined),
             onPressed: _saveSyntax,
           ),
           IconButton(
-            tooltip: 'Run',
+            tooltip: l10n.run,
             icon: const Icon(Icons.play_arrow),
             onPressed: _run,
           ),
@@ -179,10 +191,10 @@ LIST.
                     fontSize: 13,
                     height: 1.45,
                   ),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.all(12),
-                    hintText: '输入 PSPP/SPSS 语法，句点结尾…',
+                    contentPadding: const EdgeInsets.all(12),
+                    hintText: l10n.syntaxHint,
                   ),
                 ),
               ),
@@ -214,7 +226,7 @@ LIST.
                       )
                     : Center(
                         child: Text(
-                          '输出将显示在这里',
+                          l10n.outputHere,
                           style: TextStyle(color: scheme.outline),
                         ),
                       ),
@@ -226,7 +238,7 @@ LIST.
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _run,
         icon: const Icon(Icons.play_arrow),
-        label: const Text('运行语法'),
+        label: Text(l10n.runSyntax),
       ),
     );
   }

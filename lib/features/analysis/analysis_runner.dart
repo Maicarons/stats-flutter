@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:statkit/statkit.dart';
+import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/models/dataset.dart';
 import '../../shared/dataset_store.dart';
@@ -35,6 +36,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   bool _busy = false;
 
   Dataset get ds => datasetStore.data;
+  AppLocalizations get l10n => AppLocalizations.of(context);
 
   List<String> get _numericVars => ds.variables
       .where((v) => v.isNumeric)
@@ -49,20 +51,21 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
         actions: [
           if (_report != null)
             IconButton(
-              tooltip: '分享报告',
+              tooltip: l10n.shareReport,
               icon: const Icon(Icons.share),
               onPressed: () => Share.share(_report!.toPlainText(),
                   subject: _report!.title),
             ),
           if (_report != null)
             IconButton(
-              tooltip: '导出 HTML',
+              tooltip: l10n.exportHtml,
               icon: const Icon(Icons.html),
               onPressed: () => _exportHtml(),
             ),
@@ -82,7 +85,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.play_arrow),
-            label: Text(_busy ? '计算中…' : '运行分析'),
+            label: Text(_busy ? l10n.running : l10n.runAnalysis),
           ),
           if (_report != null) ...[
             const SizedBox(height: 20),
@@ -98,6 +101,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   }
 
   Widget _buildParams() {
+    final l10n = AppLocalizations.of(context);
     final id = widget.analysisId;
     final multiVars = {
       'descriptives',
@@ -123,7 +127,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('分析参数',
+            Text(l10n.params,
                 style: Theme.of(context)
                     .textTheme
                     .titleSmall
@@ -131,14 +135,14 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
             const SizedBox(height: 12),
             if (multiVars.contains(id))
               _VarPicker(
-                label: '变量（可多选）',
+                label: l10n.selectVariables,
                 names: _numericVars,
                 selected: _selectedVars,
                 onChanged: (v) => setState(() {}),
               ),
             if (needGroup.contains(id)) ...[
               _VarPicker(
-                label: '分析变量',
+                label: l10n.analysisVariable,
                 names: _numericVars,
                 selected: _selectedVars.take(1).toList(),
                 single: true,
@@ -146,7 +150,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ),
               const SizedBox(height: 12),
               _Dropdown(
-                label: '分组变量',
+                label: l10n.groupVariable,
                 value: _groupVar,
                 items: ds.variables.map((v) => v.name).toList(),
                 onChanged: (v) => setState(() => _groupVar = v),
@@ -154,7 +158,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
             ],
             if (needPair.contains(id))
               _VarPicker(
-                label: '配对变量（选 2 个）',
+                label: l10n.pairVariables,
                 names: _numericVars,
                 selected: _selectedVars,
                 max: 2,
@@ -162,7 +166,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ),
             if (id == 'ttest_one') ...[
               _VarPicker(
-                label: '检验变量',
+                label: l10n.analysisVariable,
                 names: _numericVars,
                 selected: _selectedVars.take(1).toList(),
                 single: true,
@@ -171,20 +175,20 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               const SizedBox(height: 12),
               TextField(
                 controller: _muCtrl,
-                decoration: const InputDecoration(labelText: '检验值 μ₀'),
+                decoration: InputDecoration(labelText: l10n.testValue),
                 keyboardType: TextInputType.number,
               ),
             ],
             if (needXY.contains(id)) ...[
               _Dropdown(
-                label: id == 'regression' ? '因变量 Y' : '变量 Y',
+                label: id == 'regression' ? l10n.dependentVar : l10n.varY,
                 value: _yVar,
                 items: _numericVars,
                 onChanged: (v) => setState(() => _yVar = v),
               ),
               const SizedBox(height: 12),
               _Dropdown(
-                label: id == 'regression' ? '自变量 X' : '变量 X',
+                label: id == 'regression' ? l10n.independentVar : l10n.varX,
                 value: _xVar,
                 items: _numericVars,
                 onChanged: (v) => setState(() => _xVar = v),
@@ -193,7 +197,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Text('簇数 k'),
+                    Text(l10n.clusterCount),
                     Expanded(
                       child: Slider(
                         value: _kClusters.toDouble(),
@@ -212,14 +216,14 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
             ],
             if (id == 'crosstabs') ...[
               _Dropdown(
-                label: '行变量',
+                label: l10n.rowVariable,
                 value: _yVar,
                 items: ds.variables.map((v) => v.name).toList(),
                 onChanged: (v) => setState(() => _yVar = v),
               ),
               const SizedBox(height: 12),
               _Dropdown(
-                label: '列变量',
+                label: l10n.columnVariable,
                 value: _xVar,
                 items: ds.variables.map((v) => v.name).toList(),
                 onChanged: (v) => setState(() => _xVar = v),
@@ -255,7 +259,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导出失败: $e')),
+          SnackBar(content: Text(l10n.exportFailed(e.toString()))),
         );
       }
     }
@@ -368,19 +372,19 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         default:
           _report = AnalysisReport(
             title: widget.title,
-            subtitle: '尚未实现',
-            sections: const [
+            subtitle: l10n.notImplementedTitle,
+            sections: [
               ReportSection(
-                  heading: '提示', body: '该分析正在开发中，可先使用描述统计与 t 检验。'),
+                  heading: l10n.hintTitle, body: l10n.notImplemented),
             ],
           );
       }
     } catch (e) {
       _report = AnalysisReport(
         title: widget.title,
-        subtitle: '错误',
+        subtitle: l10n.error,
         sections: [
-          ReportSection(heading: '运行失败', body: e.toString()),
+          ReportSection(heading: l10n.failed, body: e.toString()),
         ],
       );
     }
@@ -392,8 +396,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     for (final name in _selectedVars) {
       map[name] = Descriptives.compute(MissingAware.numeric(ds, name));
     }
-    if (map.isEmpty) throw '请至少选择一个变量';
-    _report = reportDescriptives(map, datasetName: ds.name);
+    if (map.isEmpty) throw l10n.pleaseSelectVars;
+    _report = reportDescriptives(l10n, map, datasetName: ds.name);
     final wName = ds.weightVariable;
     if (wName != null && wName.isNotEmpty) {
       final w = ds.numericColumn(wName);
@@ -419,45 +423,52 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runTTestOne() {
     final name = _selectedVars.isNotEmpty ? _selectedVars.first : null;
-    if (name == null) throw '请选择检验变量';
+    if (name == null) throw l10n.pleaseSelectTestVar;
     final mu = double.tryParse(_muCtrl.text) ?? 0;
     final r = TTest.oneSample(ds.numericColumn(name), mu0: mu);
-    _report = reportTTest(r, label: '单样本 $name vs μ=$mu');
+    _report = reportTTest(
+        l10n, r,
+        label: l10n.oneSampleLabel(name, mu.toString()));
   }
 
   void _runTTestInd() {
     final vName = _selectedVars.isNotEmpty ? _selectedVars.first : null;
-    if (vName == null || _groupVar == null) throw '请选择分析变量与分组变量';
+    if (vName == null || _groupVar == null) throw l10n.pleaseSelectGroup;
     final groups = _splitByGroup(vName, _groupVar!);
-    if (groups.length < 2) throw '分组变量至少需要 2 组';
+    if (groups.length < 2) throw l10n.needTwoGroups;
     final keys = groups.keys.take(2).toList();
     final r = TTest.independentSamples(groups[keys[0]]!, groups[keys[1]]!);
-    _report = reportTTest(r, label: '$vName by $_groupVar (${keys[0]} vs ${keys[1]})');
+    _report = reportTTest(
+        l10n, r,
+        label: '$vName by $_groupVar (${keys[0]} vs ${keys[1]})');
   }
 
   void _runTTestPaired() {
-    if (_selectedVars.length < 2) throw '请选择 2 个配对变量';
+    if (_selectedVars.length < 2) throw l10n.pleaseSelectPaired;
     final a = ds.numericColumn(_selectedVars[0]);
     final b = ds.numericColumn(_selectedVars[1]);
     final n = a.length < b.length ? a.length : b.length;
     final r = TTest.paired(a.sublist(0, n), b.sublist(0, n));
-    _report = reportTTest(r, label: '配对 ${_selectedVars[0]} vs ${_selectedVars[1]}');
+    _report = reportTTest(
+        l10n, r,
+        label: l10n.pairedLabel(_selectedVars[0], _selectedVars[1]));
   }
 
   void _runAnova() {
     final vName = _selectedVars.isNotEmpty ? _selectedVars.first : null;
-    if (vName == null || _groupVar == null) throw '请选择分析变量与分组变量';
+    if (vName == null || _groupVar == null) throw l10n.pleaseSelectGroup;
     final groups = _splitByGroup(vName, _groupVar!);
     final labels = groups.keys.toList();
     final r = OnewayAnova.compute(
       labels.map((k) => groups[k]!).toList(),
       labels: labels,
     );
-    _report = reportAnova(r, title: '单因素 ANOVA：$vName by $_groupVar');
+    _report = reportAnova(l10n, r,
+        title: l10n.anovaOfLabel(vName, _groupVar!));
   }
 
   void _runCorrelation() {
-    if (_selectedVars.length < 2) throw '请至少选择 2 个变量';
+    if (_selectedVars.length < 2) throw l10n.needTwoVars;
     final cols = {
       for (final n in _selectedVars) n: ds.numericColumn(n),
     };
@@ -471,22 +482,22 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         matrix[a]![b] = fn(cols[a]!, cols[b]!);
       }
     }
-    _report = reportCorrelation(matrix, method: _corMethod);
+    _report = reportCorrelation(l10n, matrix, method: _corMethod);
   }
 
   void _runRegression() {
-    if (_yVar == null || _xVar == null) throw '请选择 Y 与 X';
+    if (_yVar == null || _xVar == null) throw l10n.pleaseSelectXY;
     final y = ds.numericColumn(_yVar!);
     final x = ds.numericColumn(_xVar!);
     final n = x.length < y.length ? x.length : y.length;
     final r = Regression.simple(
         x.sublist(0, n), y.sublist(0, n),
         xName: _xVar!, yName: _yVar!);
-    _report = reportRegression(r, yName: _yVar!);
+    _report = reportRegression(l10n, r, yName: _yVar!);
   }
 
   void _runCrosstabs() {
-    if (_yVar == null || _xVar == null) throw '请选择行、列变量';
+    if (_yVar == null || _xVar == null) throw l10n.pleaseSelectRowCol;
     final rowVals = ds.rawColumn(_yVar!);
     final colVals = ds.rawColumn(_xVar!);
     final rowCats = <Object>{};
@@ -509,11 +520,12 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
       table[rowList.indexOf(a)][colList.indexOf(b)] += 1;
     }
     final r = ChiSquareTest.independence(table);
-    _report = reportChiSquare(r, title: '交叉表卡方：$_yVar × $_xVar');
+    _report = reportChiSquare(l10n, r,
+        title: '${l10n.chiSquareTitle}: ${_yVar!} × ${_xVar!}');
   }
 
   void _runKmeans() {
-    if (_yVar == null || _xVar == null) throw '请选择 2 个变量';
+    if (_yVar == null || _xVar == null) throw l10n.pleaseSelectTwoVars;
     final x = ds.numericColumn(_xVar!);
     final y = ds.numericColumn(_yVar!);
     final n = x.length < y.length ? x.length : y.length;
@@ -531,14 +543,15 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
       ]);
     }
     _report = AnalysisReport(
-      title: 'K-Means 聚类',
-      subtitle: 'k=$_kClusters · ${r.iterations} 次迭代 · inertia=${formatNum(r.inertia)}',
+      title: l10n.kmeansTitle,
+      subtitle: l10n.kmeansSubtitle(
+          _kClusters, r.iterations, formatNum(r.inertia)),
       sections: [
         ReportSection(
-          heading: '最终聚类中心',
+          heading: l10n.finalClusterCenters,
           tables: [
             ReportTable(
-              headers: const ['簇', _xLabel, _yLabel, '个案数'],
+              headers: [l10n.cluster, 'X', 'Y', l10n.caseCount],
               rows: rows,
             ),
           ],
@@ -551,16 +564,16 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runMannWhitney() {
     final vName = _selectedVars.isNotEmpty ? _selectedVars.first : null;
-    if (vName == null || _groupVar == null) throw '请选择分析变量与分组变量';
+    if (vName == null || _groupVar == null) throw l10n.pleaseSelectGroup;
     final groups = _splitByGroup(vName, _groupVar!);
     final keys = groups.keys.take(2).toList();
-    if (keys.length < 2) throw '至少两组';
+    if (keys.length < 2) throw l10n.atLeastTwoGroups;
     final r = Nonparametric.mannWhitney(groups[keys[0]]!, groups[keys[1]]!);
     _report = _nonparamReport(r);
   }
 
   void _runWilcoxon() {
-    if (_selectedVars.length < 2) throw '请选择 2 个变量';
+    if (_selectedVars.length < 2) throw l10n.pleaseSelectTwoVars;
     final a = ds.numericColumn(_selectedVars[0]);
     final b = ds.numericColumn(_selectedVars[1]);
     final n = a.length < b.length ? a.length : b.length;
@@ -570,34 +583,37 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runKruskal() {
     final vName = _selectedVars.isNotEmpty ? _selectedVars.first : null;
-    if (vName == null || _groupVar == null) throw '请选择分析变量与分组变量';
+    if (vName == null || _groupVar == null) throw l10n.pleaseSelectGroup;
     final groups = _splitByGroup(vName, _groupVar!);
     final r = Nonparametric.kruskalWallis(groups.values.toList());
     _report = _nonparamReport(r);
   }
 
   void _runReliability() {
-    if (_selectedVars.length < 2) throw '请至少选择 2 个题目变量';
+    if (_selectedVars.length < 2) throw l10n.pleaseSelectItems;
     final cols = _selectedVars.map((n) => ds.numericColumn(n)).toList();
     final n = cols.map((c) => c.length).reduce((a, b) => a < b ? a : b);
     final items = cols.map((c) => c.sublist(0, n)).toList();
     final r = Reliability.cronbachAlpha(items, names: _selectedVars);
     _report = AnalysisReport(
-      title: '信度分析',
+      title: l10n.reliabilityTitle,
       subtitle: 'Cronbach α',
       sections: [
         ReportSection(
-          heading: '可靠性统计量',
+          heading: l10n.reliabilityStats,
           tables: [
             ReportTable(
-              headers: const ['Cronbach α', '标准化 α', '项数', 'N'],
+              headers: ['Cronbach α', l10n.stdAlpha, l10n.nItemsWord, 'N'],
               rows: [
                 [formatNum(r.alpha), formatNum(r.standardizedAlpha), '${r.nItems}', '${r.nCases}'],
               ],
             ),
             ReportTable(
-              caption: '项统计量',
-              headers: const ['项', '均值', '方差', '校正项总相关', '删除项后 α'],
+              caption: l10n.itemStats,
+              headers: [
+                l10n.itemWord, l10n.mean, l10n.variance,
+                l10n.itemTotalCorr, l10n.alphaIfDeleted,
+              ],
               rows: r.items
                   .map((e) => [
                         e.name,
@@ -616,18 +632,18 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runHistogram() {
     final name = _selectedVars.isNotEmpty ? _selectedVars.first : null;
-    if (name == null) throw '请选择变量';
+    if (name == null) throw l10n.pleaseSelectVar;
     final values = ds.numericColumn(name);
     final bins = Frequencies.histogramBins(values);
     _report = AnalysisReport(
-      title: '直方图',
+      title: l10n.histogramTitle,
       subtitle: name,
       sections: [
         ReportSection(
-          heading: '分箱频数',
+          heading: l10n.binFreq,
           tables: [
             ReportTable(
-              headers: const ['下限', '上限', '频数'],
+              headers: [l10n.lower, l10n.upper, l10n.freq],
               rows: bins
                   .map((b) =>
                       [formatNum(b.start), formatNum(b.end), '${b.count}'])
@@ -677,7 +693,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   }
 
   void _runScatter() {
-    if (_xVar == null || _yVar == null) throw '请选择 X/Y';
+    if (_xVar == null || _yVar == null) throw l10n.pleaseSelectXYShort;
     final x = ds.numericColumn(_xVar!);
     final y = ds.numericColumn(_yVar!);
     final n = x.length < y.length ? x.length : y.length;
@@ -686,14 +702,14 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final fit = Regression.simple(x.sublist(0, n), y.sublist(0, n),
         xName: _xVar!, yName: _yVar!);
     _report = AnalysisReport(
-      title: '散点图',
+      title: l10n.scatterTitle,
       subtitle: '$_yVar ~ $_xVar',
       sections: [
         ReportSection(
-          heading: '相关与拟合',
+          heading: l10n.corrFit,
           tables: [
             ReportTable(
-              headers: const ['r', 'p', 'R²', '斜率', '截距'],
+              headers: ['r', 'p', 'R²', l10n.slope, l10n.intercept],
               rows: [
                 [
                   formatNum(r.r),
@@ -733,18 +749,21 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runBar() {
     final name = _selectedVars.isNotEmpty ? _selectedVars.first : null;
-    if (name == null) throw '请选择变量';
+    if (name == null) throw l10n.pleaseSelectVar;
     final raw = ds.rawColumn(name);
     final freq = Frequencies.compute(raw, variableName: name);
     _report = AnalysisReport(
-      title: '条形图 / 频率',
+      title: l10n.barTitle,
       subtitle: name,
       sections: [
         ReportSection(
-          heading: '频率表',
+          heading: l10n.freqTable,
           tables: [
             ReportTable(
-              headers: const ['类别', '频数', '百分比', '有效百分比', '累计%'],
+              headers: [
+                l10n.category, l10n.freq, l10n.percent,
+                l10n.validPercent, l10n.cumulativePercent,
+              ],
               rows: freq.rows
                   .map((e) => [
                         e.label,
@@ -756,7 +775,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                   .toList(),
             ),
           ],
-          notes: '有效 N=${freq.nValid}  缺失=${freq.nMissing}',
+          notes: l10n.freqNote(freq.nValid, freq.nMissing),
         ),
       ],
     );
@@ -803,18 +822,21 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runMeans() {
     final vName = _selectedVars.isNotEmpty ? _selectedVars.first : null;
-    if (vName == null || _groupVar == null) throw '请选择分析变量与分组变量';
+    if (vName == null || _groupVar == null) throw l10n.pleaseSelectGroup;
     final groups = _splitByGroup(vName, _groupVar!);
     final r = meansTable(groups, layerVar: _groupVar!, valueVar: vName);
     _report = AnalysisReport(
-      title: '分层均值',
+      title: l10n.meansTitle,
       subtitle: '$vName by ${_groupVar!}',
       sections: [
         ReportSection(
           heading: 'Means',
           tables: [
             ReportTable(
-              headers: const ['组', 'N', '均值', '标准差', '标准误', '中位数', '最小', '最大'],
+              headers: [
+                l10n.group, 'N', l10n.mean, l10n.stdDev, l10n.se,
+                l10n.median, l10n.minWord, l10n.maxWord,
+              ],
               rows: [
                 for (final g in r.rows)
                   [
@@ -828,7 +850,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                     formatNum(g.max),
                   ],
                 [
-                  '总计',
+                  l10n.total,
                   '${r.total.n}',
                   formatNum(r.total.mean),
                   formatNum(r.total.sd),
@@ -847,18 +869,21 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runNormality() {
     final name = _selectedVars.isNotEmpty ? _selectedVars.first : null;
-    if (name == null) throw '请选择变量';
+    if (name == null) throw l10n.pleaseSelectVar;
     final v = ds.numericColumn(name);
     final r = normalityTest(v);
     _report = AnalysisReport(
-      title: '正态性检验',
+      title: l10n.normalityTitle,
       subtitle: name,
       sections: [
         ReportSection(
-          heading: '结果',
+          heading: l10n.resultWord,
           tables: [
             ReportTable(
-              headers: const ['检验', '统计量', 'p', '偏度', '峰度', '判断'],
+              headers: [
+                l10n.testWord, l10n.statistic, 'p',
+                l10n.skewness, l10n.kurtosis, l10n.verdictWord,
+              ],
               rows: [
                 [
                   r.test,
@@ -866,19 +891,19 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                   formatP(r.p),
                   formatNum(r.skewness),
                   formatNum(r.kurtosis),
-                  r.looksNormal ? '近似正态' : '偏离正态',
+                  r.looksNormal ? l10n.looksNormal : l10n.deviatesNormal,
                 ],
               ],
             ),
           ],
-          notes: 'p>0.05 且 |偏度|<1.5、|峰度|<3 时可近似认为正态。',
+          notes: l10n.normalityNote,
         ),
       ],
     );
   }
 
   void _runRoc() {
-    if (_yVar == null || _xVar == null) throw '请选择状态变量与检验变量';
+    if (_yVar == null || _xVar == null) throw l10n.pleaseSelectStateVar;
     final y = ds.numericColumn(_yVar!);
     final x = ds.numericColumn(_xVar!);
     final n = x.length < y.length ? x.length : y.length;
@@ -894,14 +919,14 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     }
     final r = rocCurve(pos, neg);
     _report = AnalysisReport(
-      title: 'ROC 曲线',
+      title: l10n.rocTitle,
       subtitle: '${_yVar!} (>=median) × ${_xVar!}',
       sections: [
         ReportSection(
-          heading: '曲线下面积',
+          heading: l10n.aucSection,
           tables: [
             ReportTable(
-              headers: const ['AUC', 'SE', '95%CI下', '95%CI上', 'N+', 'N-'],
+              headers: ['AUC', 'SE', l10n.ciLower, l10n.ciUpper, 'N+', 'N-'],
               rows: [
                 [
                   formatNum(r.auc),
@@ -914,7 +939,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
             ),
           ],
-          notes: 'AUC 0.5=无诊断力，0.7-0.8 中等，>0.8 较好。',
+          notes: l10n.rocNote,
         ),
       ],
     );
@@ -922,7 +947,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runTukey() {
     final vName = _selectedVars.isNotEmpty ? _selectedVars.first : null;
-    if (vName == null || _groupVar == null) throw '请选择分析变量与分组变量';
+    if (vName == null || _groupVar == null) throw l10n.pleaseSelectGroup;
     final groups = _splitByGroup(vName, _groupVar!);
     final labels = groups.keys.toList();
     final anova = OnewayAnova.compute(
@@ -931,14 +956,14 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     );
     final pairs = tukeyHsd(anova);
     _report = AnalysisReport(
-      title: '事后两两比较',
+      title: l10n.tukeyTitle,
       subtitle: 'Tukey HSD · $vName by ${_groupVar!}',
       sections: [
         ReportSection(
-          heading: 'Pairwise',
+          heading: l10n.pairwise,
           tables: [
             ReportTable(
-              headers: const ['组1', '组2', '均值差', 'p', '显著'],
+              headers: [l10n.group1, l10n.group2, l10n.meanDiff, 'p', l10n.significant],
               rows: pairs
                   .map((e) => [
                         e.g1,
@@ -950,7 +975,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                   .toList(),
             ),
           ],
-          notes: '整体 F=${formatNum(anova.f)}, p=${formatP(anova.p)}。',
+          notes: l10n.tukeyNote(formatNum(anova.f), formatP(anova.p)),
         ),
       ],
     );
@@ -958,18 +983,18 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
 
   void _runFactor() {
-    if (_selectedVars.length < 2) throw '请至少选择 2 个变量';
+    if (_selectedVars.length < 2) throw l10n.needTwoVars;
     final cols = [for (final n in _selectedVars) ds.numericColumn(n)];
     final r = factorPca(cols, names: _selectedVars, maxFactors: 3);
     _report = AnalysisReport(
-      title: '主成分因子分析',
+      title: l10n.factorPcaTitle,
       subtitle: 'PCA · ${_selectedVars.join(", ")}',
       sections: [
         ReportSection(
-          heading: '特征值与方差',
+          heading: l10n.eigenSection,
           tables: [
             ReportTable(
-              headers: const ['成分', '特征值', '方差贡献率', '累计'],
+              headers: [l10n.component, l10n.eigenvalue, l10n.varExplained, l10n.cumulative],
               rows: [
                 for (var i = 0; i < r.eigenvalues.length; i++)
                   [
@@ -981,9 +1006,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
             ),
             ReportTable(
-              caption: '载荷矩阵',
+              caption: l10n.loadingsMatrix,
               headers: [
-                '变量',
+                l10n.reportVar,
                 for (var i = 0; i < r.eigenvalues.length; i++) 'PC${i + 1}'
               ],
               rows: [
@@ -995,14 +1020,14 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
             ),
           ],
-          notes: '总方差解释率 ${formatNum(r.totalVarianceExplained)}。采用相关矩阵主成分法（未旋转）。',
+          notes: l10n.factorPcaNote(formatNum(r.totalVarianceExplained)),
         ),
       ],
     );
   }
 
   void _runLogistic() {
-    if (_yVar == null || _xVar == null) throw '请选择因变量与自变量';
+    if (_yVar == null || _xVar == null) throw l10n.pleaseSelectDepVar;
     final y = ds.numericColumn(_yVar!);
     final x = ds.numericColumn(_xVar!);
     final n = x.length < y.length ? x.length : y.length;
@@ -1013,14 +1038,14 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     ];
     final r = logisticRegression(xs, ys, names: [_xVar!]);
     _report = AnalysisReport(
-      title: '逻辑回归',
+      title: l10n.logisticTitle,
       subtitle: '${_yVar!} (>=median) ~ ${_xVar!}',
       sections: [
         ReportSection(
-          heading: '模型',
+          heading: l10n.modelWord,
           tables: [
             ReportTable(
-              headers: const ['项', 'B (log-odds)', 'OR=exp(B)'],
+              headers: [l10n.term, 'B (log-odds)', l10n.orExpB],
               rows: [
                 for (var i = 0; i < r.coefficients.length; i++)
                   [
@@ -1031,7 +1056,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
             ),
             ReportTable(
-              headers: const ['伪R² (McFadden)', '正确率', '迭代'],
+              headers: [l10n.pseudoR2Mcfadden, l10n.accuracy, l10n.iterations],
               rows: [
                 [
                   formatNum(r.pseudoR2),
@@ -1041,7 +1066,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
             ),
           ],
-          notes: '采用梯度下降拟合，样本量建议 ≥ 30。OR>1 表示风险增加。',
+          notes: l10n.logisticNote,
         ),
       ],
     );
@@ -1050,17 +1075,17 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runExamine() {
     final name = _selectedVars.isNotEmpty ? _selectedVars.first : null;
-    if (name == null) throw '请选择变量';
+    if (name == null) throw l10n.pleaseSelectVar;
     final r = examine(ds.numericColumn(name));
     _report = AnalysisReport(
       title: 'EXAMINE',
       subtitle: name,
       sections: [
         ReportSection(
-          heading: '描述',
+          heading: l10n.examineDesc,
           tables: [
             ReportTable(
-              headers: const ['N', '均值', 'SD', '中位数', 'Q1', 'Q3', '偏度', '峰度'],
+              headers: ['N', l10n.mean, 'SD', l10n.median, 'Q1', 'Q3', l10n.skewness, l10n.kurtosis],
               rows: [
                 [
                   '${r.desc.n}',
@@ -1077,21 +1102,22 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
           ],
         ),
         ReportSection(
-          heading: '百分位',
+          heading: l10n.percentileWord,
           tables: [
             ReportTable(
-              headers: const ['P', '值'],
+              headers: ['P', l10n.valueWord],
               rows: [for (final p in r.percentiles.rows) ['${p.p}', formatNum(p.value)]],
             ),
           ],
-          notes: '5% 截尾均值=${formatNum(r.percentiles.trimmedMean5)}  '
-              'Winsorized=${formatNum(r.percentiles.winsorizedMean5)}',
+          notes: l10n.trimmedNote(
+              formatNum(r.percentiles.trimmedMean5),
+              formatNum(r.percentiles.winsorizedMean5)),
         ),
         ReportSection(
-          heading: '极值',
+          heading: l10n.extremes,
           tables: [
             ReportTable(
-              headers: const ['#', '最小', '最大'],
+              headers: ['#', l10n.lowest, l10n.highest],
               rows: List.generate(
                 r.extremes.lowest.length,
                 (i) => [
@@ -1104,10 +1130,10 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
           ],
         ),
         ReportSection(
-          heading: '箱线',
+          heading: l10n.boxSection,
           tables: [
             ReportTable(
-              headers: const ['下须', 'Q1', '中位', 'Q3', '上须', '离群数'],
+              headers: [l10n.lowerWhisker, 'Q1', l10n.medianShort, 'Q3', l10n.upperWhisker, l10n.outliers],
               rows: [
                 [
                   formatNum(r.box.lowerWhisker),
@@ -1122,14 +1148,14 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
           ],
         ),
         ReportSection(
-          heading: '茎叶图',
+          heading: l10n.stemLeaf,
           body: '${r.stemLeaf.header}\n${r.stemLeaf.rows.map((e) => '${e.stem} | ${e.leaf}  (${e.frequency})').join('\n')}',
         ),
         ReportSection(
-          heading: '正态性 (D\'Agostino-Pearson)',
+          heading: l10n.normalityDap,
           tables: [
             ReportTable(
-              headers: const ['Z偏度', 'Z峰度', 'χ²', 'df', 'p', '判断'],
+              headers: [l10n.zSkew, l10n.zKurt, 'χ²', 'df', 'p', l10n.verdictWord],
               rows: [
                 [
                   formatNum(r.normality.zSkew),
@@ -1137,7 +1163,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                   formatNum(r.normality.chiSquare),
                   '2',
                   formatP(r.normality.p),
-                  r.normality.looksNormal ? '近似正态' : '偏离正态',
+                  r.normality.looksNormal ? l10n.looksNormal : l10n.deviatesNormal,
                 ],
               ],
             ),
@@ -1164,7 +1190,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runBoxplot() {
     final name = _selectedVars.isNotEmpty ? _selectedVars.first : null;
-    if (name == null) throw '请选择变量';
+    if (name == null) throw l10n.pleaseSelectVar;
     List<BoxPlotData> boxes;
     List<String> labels;
     if (_groupVar != null) {
@@ -1176,14 +1202,14 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
       boxes = [boxPlot(ds.numericColumn(name))];
     }
     _report = AnalysisReport(
-      title: '箱线图',
+      title: l10n.boxplotTitle,
       subtitle: name,
       sections: [
         ReportSection(
-          heading: '分布摘要',
+          heading: l10n.distSummary,
           tables: [
             ReportTable(
-              headers: const ['组', 'N', '中位数', 'Q1', 'Q3', 'IQR', '离群'],
+              headers: [l10n.group, 'N', l10n.median, 'Q1', 'Q3', 'IQR', l10n.outliers],
               rows: [
                 for (var i = 0; i < boxes.length; i++)
                   [
@@ -1206,15 +1232,15 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runQQ() {
     final name = _selectedVars.isNotEmpty ? _selectedVars.first : null;
-    if (name == null) throw '请选择变量';
+    if (name == null) throw l10n.pleaseSelectVar;
     final pts = normalQQPointsStandardized(ds.numericColumn(name));
     _report = AnalysisReport(
-      title: 'Q-Q 图',
+      title: l10n.qqTitle,
       subtitle: name,
       sections: [
         ReportSection(
-          heading: '正态分位对照',
-          body: '点数 ${pts.length}；点越贴近 y=x 直线越接近正态。',
+          heading: l10n.qqSection,
+          body: l10n.qqNote(pts.length),
         ),
       ],
     );
@@ -1234,16 +1260,16 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   }
 
   void _runFactorFull() {
-    if (_selectedVars.length < 2) throw '请至少选择 2 个变量';
+    if (_selectedVars.length < 2) throw l10n.needTwoVars;
     final cols = [for (final n in _selectedVars) ds.numericColumn(n)];
     final r = factorAnalyze(cols, names: _selectedVars, maxFactors: 3, rotate: true);
     final rot = r.rotatedLoadings;
     _report = AnalysisReport(
-      title: '因子分析（全）',
+      title: l10n.factorFullTitle,
       subtitle: 'PCA + Varimax',
       sections: [
         ReportSection(
-          heading: '适切性与球形检验',
+          heading: l10n.adequacySection,
           tables: [
             ReportTable(
               headers: const ['KMO', 'Bartlett χ²', 'df', 'p'],
@@ -1257,8 +1283,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
             ),
             ReportTable(
-              caption: '逐变量 KMO',
-              headers: const ['变量', 'KMO'],
+              caption: l10n.kmoPerVar,
+              headers: [l10n.reportVar, 'KMO'],
               rows: [
                 for (var i = 0; i < r.kmo.names.length; i++)
                   [r.kmo.names[i], formatNum(r.kmo.perVariable[i])],
@@ -1267,10 +1293,10 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
           ],
         ),
         ReportSection(
-          heading: '特征值 / 共同度',
+          heading: l10n.eigenCommunalities,
           tables: [
             ReportTable(
-              headers: const ['变量', '共同度', 'PC1', 'PC2', 'PC3'],
+              headers: [l10n.reportVar, l10n.communality, 'PC1', 'PC2', 'PC3'],
               rows: [
                 for (var v = 0; v < _selectedVars.length; v++)
                   [
@@ -1287,11 +1313,11 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         ),
         if (rot != null)
           ReportSection(
-            heading: 'Varimax 旋转载荷',
+            heading: l10n.varimaxLoadings,
             tables: [
               ReportTable(
                 headers: [
-                  '变量',
+                  l10n.reportVar,
                   for (var i = 0; i < rot[0].length; i++) 'F${i + 1}'
                 ],
                 rows: [
@@ -1303,7 +1329,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                 ],
               ),
             ],
-            notes: '旋转平方和=${formatNum(r.rotationSS)}',
+            notes: l10n.rotationNote(formatNum(r.rotationSS)),
           ),
       ],
     );
@@ -1311,7 +1337,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
 
   void _runLogisticFull() {
-    if (_yVar == null || _xVar == null) throw '请选择因变量与自变量';
+    if (_yVar == null || _xVar == null) throw l10n.pleaseSelectDepVar;
     final y = ds.numericColumn(_yVar!);
     final x = ds.numericColumn(_xVar!);
     final n = x.length < y.length ? x.length : y.length;
@@ -1322,14 +1348,14 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
       names: [_xVar!],
     );
     _report = AnalysisReport(
-      title: '逻辑回归（全）',
+      title: l10n.logisticFullTitle,
       subtitle: '${_yVar!} ~ ${_xVar!}',
       sections: [
         ReportSection(
-          heading: '系数（Wald）',
+          heading: l10n.waldCoefficients,
           tables: [
             ReportTable(
-              headers: const ['项', 'B', 'SE', 'Wald', 'p', 'OR', 'OR 95%CI'],
+              headers: [l10n.term, 'B', 'SE', 'Wald', 'p', 'OR', 'OR 95%CI'],
               rows: [
                 for (final c in r.coefficients)
                   [
@@ -1346,10 +1372,10 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
           ],
         ),
         ReportSection(
-          heading: '模型与分类',
+          heading: l10n.modelClassification,
           tables: [
             ReportTable(
-              headers: const ['伪R²', 'Omnibus χ²', 'p', 'N'],
+              headers: [l10n.pseudoR2Mcfadden, 'Omnibus χ²', 'p', 'N'],
               rows: [
                 [
                   formatNum(r.pseudoR2),
@@ -1360,8 +1386,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
             ),
             ReportTable(
-              caption: '分类表（阈值 0.5）',
-              headers: const ['正确率', '敏感度', '特异度', '精确率'],
+              caption: l10n.classificationTable,
+              headers: [l10n.accuracy, l10n.sensitivity, l10n.specificity, l10n.precision],
               rows: [
                 [
                   '${(r.table.accuracy * 100).toStringAsFixed(1)}%',
@@ -1373,7 +1399,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
             ),
             ReportTable(
               caption: 'Hosmer-Lemeshow',
-              headers: const ['χ²', 'df', 'p', '组数'],
+              headers: ['χ²', 'df', 'p', l10n.nGroups],
               rows: [
                 [
                   formatNum(r.hl.chiSquare),
@@ -1391,14 +1417,14 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runGlmTwo() {
     final vName = _selectedVars.isNotEmpty ? _selectedVars.first : null;
-    if (vName == null || _groupVar == null) throw '请选择分析变量与分组变量';
+    if (vName == null || _groupVar == null) throw l10n.pleaseSelectGroup;
     // Use groupVar as A, and method-like second factor if available from selected else singleton B
     final aName = _groupVar!;
     final bName = _selectedVars.length > 1 ? _selectedVars[1] : aName;
     final gi = ds.indexOf(aName);
     final bi = ds.indexOf(bName);
     final vi = ds.indexOf(vName);
-    if (gi < 0 || vi < 0) throw '变量不存在';
+    if (gi < 0 || vi < 0) throw l10n.varNotFound;
     final cells = <(String, String), List<double>>{};
     for (final row in ds.cases) {
       final a = gi < row.length ? ds.variables[gi].displayValue(row[gi]) : null;
@@ -1409,19 +1435,19 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
       if (a == null || raw is! num) continue;
       cells.putIfAbsent((a, b), () => []).add(raw.toDouble());
     }
-    if (cells.isEmpty) throw '无有效数据';
+    if (cells.isEmpty) throw l10n.noValidData;
     final r = cells.length == 1 || aName == bName
         ? glmOneWay({for (final e in cells.entries) e.key.$1: e.value}, yName: vName)
         : glmTwoWay(cells, yName: vName);
     _report = AnalysisReport(
-      title: aName == bName ? 'GLM 单元 ANOVA' : 'GLM 双元 ANOVA',
+      title: aName == bName ? l10n.glmOneTitle : l10n.glmTwoTitle,
       subtitle: vName,
       sections: [
         ReportSection(
-          heading: '主体间效应',
+          heading: l10n.betweenEffects,
           tables: [
             ReportTable(
-              headers: const ['来源', 'SS', 'df', 'MS', 'F', 'p', '偏η²'],
+              headers: [l10n.source, 'SS', 'df', 'MS', 'F', 'p', l10n.partialEta2],
               rows: [
                 for (final t in r.terms)
                   [
@@ -1434,7 +1460,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                     formatNum(t.partialEta2),
                   ],
                 [
-                  '误差',
+                  l10n.errorWord,
                   formatNum(r.ssError),
                   '${r.dfError}',
                   formatNum(r.msError),
@@ -1445,16 +1471,16 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
             ),
           ],
-          notes:
-              'R²=${formatNum(r.r2)}  调整R²=${formatNum(r.adjR2)}  RMSE=${formatNum(r.rmse)}  N=${r.n}',
+          notes: l10n.glmNote(formatNum(r.r2), formatNum(r.adjR2),
+              formatNum(r.rmse), r.n),
         ),
       ],
     );
   }
 
   void _runStepwise() {
-    if (_selectedVars.length < 2) throw '请至少选择 2 个预测变量';
-    if (_yVar == null) throw '请选择因变量';
+    if (_selectedVars.length < 2) throw l10n.pleaseSelectPredictors;
+    if (_yVar == null) throw l10n.pleaseSelectDepVar;
     final y = ds.numericColumn(_yVar!);
     final names = List<String>.from(_selectedVars);
     final xs = [for (final n in names) ds.numericColumn(n)];
@@ -1466,20 +1492,20 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
       method: StepwiseMethod.both,
     );
     _report = AnalysisReport(
-      title: '逐步回归',
+      title: l10n.stepwiseTitle,
       subtitle: '${_yVar!} ~ stepwise',
       sections: [
         ReportSection(
-          heading: '进入模型的变量',
-          body: r.selected.isEmpty ? '（无变量进入）' : r.selected.join(', '),
+          heading: l10n.enteredVars,
+          body: r.selected.isEmpty ? l10n.noneEntered : r.selected.join(', '),
           tables: [
             ReportTable(
-              headers: const ['步', '动作', '变量', 'R²', '调整R²'],
+              headers: [l10n.step, l10n.action, l10n.reportVar, 'R²', l10n.adjR2],
               rows: [
                 for (var i = 0; i < r.steps.length; i++)
                   [
                     '${i + 1}',
-                    r.steps[i].action == 'enter' ? '进入' : '移除',
+                    r.steps[i].action == 'enter' ? l10n.enter : l10n.remove,
                     r.steps[i].variable,
                     formatNum(r.steps[i].r2),
                     formatNum(r.steps[i].adjR2),
@@ -1493,7 +1519,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   }
 
   void _runCtables() {
-    if (_yVar == null || _xVar == null) throw '请选择行/列变量';
+    if (_yVar == null || _xVar == null) throw l10n.pleaseSelectRowCol;
     final rowKeys = ds.rawColumn(_yVar!);
     final colKeys = ds.rawColumn(_xVar!);
     final r = crosstabSummary(
@@ -1512,14 +1538,14 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
       },
     );
     _report = AnalysisReport(
-      title: 'CTABLES 透视表',
+      title: l10n.ctablesTitle,
       subtitle: '${_yVar!} × ${_xVar!}',
       sections: [
         ReportSection(
-          heading: '汇总（计数）',
+          heading: l10n.summaryCounts,
           tables: [
             ReportTable(
-              headers: ['', ...r.colLabels, '合计'],
+              headers: ['', ...r.colLabels, l10n.total],
               rows: [
                 for (var i = 0; i < r.rowLabels.length; i++)
                   [
@@ -1528,7 +1554,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                     r.rowTotals[i].display,
                   ],
                 [
-                  '合计',
+                  l10n.total,
                   for (final c in r.colTotals) c.display,
                   r.grandTotal.display,
                 ],
@@ -1543,13 +1569,13 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   AnalysisReport _nonparamReport(NonparametricResult r) {
     return AnalysisReport(
       title: r.testName,
-      subtitle: '非参数检验',
+      subtitle: l10n.nonparamSubtitle,
       sections: [
         ReportSection(
-          heading: '检验结果',
+          heading: l10n.testResult,
           tables: [
             ReportTable(
-              headers: const ['统计量', '值', 'Z', 'p'],
+              headers: [l10n.statistic, l10n.valueWord, 'Z', 'p'],
               rows: [
                 [
                   r.statisticName,
@@ -1560,7 +1586,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
             ),
             ReportTable(
-              headers: const ['n1', 'n2', '平均秩1', '平均秩2'],
+              headers: ['n1', 'n2', l10n.meanRank1, l10n.meanRank2],
               rows: [
                 [
                   '${r.n1}',
@@ -1579,7 +1605,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   Map<String, List<double>> _splitByGroup(String valueVar, String groupVar) {
     final vi = ds.indexOf(valueVar);
     final gi = ds.indexOf(groupVar);
-    if (vi < 0 || gi < 0) throw '变量不存在';
+    if (vi < 0 || gi < 0) throw l10n.varNotFound;
     final out = <String, List<double>>{};
     for (final row in ds.cases) {
       final gRaw = gi < row.length ? row[gi] : null;
@@ -1595,10 +1621,6 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     return out;
   }
 }
-
-// 占位符常量避免字符串插值进 const
-const _xLabel = 'X';
-const _yLabel = 'Y';
 
 class _VarPicker extends StatelessWidget {
   final String label;
@@ -1690,6 +1712,7 @@ class _ReportView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1734,7 +1757,7 @@ class _ReportView extends StatelessWidget {
             const SizedBox(height: 16),
           ],
           Text(
-            '生成时间：${report.createdAt.toLocal()}',
+            l10n.generatedAt(report.createdAt.toLocal().toIso8601String()),
             style: TextStyle(color: scheme.outline, fontSize: 11),
           ),
         ],

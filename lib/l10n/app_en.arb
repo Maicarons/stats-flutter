@@ -29,7 +29,7 @@
   "resetDone": "Settings and data have been reset",
   "about": "About",
   "aboutTitle": "About StatLab",
-  "aboutDesc": "A mobile-first statistical analysis suite inspired by GNU PSPP, with learning and testing modules.",
+  "aboutDesc": "A mobile-first, project-based statistical analysis suite with built-in learning and testing modules.",
   "version": "Version",
   "settings": "Settings",
   "appearance": "Appearance",
@@ -67,7 +67,7 @@
   "needTwoVars": "Please select at least 2 variables",
   "learnTitle": "Statistics Learning",
   "learnTagline": "From concepts to formulas",
-  "learnIntro": "Master hypothesis tests, regression, nonparametrics and reliability through short lessons aligned with PSPP procedures. Then practice in Quiz.",
+  "learnIntro": "Master hypothesis tests, regression, nonparametrics and reliability through short lessons. Then practice in Quiz.",
   "coreFormulas": "Core formulas",
   "quizTitle": "Statistics Quiz",
   "quizTagline": "Random questions · instant scoring",
@@ -127,5 +127,373 @@
   "deleteCase": "Delete case",
   "insertCase": "Insert case",
   "duplicateCase": "Duplicate case",
-  "clearCell": "Clear cell"
+  "clearCell": "Clear cell",
+
+  "undo": "Undo",
+  "redo": "Redo",
+  "importData": "Import",
+  "exportData": "Export",
+  "importSav": "Import SPSS .sav…",
+  "importExcel": "Import Excel…",
+  "transformMenu": "Transforms…",
+  "syntaxEditor": "Syntax editor…",
+  "weightCases": "Weight cases…",
+  "splitFile": "Split file…",
+  "findCase": "Find cases…",
+  "notWeighted": "Not weighted",
+  "weightedBy": "Weighted by: {v}",
+  "@weightedBy": {"placeholders": {"v": {"type": "String"}}},
+  "weightOff": "Weighting off",
+  "noSplit": "No split",
+  "splitBy": "Split by: {v}",
+  "@splitBy": {"placeholders": {"v": {"type": "String"}}},
+  "splitOff": "Split off",
+  "find": "Find",
+  "findHint": "Enter text to find…",
+  "notFound": "「{q}」not found",
+  "@notFound": {"placeholders": {"q": {"type": "String"}}},
+  "foundN": "Found {n}: {list}{more}",
+  "@foundN": {
+    "placeholders": {
+      "n": {"type": "int"},
+      "list": {"type": "String"},
+      "more": {"type": "String"}
+    }
+  },
+  "noValueLabels": "No value labels defined",
+  "editValueLabels": "Edit value labels",
+  "missingValues": "Missing values",
+  "deleteVariable": "Delete variable",
+  "savedTo": "Saved to {path}",
+  "@savedTo": {"placeholders": {"path": {"type": "String"}}},
+  "shareFile": "Share file",
+  "copyToClipboard": "Copy to clipboard",
+  "shareDataText": "StatLab data export",
+  "importDataTitle": "Import data",
+  "importDemoData": "Load demo data",
+  "saveAndBack": "Save and back",
+  "importCsvSav": "Import CSV / SAV / Excel",
+  "saveProject": "Save project",
+  "closeProject": "Close project",
+  "projectSaved": "Project saved",
+  "autoSavedAt": "Auto-saved {time}",
+  "@autoSavedAt": {"placeholders": {"time": {"type": "String"}}},
+  "tabTransform": "Transform",
+  "casesByVars": "{cases} cases × {vars} variables",
+  "@casesByVars": {
+    "placeholders": {
+      "cases": {"type": "int"},
+      "vars": {"type": "int"}
+    }
+  },
+
+  "syntaxTitle": "Syntax editor",
+  "openSps": "Open .sps",
+  "saveSps": "Save .sps",
+  "run": "Run",
+  "runSyntax": "Run syntax",
+  "syntaxHint": "Enter SPSS-style syntax; statements end with a period…",
+  "outputHere": "Output will appear here",
+  "syntaxDone": "Done: {ok} ok, {fail} failed",
+  "@syntaxDone": {
+    "placeholders": {
+      "ok": {"type": "int"},
+      "fail": {"type": "int"}
+    }
+  },
+
+  "exportHtml": "Export HTML",
+  "varY": "Variable Y",
+  "varX": "Variable X",
+  "notImplementedTitle": "Not implemented yet",
+  "hintTitle": "Hint",
+
+  "pleaseSelectTestVar": "Please select a test variable",
+  "pleaseSelectPaired": "Please select 2 paired variables",
+  "pleaseSelectRowCol": "Please select row and column variables",
+  "pleaseSelectTwoVars": "Please select 2 variables",
+  "atLeastTwoGroups": "Need at least 2 groups",
+  "pleaseSelectItems": "Please select at least 2 item variables",
+  "pleaseSelectVar": "Please select a variable",
+  "pleaseSelectXYShort": "Please select X/Y",
+  "pleaseSelectStateVar": "Please select state and test variables",
+  "pleaseSelectDepVar": "Please select dependent variable",
+  "pleaseSelectPredictors": "Please select at least 2 predictors",
+  "varNotFound": "Variable not found",
+  "noValidData": "No valid data",
+
+  "reportVar": "Variable",
+  "mean": "Mean",
+  "stdDev": "Std. deviation",
+  "variance": "Variance",
+  "minWord": "Min",
+  "maxWord": "Max",
+  "skewness": "Skewness",
+  "kurtosis": "Kurtosis",
+  "median": "Median",
+  "se": "Std. error",
+  "total": "Total",
+  "group": "Group",
+  "pTwoTail": "p (2-tailed)",
+  "meanDiff": "Mean difference",
+  "seDiff": "Std. error of difference",
+  "ciLower": "95% CI lower",
+  "ciUpper": "95% CI upper",
+
+  "descriptivesTitle": "Descriptives",
+  "descriptivesStats": "Descriptive statistics",
+  "descByVar": "Descriptives by variable",
+  "quantilesCi": "Quantiles & confidence intervals",
+  "ciNote": "Confidence intervals are based on the t distribution at the 95% level.",
+
+  "ttestTitle": "t-test",
+  "groupStats": "Group statistics",
+  "group1": "Group 1",
+  "group2": "Group 2",
+  "independentTest": "Independent samples test",
+  "leveneNote": "Levene's test: F={f}, p={p}; {assumption}",
+  "@leveneNote": {
+    "placeholders": {
+      "f": {"type": "String"},
+      "p": {"type": "String"},
+      "assumption": {"type": "String"}
+    }
+  },
+  "equalVarAssumed": "equal variances assumed",
+  "equalVarNotAssumed": "equal variances not assumed (Welch)",
+  "oneSampleLabel": "One-sample {name} vs μ={mu}",
+  "@oneSampleLabel": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "mu": {"type": "String"}
+    }
+  },
+  "pairedLabel": "Paired {a} vs {b}",
+  "@pairedLabel": {
+    "placeholders": {
+      "a": {"type": "String"},
+      "b": {"type": "String"}
+    }
+  },
+
+  "anovaTitle": "One-way ANOVA",
+  "anovaTable": "ANOVA table",
+  "source": "Source",
+  "ss": "Sum of squares",
+  "ms": "Mean square",
+  "betweenGroups": "Between groups",
+  "withinGroups": "Within groups",
+  "anovaNote": "ω²={w}; Levene F={f}, p={p}.",
+  "@anovaNote": {
+    "placeholders": {
+      "w": {"type": "String"},
+      "f": {"type": "String"},
+      "p": {"type": "String"}
+    }
+  },
+  "anovaOfLabel": "One-way ANOVA: {v} by {g}",
+  "@anovaOfLabel": {
+    "placeholders": {
+      "v": {"type": "String"},
+      "g": {"type": "String"}
+    }
+  },
+
+  "corrTitle": "Correlation analysis",
+  "corrCoef": "Correlation coefficients",
+  "sigTwoTail": "Significance (two-tailed p)",
+  "corrStars": "*** p<.001  ** p<.01  * p<.05",
+
+  "regressionTitle": "Linear regression",
+  "depVarColon": "Dependent: {y}",
+  "@depVarColon": {"placeholders": {"y": {"type": "String"}}},
+  "modelSummary": "Model summary",
+  "adjR2": "Adjusted R²",
+  "regressionWord": "Regression",
+  "residual": "Residual",
+  "coefficients": "Coefficients",
+  "term": "Term",
+  "stdBeta": "Std. β",
+
+  "chiSquareTitle": "Chi-square test",
+  "statistic": "Statistic",
+  "valueWord": "Value",
+  "likelihoodRatio": "Likelihood ratio G²",
+  "association": "Association",
+  "cellsObsExp": "Cells (observed / expected)",
+  "observed": "Observed",
+  "expected": "Expected",
+  "stdResidual": "Std. residual",
+
+  "kmeansTitle": "K-Means clustering",
+  "kmeansSubtitle": "k={k} · {iters} iterations · inertia={inertia}",
+  "@kmeansSubtitle": {
+    "placeholders": {
+      "k": {"type": "int"},
+      "iters": {"type": "int"},
+      "inertia": {"type": "String"}
+    }
+  },
+  "finalClusterCenters": "Final cluster centers",
+  "cluster": "Cluster",
+  "caseCount": "Cases",
+
+  "reliabilityTitle": "Reliability analysis",
+  "reliabilityStats": "Reliability statistics",
+  "stdAlpha": "Standardized α",
+  "nItemsWord": "Items",
+  "itemStats": "Item statistics",
+  "itemWord": "Item",
+  "itemTotalCorr": "Corrected item-total correlation",
+  "alphaIfDeleted": "α if item deleted",
+
+  "histogramTitle": "Histogram",
+  "binFreq": "Bin frequencies",
+  "lower": "Lower",
+  "upper": "Upper",
+  "freq": "Frequency",
+
+  "scatterTitle": "Scatter plot",
+  "corrFit": "Correlation & fit",
+  "slope": "Slope",
+  "intercept": "Intercept",
+
+  "barTitle": "Bar chart / frequencies",
+  "freqTable": "Frequency table",
+  "category": "Category",
+  "percent": "Percent",
+  "validPercent": "Valid percent",
+  "cumulativePercent": "Cumulative %",
+  "freqNote": "Valid N={n}  Missing={m}",
+  "@freqNote": {
+    "placeholders": {
+      "n": {"type": "int"},
+      "m": {"type": "int"}
+    }
+  },
+
+  "meansTitle": "Layered means",
+
+  "normalityTitle": "Normality test",
+  "resultWord": "Result",
+  "testWord": "Test",
+  "verdictWord": "Verdict",
+  "looksNormal": "Approximately normal",
+  "deviatesNormal": "Deviates from normal",
+  "normalityNote": "Approximately normal when p>0.05, |skewness|<1.5 and |kurtosis|<3.",
+
+  "rocTitle": "ROC curve",
+  "aucSection": "Area under the curve",
+  "rocNote": "AUC 0.5 = no discrimination, 0.7–0.8 fair, >0.8 good.",
+
+  "tukeyTitle": "Post hoc pairwise comparisons",
+  "pairwise": "Pairwise",
+  "significant": "Significant",
+  "tukeyNote": "Overall F={f}, p={p}.",
+  "@tukeyNote": {
+    "placeholders": {
+      "f": {"type": "String"},
+      "p": {"type": "String"}
+    }
+  },
+
+  "factorPcaTitle": "PCA factor analysis",
+  "eigenSection": "Eigenvalues & variance",
+  "component": "Component",
+  "eigenvalue": "Eigenvalue",
+  "varExplained": "% of variance",
+  "cumulative": "Cumulative",
+  "loadingsMatrix": "Loading matrix",
+  "factorPcaNote": "Total variance explained: {v}. PCA on the correlation matrix (unrotated).",
+  "@factorPcaNote": {"placeholders": {"v": {"type": "String"}}},
+
+  "logisticTitle": "Logistic regression",
+  "modelWord": "Model",
+  "orExpB": "OR=exp(B)",
+  "pseudoR2Mcfadden": "Pseudo R² (McFadden)",
+  "accuracy": "Accuracy",
+  "iterations": "Iterations",
+  "logisticNote": "Fitted by gradient descent; n ≥ 30 recommended. OR>1 means increased risk.",
+
+  "examineDesc": "Descriptives",
+  "percentileWord": "Percentiles",
+  "trimmedNote": "5% trimmed mean={a}  Winsorized={b}",
+  "@trimmedNote": {
+    "placeholders": {
+      "a": {"type": "String"},
+      "b": {"type": "String"}
+    }
+  },
+  "extremes": "Extremes",
+  "lowest": "Lowest",
+  "highest": "Highest",
+  "boxSection": "Boxplot",
+  "lowerWhisker": "Lower whisker",
+  "upperWhisker": "Upper whisker",
+  "medianShort": "Median",
+  "outliers": "Outliers",
+  "stemLeaf": "Stem-and-leaf",
+  "normalityDap": "Normality (D'Agostino-Pearson)",
+  "zSkew": "Z skewness",
+  "zKurt": "Z kurtosis",
+
+  "boxplotTitle": "Boxplot",
+  "distSummary": "Distribution summary",
+
+  "qqTitle": "Q-Q plot",
+  "qqSection": "Normal quantile comparison",
+  "qqNote": "{n} points; the closer to the y=x line, the more normal.",
+  "@qqNote": {"placeholders": {"n": {"type": "int"}}},
+
+  "factorFullTitle": "Factor analysis (full)",
+  "adequacySection": "Adequacy & sphericity",
+  "kmoPerVar": "Per-variable KMO",
+  "eigenCommunalities": "Eigenvalues / communalities",
+  "communality": "Communality",
+  "varimaxLoadings": "Varimax rotated loadings",
+  "rotationNote": "Rotation SS={v}",
+  "@rotationNote": {"placeholders": {"v": {"type": "String"}}},
+
+  "logisticFullTitle": "Logistic regression (full)",
+  "waldCoefficients": "Coefficients (Wald)",
+  "modelClassification": "Model & classification",
+  "classificationTable": "Classification table (threshold 0.5)",
+  "sensitivity": "Sensitivity",
+  "specificity": "Specificity",
+  "precision": "Precision",
+  "nGroups": "Groups",
+
+  "glmOneTitle": "GLM one-way ANOVA",
+  "glmTwoTitle": "GLM two-way ANOVA",
+  "betweenEffects": "Between-subjects effects",
+  "partialEta2": "Partial η²",
+  "errorWord": "Error",
+  "glmNote": "R²={r2}  Adjusted R²={adj}  RMSE={rmse}  N={n}",
+  "@glmNote": {
+    "placeholders": {
+      "r2": {"type": "String"},
+      "adj": {"type": "String"},
+      "rmse": {"type": "String"},
+      "n": {"type": "int"}
+    }
+  },
+
+  "stepwiseTitle": "Stepwise regression",
+  "enteredVars": "Variables entered",
+  "noneEntered": "(no variables entered)",
+  "step": "Step",
+  "action": "Action",
+  "enter": "Enter",
+  "remove": "Remove",
+
+  "ctablesTitle": "CTABLES pivot table",
+  "summaryCounts": "Summary (counts)",
+
+  "nonparamSubtitle": "Nonparametric test",
+  "testResult": "Test result",
+  "meanRank1": "Mean rank 1",
+  "meanRank2": "Mean rank 2",
+
+  "generatedAt": "Generated: {time}",
+  "@generatedAt": {"placeholders": {"time": {"type": "String"}}}
 }

@@ -1,4 +1,4 @@
-/// PSPP 数据变换：COMPUTE / RECODE / RANK / SORT / SELECT / WEIGHT / AGGREGATE
+/// 数据变换：COMPUTE / RECODE / RANK / SORT / SELECT / WEIGHT / AGGREGATE
 library;
 
 import 'dart:math' as math;

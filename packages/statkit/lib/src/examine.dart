@@ -6,7 +6,7 @@ import 'dart:math' as math;
 import 'descriptives.dart';
 import 'distributions.dart';
 
-/// 百分位表（PSPP EXAMINE PERCENTILES）
+/// 百分位表（EXAMINE PERCENTILES）
 class PercentileRow {
   final double p;
   final double value;

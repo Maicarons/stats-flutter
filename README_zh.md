@@ -1,6 +1,6 @@
 # Stats-flutter
 
-**工程化统计分析套件**，灵感来自 [GNU PSPP](https://www.gnu.org/software/pspp/)，用 Flutter 重写，内置学习与测试模块。
+**工程化统计分析套件**，用 Flutter 构建，覆盖全平台，内置学习与测试模块。
 
 [![CI](https://github.com/Maicarons/stats-flutter/actions/workflows/ci.yml/badge.svg)](https://github.com/Maicarons/stats-flutter/actions/workflows/ci.yml)
 [![Docs](https://github.com/Maicarons/stats-flutter/actions/workflows/deploy-docs.yml/badge.svg)](https://maicarons.github.io/stats-flutter/)
@@ -95,4 +95,3 @@ cd docs && npm install && npm run docs:dev
 ## 许可
 
 - 本仓库代码：AGPL-3.0
-- PSPP 研究参考：GNU PSPP 为 GPL；本项目为独立实现

@@ -1,6 +1,6 @@
 # Stats-flutter
 
-**工程化**统计分析套件，灵感来自 [GNU PSPP](https://www.gnu.org/software/pspp/)，Flutter 实现，内置学习与测试。
+**工程化**统计分析套件，Flutter 实现，内置学习与测试。
 
 **GitHub**: https://github.com/Maicarons/stats-flutter
 
@@ -19,7 +19,7 @@
 打开工程 → 工作区
   ├─ 数据   ← 表格 / 变量 / CSV
   ├─ 分析   ← 统计过程
-  └─ 变换   ← PSPP 变换命令
+  └─ 变换   ← 数据变换命令
 ```
 
 ## 功能
@@ -28,7 +28,7 @@
 - **数据**：双击编辑、值标签增删改、缺失值、CSV
 - **变换**：COMPUTE · RECODE · COUNT · RANK · SORT · SELECT IF · AGGREGATE · FLIP
 - **统计**：描述、t 检验、ANOVA、相关、回归、逻辑回归、卡方、非参数、信度、聚类、ROC、PCA
-- **语法编辑器**：可执行 PSPP 命令子集
+- **语法编辑器**：可执行语法命令子集
 - **学习 + 测试** 全局可用
 - **中英 i18n**、主题色、统一 Logo
 
@@ -50,4 +50,4 @@ flutter run -d windows
 
 ## 许可
 
-AGPL-3.0（独立实现；PSPP 为 GPL）
+AGPL-3.0

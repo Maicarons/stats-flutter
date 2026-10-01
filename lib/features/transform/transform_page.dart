@@ -1,4 +1,4 @@
-/// 数据变换 UI（对应 PSPP Transform 菜单）
+/// 数据变换 UI（COMPUTE / RECODE / RANK / SORT / SELECT / WEIGHT / AGGREGATE）
 library;
 
 import 'package:flutter/material.dart';

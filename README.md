@@ -1,6 +1,6 @@
 # Stats-flutter
 
-**Project-based statistical analysis suite** inspired by [GNU PSPP](https://www.gnu.org/software/pspp/), written in Flutter with Learn & Quiz modules.
+**Project-based statistical analysis suite** written in Flutter with Learn & Quiz modules.
 
 [![CI](https://github.com/Maicarons/stats-flutter/actions/workflows/ci.yml/badge.svg)](https://github.com/Maicarons/stats-flutter/actions/workflows/ci.yml)
 [![Docs](https://github.com/Maicarons/stats-flutter/actions/workflows/deploy-docs.yml/badge.svg)](https://maicarons.github.io/stats-flutter/)
@@ -39,7 +39,7 @@ Learn / Quiz / Settings are **global**. Data / Analysis / Transform live **insid
 - Value labels **hidden by default** (toggle in toolbar)
 - CSV import/export, weight cases, split file, find
 
-### Transforms (PSPP-style)
+### Transforms
 COMPUTE · RECODE · COUNT · RANK · SORT CASES · SELECT IF · AGGREGATE · FLIP
 
 ### Statistical procedures
@@ -79,7 +79,7 @@ final r = Regression.simple(x, y);
 git clone https://github.com/Maicarons/stats-flutter.git
 cd stats-flutter
 flutter pub get
-flutter run -d windows   # or chrome / macos / linux
+flutter run -d windows   # or macos / linux
 ```
 
 ### Tests
@@ -140,4 +140,3 @@ One-time: enable **Automated publishing from GitHub Actions** on [pub.dev/packag
 ## License
 
 - Source code in this repository: AGPL-3.0
-- PSPP research reference: GNU PSPP is GPL; this is an independent implementation

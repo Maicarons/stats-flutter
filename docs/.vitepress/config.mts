@@ -6,7 +6,7 @@ const base = '/stats-flutter/'
 
 export default defineConfig({
   title: 'Stats-flutter',
-  description: '工程化统计分析套件 · 灵感来自 GNU PSPP',
+  description: '工程化统计分析套件 · Flutter 全平台',
   base,
   cleanUrls: true,
   lastUpdated: true,
@@ -48,7 +48,6 @@ export default defineConfig({
             items: [
               { text: 'statkit API', link: '/api/statkit' },
               { text: '发布到 pub.dev', link: '/guide/publish-statkit' },
-              { text: 'PSPP 研究纪要', link: '/research/pspp' },
             ],
           },
         ],
@@ -131,8 +130,8 @@ export default defineConfig({
       { icon: 'github', link: 'https://github.com/Maicarons/stats-flutter' },
     ],
     footer: {
-      message: 'Released under the MIT License.',
-      copyright: 'Inspired by GNU PSPP · Built with Flutter',
+      message: 'Released under the AGPL-3.0 License.',
+      copyright: 'Built with Flutter',
     },
   },
 })

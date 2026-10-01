@@ -1,4 +1,4 @@
-/// 核心数据模型：变量字典 + 数据集（对应 PSPP 的 dict + case）
+/// 核心数据模型：变量字典 + 数据集
 library;
 
 /// 测量级别
@@ -30,7 +30,7 @@ enum VarAlign {
   center;
 }
 
-/// 变量定义（对应 PSPP Variable）
+/// 变量定义
 class Variable {
   Variable({
     required this.name,

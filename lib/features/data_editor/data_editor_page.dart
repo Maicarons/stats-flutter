@@ -101,6 +101,18 @@ class _DataEditorPageState extends State<DataEditorPage>
               ),
               const Spacer(),
               IconButton(
+                tooltip: l10n.undo,
+                onPressed:
+                    datasetStore.canUndo ? () => datasetStore.undo() : null,
+                icon: const Icon(Icons.undo, size: 20),
+              ),
+              IconButton(
+                tooltip: l10n.redo,
+                onPressed:
+                    datasetStore.canRedo ? () => datasetStore.redo() : null,
+                icon: const Icon(Icons.redo, size: 20),
+              ),
+              IconButton(
                 tooltip: l10n.showValueLabels,
                 onPressed: () =>
                     setState(() => _showValueLabels = !_showValueLabels),
@@ -113,20 +125,48 @@ class _DataEditorPageState extends State<DataEditorPage>
                 onSelected: (v) => _onMenu(v, l10n),
                 itemBuilder: (_) => [
                   PopupMenuItem(value: 'demo', child: Text(l10n.loadDemo)),
-                  PopupMenuItem(value: 'import', child: Text(l10n.importCsv)),
-                  const PopupMenuItem(value: 'import_sav', child: Text('导入 SPSS .sav…')),
-                  PopupMenuItem(value: 'export', child: Text(l10n.exportCsv)),
                   PopupMenuItem(
                       value: 'addvar', child: Text(l10n.addVariable)),
                   PopupMenuItem(value: 'addcase', child: Text(l10n.addCase)),
-                  const PopupMenuItem(
-                      value: 'transform', child: Text('数据变换…')),
-                  const PopupMenuItem(
-                      value: 'syntax', child: Text('语法编辑器…')),
-                  const PopupMenuItem(value: 'weight', child: Text('加权个案…')),
-                  const PopupMenuItem(value: 'split', child: Text('拆分文件…')),
-                  const PopupMenuItem(value: 'find', child: Text('查找个案…')),
+                  PopupMenuItem(
+                      value: 'transform', child: Text(l10n.transformMenu)),
+                  PopupMenuItem(
+                      value: 'syntax', child: Text(l10n.syntaxEditor)),
+                  PopupMenuItem(value: 'weight', child: Text(l10n.weightCases)),
+                  PopupMenuItem(value: 'split', child: Text(l10n.splitFile)),
+                  PopupMenuItem(value: 'find', child: Text(l10n.findCase)),
                 ],
+              ),
+            ],
+          ),
+        ),
+        // 显式导入导出工具条
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _onMenu('import', l10n),
+                  icon: const Icon(Icons.file_open, size: 18),
+                  label: Text(l10n.importData),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _onMenu('import_sav', l10n),
+                  icon: const Icon(Icons.table_rows, size: 18),
+                  label: const Text('SAV'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => _onMenu('export', l10n),
+                  icon: const Icon(Icons.save_alt, size: 18),
+                  label: Text(l10n.exportData),
+                ),
               ),
             ],
           ),
@@ -169,13 +209,13 @@ class _DataEditorPageState extends State<DataEditorPage>
         datasetStore.resetDemo();
         break;
       case 'import':
-        await importCsvInteractive(context);
+        await importCsvInteractive(context, l10n, excelToo: true);
         break;
       case 'import_sav':
         await importSavInteractive(context);
         break;
       case 'export':
-        await exportCsvInteractive(context);
+        await exportCsvInteractive(context, l10n);
         break;
       case 'addvar':
         _addVar(l10n);
@@ -198,18 +238,19 @@ class _DataEditorPageState extends State<DataEditorPage>
         }
         break;
       case 'weight':
-        await _pickWeight();
+        await _pickWeight(l10n);
         break;
       case 'split':
-        await _pickSplit();
+        await _pickSplit(l10n);
         break;
       case 'find':
-        await _findCase();
+        await _findCase(l10n);
         break;
     }
   }
 
   void _addCase(AppLocalizations l10n) {
+    datasetStore.history.checkpoint(ds);
     ds.addCase();
     datasetStore.touch();
   }
@@ -231,6 +272,7 @@ class _DataEditorPageState extends State<DataEditorPage>
           ),
           FilledButton(
             onPressed: () {
+              datasetStore.history.checkpoint(ds);
               ds.addVariable(Variable(name: nameCtrl.text.trim()));
               datasetStore.touch();
               Navigator.pop(ctx);
@@ -242,7 +284,7 @@ class _DataEditorPageState extends State<DataEditorPage>
     );
   }
 
-  Future<void> _pickWeight() async {
+  Future<void> _pickWeight(AppLocalizations l10n) async {
     final names = ds.variables.map((v) => v.name).toList();
     final v = await showDialog<String>(
       context: context,
@@ -251,7 +293,7 @@ class _DataEditorPageState extends State<DataEditorPage>
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx, ''),
-            child: const Text('不加权'),
+            child: Text(l10n.notWeighted),
           ),
           for (final n in names)
             SimpleDialogOption(
@@ -266,12 +308,14 @@ class _DataEditorPageState extends State<DataEditorPage>
     datasetStore.touch();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(v.isEmpty ? '已取消加权' : '加权变量: $v')),
+        SnackBar(
+            content: Text(
+                v.isEmpty ? l10n.weightOff : l10n.weightedBy(v))),
       );
     }
   }
 
-  Future<void> _pickSplit() async {
+  Future<void> _pickSplit(AppLocalizations l10n) async {
     final names = ds.variables.map((v) => v.name).toList();
     final v = await showDialog<String>(
       context: context,
@@ -280,7 +324,7 @@ class _DataEditorPageState extends State<DataEditorPage>
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx, ''),
-            child: const Text('不分组'),
+            child: Text(l10n.noSplit),
           ),
           for (final n in names)
             SimpleDialogOption(
@@ -295,30 +339,31 @@ class _DataEditorPageState extends State<DataEditorPage>
     datasetStore.touch();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(v.isEmpty ? '已关闭拆分' : '拆分变量: $v')),
+        SnackBar(
+            content: Text(v.isEmpty ? l10n.splitOff : l10n.splitBy(v))),
       );
     }
   }
 
-  Future<void> _findCase() async {
+  Future<void> _findCase(AppLocalizations l10n) async {
     final ctrl = TextEditingController();
     final q = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('查找'),
+        title: Text(l10n.find),
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          decoration: const InputDecoration(hintText: '输入要查找的内容…'),
+          decoration: InputDecoration(hintText: l10n.findHint),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text),
-            child: const Text('查找'),
+            child: Text(l10n.find),
           ),
         ],
       ),
@@ -335,9 +380,12 @@ class _DataEditorPageState extends State<DataEditorPage>
       SnackBar(
         content: Text(
           hits.isEmpty
-              ? '未找到「$q」'
-              : '找到 ${hits.length} 处：${hits.take(12).join(", ")}'
-                  '${hits.length > 12 ? "…" : ""}',
+              ? l10n.notFound(q)
+              : l10n.foundN(
+                  hits.length,
+                  hits.take(12).join(', '),
+                  hits.length > 12 ? '…' : '',
+                ),
         ),
       ),
     );
@@ -487,7 +535,7 @@ class _VarSheet extends StatelessWidget {
                         runSpacing: 6,
                         children: [
                           if (v.valueLabels.isEmpty)
-                            Text('尚未定义值标签',
+                            Text(l10n.noValueLabels,
                                 style: TextStyle(
                                     fontSize: 12,
                                     color: Theme.of(context)
@@ -504,7 +552,7 @@ class _VarSheet extends StatelessWidget {
                                 )),
                           ActionChip(
                             avatar: const Icon(Icons.edit, size: 16),
-                            label: const Text('编辑值标签'),
+                            label: Text(l10n.editValueLabels),
                             onPressed: () => showDialog(
                               context: context,
                               builder: (_) => ValueLabelsDialog(variable: v),
@@ -519,7 +567,7 @@ class _VarSheet extends StatelessWidget {
                         Expanded(
                           child: OutlinedButton.icon(
                             icon: const Icon(Icons.block, size: 16),
-                            label: const Text('缺失值'),
+                            label: Text(l10n.missingValues),
                             onPressed: () => showDialog(
                               context: context,
                               builder: (_) =>
@@ -531,7 +579,7 @@ class _VarSheet extends StatelessWidget {
                         Expanded(
                           child: OutlinedButton.icon(
                             icon: const Icon(Icons.delete_outline, size: 16),
-                            label: const Text('删除变量'),
+                            label: Text(l10n.deleteVariable),
                             style: OutlinedButton.styleFrom(
                               foregroundColor:
                                   Theme.of(context).colorScheme.error,
@@ -539,6 +587,7 @@ class _VarSheet extends StatelessWidget {
                             onPressed: () {
                               final idx = ds.indexOf(v.name);
                               if (idx >= 0) {
+                                datasetStore.history.checkpoint(ds);
                                 ds.removeVariable(idx);
                                 datasetStore.touch();
                               }

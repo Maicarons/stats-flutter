@@ -7,7 +7,7 @@ import 'descriptives.dart';
 import 'distributions.dart';
 import 'hypothesis.dart';
 
-/// 分层/分组均值表（PSPP MEANS）
+/// 分层/分组均值表（MEANS）
 class MeansRow {
   final String group;
   final int n;

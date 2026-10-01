@@ -1,6 +1,6 @@
 # Stats-flutter
 
-A **project-based** statistical analysis suite inspired by [GNU PSPP](https://www.gnu.org/software/pspp/), written in Flutter with Learn & Quiz modules.
+A **project-based** statistical analysis suite written in Flutter with Learn & Quiz modules.
 
 **GitHub**: https://github.com/Maicarons/stats-flutter
 
@@ -28,7 +28,7 @@ Open project → Workspace
 - **Data**: double-click edit, value-label CRUD, missing values, CSV
 - **Transforms**: COMPUTE, RECODE, COUNT, RANK, SORT, SELECT IF, AGGREGATE, FLIP
 - **Stats**: descriptives, t-tests, ANOVA, correlation, regression, logistic, chi-square, nonparametric, reliability, clustering, ROC, PCA
-- **Syntax editor**: executable PSPP command subset
+- **Syntax editor**: executable syntax command subset
 - **Learn & Quiz** as global modules
 - **i18n** zh/en, theme colors, unified brand logo
 
@@ -50,4 +50,4 @@ flutter run -d windows
 
 ## License
 
-AGPL-3.0 (independent implementation; PSPP is GPL).
+AGPL-3.0

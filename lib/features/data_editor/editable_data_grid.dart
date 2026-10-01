@@ -1,8 +1,9 @@
-/// 可编辑数据表格：自适应列宽、双击编辑、键盘导航
+/// 可编辑数据表格：自适应列宽、双击编辑、键盘导航、撤销/重做
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/models/dataset.dart';
 import '../../shared/dataset_store.dart';
@@ -29,6 +30,7 @@ class _EditableDataGridState extends State<EditableDataGrid> {
   (int, int)? _editing;
   final _editCtrl = TextEditingController();
   final _editFocus = FocusNode(debugLabel: 'cellEdit');
+  final _gridFocus = FocusNode(debugLabel: 'gridKeys');
   FocusNode? _keyNode;
 
   /// 编辑前的原始值快照（用于取消）
@@ -78,6 +80,7 @@ class _EditableDataGridState extends State<EditableDataGrid> {
     _vCtrl.dispose();
     _editCtrl.dispose();
     _editFocus.dispose();
+    _gridFocus.dispose();
     _keyNode?.dispose();
     super.dispose();
   }
@@ -138,6 +141,7 @@ class _EditableDataGridState extends State<EditableDataGrid> {
     _editing = null;
     _editCtrl.clear();
     _snapshot = null;
+    _gridFocus.requestFocus();
     if (mounted) setState(() {});
   }
 
@@ -160,10 +164,12 @@ class _EditableDataGridState extends State<EditableDataGrid> {
       while (row.length <= c) {
         row.add(null);
       }
+      datasetStore.recordCellEdit(r, c, _snapshot, val);
       row[c] = val;
     }
     _editing = null;
     _snapshot = null;
+    _gridFocus.requestFocus();
     datasetStore.touch();
   }
 
@@ -197,13 +203,39 @@ class _EditableDataGridState extends State<EditableDataGrid> {
     return KeyEventResult.ignored;
   }
 
+  /// 未编辑状态下的全局快捷键（Ctrl+Z / Ctrl+Y）
+  KeyEventResult _onGridKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent || _editing != null) {
+      return KeyEventResult.ignored;
+    }
+    final ctrl = HardwareKeyboard.instance.isControlPressed;
+    if (!ctrl) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.keyZ) {
+      if (HardwareKeyboard.instance.isShiftPressed) {
+        datasetStore.redo();
+      } else {
+        datasetStore.undo();
+      }
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.keyY) {
+      datasetStore.redo();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
     final rows = _filteredRows();
     final scheme = Theme.of(context).colorScheme;
-    final zh = Localizations.localeOf(context).languageCode == 'zh';
+    final l10n = AppLocalizations.of(context);
 
-    return LayoutBuilder(
+    return Focus(
+      focusNode: _gridFocus,
+      onKeyEvent: _onGridKey,
+      child: LayoutBuilder(
       builder: (context, box) {
         final colW = _colWidths(box.maxWidth);
         final contentW =
@@ -220,9 +252,7 @@ class _EditableDataGridState extends State<EditableDataGrid> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      zh
-                          ? '双击单元格编辑 · Enter 下移 · Tab 右移 · Esc 取消'
-                          : 'Double-click to edit · Enter down · Tab right · Esc cancel',
+                      '${l10n.doubleClickEdit} · ${l10n.cellEditHint}',
                       style: TextStyle(fontSize: 11, color: scheme.outline),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -285,6 +315,7 @@ class _EditableDataGridState extends State<EditableDataGrid> {
           ],
         );
       },
+      ),
     );
   }
 
@@ -392,8 +423,16 @@ class _EditableDataGridState extends State<EditableDataGrid> {
 
   Widget _viewer(int ri, int c, Variable v, String display, bool missing,
       ColorScheme scheme) {
+    final touchPlatform = switch (Theme.of(context).platform) {
+      TargetPlatform.android ||
+      TargetPlatform.iOS ||
+      TargetPlatform.fuchsia =>
+        true,
+      _ => false,
+    };
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      onTap: touchPlatform ? () => _startEdit(ri, c) : null,
       onDoubleTap: () => _startEdit(ri, c),
       onLongPress: () => _startEdit(ri, c),
       child: Container(

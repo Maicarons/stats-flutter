@@ -117,7 +117,7 @@ class _AboutPageState extends State<AboutPage>
                 leading: Icon(Icons.description),
                 title: Text('项目简介'),
                 subtitle: Text(
-                  '对标 GNU PSPP 的 Flutter 统计分析套件，覆盖数据编辑、统计过程、'
+                  '工程化统计分析套件，覆盖数据编辑、统计过程、'
                   '数据变换、学习与测试。统计内核为独立纯 Dart 包 statkit。',
                 ),
               ),
@@ -137,12 +137,12 @@ class _AboutPageState extends State<AboutPage>
               ListTile(
                 leading: const Icon(Icons.code),
                 title: const Text('开源许可'),
-                subtitle: const Text('MIT · 灵感来自 GNU PSPP (GPL)'),
+                subtitle: const Text('AGPL-3.0 · 开源项目'),
               ),
               ListTile(
                 leading: const Icon(Icons.favorite, color: Colors.redAccent),
-                title: const Text('致谢'),
-                subtitle: const Text('GNU PSPP 社区 · Flutter · Dart'),
+                title: const Text('技术栈'),
+                subtitle: const Text('Flutter · Dart'),
               ),
             ],
           ),
@@ -160,7 +160,7 @@ class _AboutPageState extends State<AboutPage>
                         .titleSmall
                         ?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),
-                Text('Flutter 应用 · 平台：Windows / macOS / Linux / Android / iOS / Web',
+                Text('Flutter 应用 · 平台：Windows / macOS / Linux / Android / iOS',
                     style: TextStyle(fontSize: 12.5, color: scheme.outline)),
                 Text('统计内核：packages/statkit（纯 Dart，13 组测试）',
                     style: TextStyle(fontSize: 12.5, color: scheme.outline)),

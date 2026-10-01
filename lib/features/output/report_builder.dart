@@ -1,7 +1,8 @@
-/// 分析结果模型 + 纯文本报告渲染
+/// 分析结果模型 + 纯文本报告渲染（i18n）
 library;
 
 import 'package:statkit/statkit.dart';
+import 'package:stats_flutter/l10n/app_localizations.dart';
 
 class AnalysisReport {
   final String title;
@@ -96,20 +97,22 @@ class ReportTable {
 
 /// 把描述统计渲染为报告
 AnalysisReport reportDescriptives(
+  AppLocalizations l10n,
   Map<String, Descriptives> byVar, {
   String datasetName = '',
 }) {
   return AnalysisReport(
-    title: '描述统计',
+    title: l10n.descriptivesTitle,
     subtitle: datasetName,
     sections: [
       ReportSection(
-        heading: '描述统计量',
+        heading: l10n.descriptivesStats,
         tables: [
           ReportTable(
-            caption: '各变量描述统计',
-            headers: const [
-              '变量', 'N', '均值', '标准差', '方差', '最小', '最大', '偏度', '峰度'
+            caption: l10n.descByVar,
+            headers: [
+              l10n.reportVar, 'N', l10n.mean, l10n.stdDev, l10n.variance,
+              l10n.minWord, l10n.maxWord, l10n.skewness, l10n.kurtosis,
             ],
             rows: byVar.entries
                 .map((e) => [
@@ -126,8 +129,11 @@ AnalysisReport reportDescriptives(
                 .toList(),
           ),
           ReportTable(
-            caption: '分位数与置信区间',
-            headers: const ['变量', 'Q1', '中位数', 'Q3', 'IQR', '95% CI 下限', '95% CI 上限', '标准误'],
+            caption: l10n.quantilesCi,
+            headers: [
+              l10n.reportVar, 'Q1', l10n.median, 'Q3', 'IQR',
+              l10n.ciLower, l10n.ciUpper, l10n.se,
+            ],
             rows: byVar.entries
                 .map((e) => [
                       e.key,
@@ -142,35 +148,49 @@ AnalysisReport reportDescriptives(
                 .toList(),
           ),
         ],
-        notes: '置信区间基于 t 分布，置信水平 95%。',
+        notes: l10n.ciNote,
       ),
     ],
   );
 }
 
-AnalysisReport reportTTest(TTestResult r, {required String label}) {
+AnalysisReport reportTTest(AppLocalizations l10n, TTestResult r,
+    {required String label}) {
   return AnalysisReport(
-    title: 't 检验 · $label',
+    title: '${l10n.ttestTitle} · $label',
     subtitle: r.mode,
     sections: [
       ReportSection(
-        heading: '组统计量',
+        heading: l10n.groupStats,
         tables: [
           ReportTable(
-            headers: const ['组', 'N', '均值', '标准差', '标准误'],
+            headers: [l10n.group, 'N', l10n.mean, l10n.stdDev, l10n.se],
             rows: [
-              ['组1', '${r.n1}', formatNum(r.mean1), formatNum(r.sd1), formatNum(r.sd1 / (r.n1 > 0 ? _sqrt(r.n1.toDouble()) : 1))],
-              ['组2', '${r.n2}', formatNum(r.mean2), formatNum(r.sd2), formatNum(r.sd2 / (r.n2 > 0 ? _sqrt(r.n2.toDouble()) : 1))],
+              [
+                l10n.group1,
+                '${r.n1}',
+                formatNum(r.mean1),
+                formatNum(r.sd1),
+                formatNum(r.sd1 / (r.n1 > 0 ? _sqrt(r.n1.toDouble()) : 1)),
+              ],
+              [
+                l10n.group2,
+                '${r.n2}',
+                formatNum(r.mean2),
+                formatNum(r.sd2),
+                formatNum(r.sd2 / (r.n2 > 0 ? _sqrt(r.n2.toDouble()) : 1)),
+              ],
             ],
           ),
         ],
       ),
       ReportSection(
-        heading: '独立样本检验' ,
+        heading: l10n.independentTest,
         tables: [
           ReportTable(
-            headers: const [
-              't', 'df', 'p(双尾)', '均值差', '差值标准误', '95%CI下', '95%CI上', 'Cohen d'
+            headers: [
+              't', 'df', l10n.pTwoTail, l10n.meanDiff, l10n.seDiff,
+              l10n.ciLower, l10n.ciUpper, 'Cohen d',
             ],
             rows: [
               [
@@ -188,23 +208,31 @@ AnalysisReport reportTTest(TTestResult r, {required String label}) {
         ],
         notes: r.leveneP == null
             ? null
-            : 'Levene 方差齐性：F=${formatNum(r.leveneF!)}, p=${formatP(r.leveneP!)}；'
-                '${r.equalVarAssumed ? '假定方差齐性' : '不假定方差齐性（Welch）'}。',
+            : l10n.leveneNote(
+                formatNum(r.leveneF!),
+                formatP(r.leveneP!),
+                r.equalVarAssumed
+                    ? l10n.equalVarAssumed
+                    : l10n.equalVarNotAssumed,
+              ),
       ),
     ],
   );
 }
 
-AnalysisReport reportAnova(AnovaResult r, {String title = '单因素方差分析'}) {
+AnalysisReport reportAnova(AppLocalizations l10n, AnovaResult r,
+    {String? title}) {
   return AnalysisReport(
-    title: title,
+    title: title ?? l10n.anovaTitle,
     subtitle: 'ONEWAY ANOVA',
     sections: [
       ReportSection(
-        heading: '描述统计',
+        heading: l10n.descriptivesStats,
         tables: [
           ReportTable(
-            headers: const ['组', 'N', '均值', '标准差', '方差'],
+            headers: [
+              l10n.group, 'N', l10n.mean, l10n.stdDev, l10n.variance,
+            ],
             rows: r.groups
                 .map((g) => [
                       g.label,
@@ -218,13 +246,15 @@ AnalysisReport reportAnova(AnovaResult r, {String title = '单因素方差分析
         ],
       ),
       ReportSection(
-        heading: '方差分析表',
+        heading: l10n.anovaTable,
         tables: [
           ReportTable(
-            headers: const ['来源', '平方和', 'df', '均方', 'F', 'p', 'η²'],
+            headers: [
+              l10n.source, l10n.ss, 'df', l10n.ms, 'F', 'p', 'η²',
+            ],
             rows: [
               [
-                '组间',
+                l10n.betweenGroups,
                 formatNum(r.ssBetween),
                 '${r.dfBetween}',
                 formatNum(r.msBetween),
@@ -233,7 +263,7 @@ AnalysisReport reportAnova(AnovaResult r, {String title = '单因素方差分析
                 formatNum(r.etaSquared),
               ],
               [
-                '组内',
+                l10n.withinGroups,
                 formatNum(r.ssWithin),
                 '${r.dfWithin}',
                 formatNum(r.msWithin),
@@ -242,7 +272,7 @@ AnalysisReport reportAnova(AnovaResult r, {String title = '单因素方差分析
                 '',
               ],
               [
-                '总计',
+                l10n.total,
                 formatNum(r.ssTotal),
                 '${r.dfBetween + r.dfWithin}',
                 '',
@@ -253,14 +283,15 @@ AnalysisReport reportAnova(AnovaResult r, {String title = '单因素方差分析
             ],
           ),
         ],
-        notes:
-            'ω²=${formatNum(r.omegaSquared)}；Levene F=${formatNum(r.levene.f)}, p=${formatP(r.levene.p)}。',
+        notes: l10n.anovaNote(
+            formatNum(r.omegaSquared), formatNum(r.levene.f), formatP(r.levene.p)),
       ),
     ],
   );
 }
 
 AnalysisReport reportCorrelation(
+  AppLocalizations l10n,
   Map<String, Map<String, CorrelationResult>> matrix, {
   String method = 'Pearson',
 }) {
@@ -287,35 +318,36 @@ AnalysisReport reportCorrelation(
     pRows.add(row);
   }
   return AnalysisReport(
-    title: '相关分析',
+    title: l10n.corrTitle,
     subtitle: method,
     sections: [
       ReportSection(
-        heading: '相关系数',
+        heading: l10n.corrCoef,
         tables: [
           ReportTable(headers: ['', ...names], rows: rows),
           ReportTable(
-            caption: '显著性 (双尾 p)',
+            caption: l10n.sigTwoTail,
             headers: ['', ...names],
             rows: pRows,
           ),
         ],
-        notes: '*** p<.001  ** p<.01  * p<.05',
+        notes: l10n.corrStars,
       ),
     ],
   );
 }
 
-AnalysisReport reportRegression(RegressionResult r, {String yName = 'Y'}) {
+AnalysisReport reportRegression(AppLocalizations l10n, RegressionResult r,
+    {String yName = 'Y'}) {
   return AnalysisReport(
-    title: '线性回归',
-    subtitle: '因变量：$yName',
+    title: l10n.regressionTitle,
+    subtitle: l10n.depVarColon(yName),
     sections: [
       ReportSection(
-        heading: '模型摘要',
+        heading: l10n.modelSummary,
         tables: [
           ReportTable(
-            headers: const ['R', 'R²', '调整 R²', '标准误', 'F', 'p', 'DW'],
+            headers: ['R', 'R²', l10n.adjR2, l10n.se, 'F', 'p', 'DW'],
             rows: [
               [
                 formatNum(r.r),
@@ -331,23 +363,47 @@ AnalysisReport reportRegression(RegressionResult r, {String yName = 'Y'}) {
         ],
       ),
       ReportSection(
-        heading: '方差分析',
+        heading: l10n.anovaTable,
         tables: [
           ReportTable(
-            headers: const ['来源', '平方和', 'df', '均方', 'F', 'p'],
+            headers: [l10n.source, l10n.ss, 'df', l10n.ms, 'F', 'p'],
             rows: [
-              ['回归', formatNum(r.ssRegression), '${r.dfModel}', formatNum(r.msRegression), formatNum(r.f), formatP(r.pF)],
-              ['残差', formatNum(r.ssResidual), '${r.dfResidual}', formatNum(r.msResidual), '', ''],
-              ['总计', formatNum(r.ssTotal), '${r.dfModel + r.dfResidual}', '', '', ''],
+              [
+                l10n.regressionWord,
+                formatNum(r.ssRegression),
+                '${r.dfModel}',
+                formatNum(r.msRegression),
+                formatNum(r.f),
+                formatP(r.pF),
+              ],
+              [
+                l10n.residual,
+                formatNum(r.ssResidual),
+                '${r.dfResidual}',
+                formatNum(r.msResidual),
+                '',
+                '',
+              ],
+              [
+                l10n.total,
+                formatNum(r.ssTotal),
+                '${r.dfModel + r.dfResidual}',
+                '',
+                '',
+                '',
+              ],
             ],
           ),
         ],
       ),
       ReportSection(
-        heading: '系数',
+        heading: l10n.coefficients,
         tables: [
           ReportTable(
-            headers: const ['项', 'B', '标准β', 'SE', 't', 'p', '95%CI下', '95%CI上', 'VIF'],
+            headers: [
+              l10n.term, 'B', l10n.stdBeta, 'SE', 't', 'p',
+              l10n.ciLower, l10n.ciUpper, 'VIF',
+            ],
             rows: r.coefficients
                 .map((c) => [
                       c.name,
@@ -368,25 +424,31 @@ AnalysisReport reportRegression(RegressionResult r, {String yName = 'Y'}) {
   );
 }
 
-AnalysisReport reportChiSquare(ChiSquareResult r, {String title = '卡方检验'}) {
+AnalysisReport reportChiSquare(AppLocalizations l10n, ChiSquareResult r,
+    {String? title}) {
   return AnalysisReport(
-    title: title,
+    title: title ?? l10n.chiSquareTitle,
     subtitle: 'Pearson χ²',
     sections: [
       ReportSection(
-        heading: '卡方检验',
+        heading: l10n.chiSquareTitle,
         tables: [
           ReportTable(
-            headers: const ['统计量', '值', 'df', 'p'],
+            headers: [l10n.statistic, l10n.valueWord, 'df', 'p'],
             rows: [
               ['Pearson χ²', formatNum(r.chiSquare), '${r.df}', formatP(r.p)],
-              ['似然比 G²', formatNum(r.likelihoodRatio), '${r.df}', formatP(r.pLikelihood)],
+              [
+                l10n.likelihoodRatio,
+                formatNum(r.likelihoodRatio),
+                '${r.df}',
+                formatP(r.pLikelihood),
+              ],
               ['N', formatNum(r.n), '', ''],
             ],
           ),
           if (r.cramersV != null)
             ReportTable(
-              headers: const ['关联度', '值'],
+              headers: [l10n.association, l10n.valueWord],
               rows: [
                 ['φ', formatNum(r.phi!)],
                 ["Cramér's V", formatNum(r.cramersV!)],
@@ -395,10 +457,10 @@ AnalysisReport reportChiSquare(ChiSquareResult r, {String title = '卡方检验'
         ],
       ),
       ReportSection(
-        heading: '单元格（观察 / 期望）',
+        heading: l10n.cellsObsExp,
         tables: [
           ReportTable(
-            headers: const ['#', '观察', '期望', '残差', '标准化残差'],
+            headers: ['#', l10n.observed, l10n.expected, l10n.residual, l10n.stdResidual],
             rows: List.generate(
               r.cells.length,
               (i) => [

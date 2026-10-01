@@ -1,6 +1,6 @@
 # Data Editor
 
-Excel-like browsing and editing, mapping PSPP's Data Editor / Variable View.
+Excel-like browsing and editing with Data and Variable views.
 
 ## Double-click to edit
 

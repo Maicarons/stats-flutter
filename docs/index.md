@@ -3,7 +3,7 @@ layout: home
 hero:
   name: Stats-flutter
   text: 工程化统计分析套件
-  tagline: 灵感来自 GNU PSPP · Flutter 全平台 · 学习与测试内置
+  tagline: Flutter 全平台 · 学习与测试内置
   actions:
     - theme: brand
       text: 快速开始
@@ -22,7 +22,7 @@ features:
     title: 双击编辑表格
     details: 电子表格体验，值标签增删改、缺失值、CSV 导入导出、加权/拆分/查找。
   - icon: 🔧
-    title: PSPP 变换与语法
+    title: 变换与语法
     details: COMPUTE / RECODE / SORT / SELECT IF 等，以及可执行的语法子集编辑器。
   - icon: 🎓
     title: 学习 + 测试

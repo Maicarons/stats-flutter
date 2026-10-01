@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/models/project.dart';
 import '../../shared/project_store.dart';
+import '../../shared/dataset_store.dart';
 import '../../shared/brand_logo.dart';
 import 'project_workspace_page.dart';
 import '../settings/about_page.dart';
@@ -274,6 +275,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
       withDemo: demo,
     );
     if (!mounted) return;
+    datasetStore.onProjectChanged();
     await _open(p.meta);
   }
 
@@ -286,6 +288,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
       );
       return;
     }
+    datasetStore.onProjectChanged();
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ProjectWorkspacePage(project: p),

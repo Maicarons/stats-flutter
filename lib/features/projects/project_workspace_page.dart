@@ -2,10 +2,15 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/models/project.dart';
 import '../../shared/project_store.dart';
 import '../analysis/analysis_hub.dart';
+import '../data_editor/csv_io.dart';
+import '../data_editor/excel_io.dart';
+import '../data_editor/sav_import.dart';
+import '../../shared/dataset_store.dart';
 import '../data_editor/data_editor_page.dart';
 import '../transform/transform_page.dart';
 
@@ -22,13 +27,64 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
 
   Project get project => widget.project;
 
+  Future<void> _importMenu() async {
+    final l10n = AppLocalizations.of(context);
+    final v = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(title: Text(l10n.importDataTitle)),
+            ListTile(
+              leading: const Icon(Icons.file_open),
+              title: Text(l10n.importCsv),
+              onTap: () => Navigator.pop(ctx, 'csv'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.grid_on),
+              title: Text(l10n.importExcel),
+              onTap: () => Navigator.pop(ctx, 'excel'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.table_rows),
+              title: Text(l10n.importSav),
+              onTap: () => Navigator.pop(ctx, 'sav'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.science),
+              title: Text(l10n.importDemoData),
+              onTap: () => Navigator.pop(ctx, 'demo'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (v == 'csv') {
+      await importCsvInteractive(context, l10n);
+    } else if (v == 'excel') {
+      await importExcelInteractive(context, l10n);
+    } else if (v == 'sav') {
+      await importSavInteractive(context);
+    } else if (v == 'demo') {
+      datasetStore.resetDemo();
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _export() async {
+    await exportCsvInteractive(context, AppLocalizations.of(context));
+    if (mounted) setState(() {});
+  }
+
   Future<void> _save() async {
     await projectStore.saveCurrent();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('工程已保存'),
-        duration: Duration(milliseconds: 1200),
+      SnackBar(
+        content: Text(AppLocalizations.of(context).projectSaved),
+        duration: const Duration(milliseconds: 1200),
       ),
     );
     setState(() {});
@@ -41,18 +97,30 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
     Navigator.of(context).pop();
   }
 
+  String _subtitle(AppLocalizations l10n) {
+    final base = l10n.casesByVars(project.dataset.nCases, project.dataset.nVars);
+    final savedAt = projectStore.lastSavedAt;
+    if (savedAt != null && !projectStore.dirty) {
+      final hh = savedAt.hour.toString().padLeft(2, '0');
+      final mm = savedAt.minute.toString().padLeft(2, '0');
+      return '$base · ${l10n.autoSavedAt('$hh:$mm')}';
+    }
+    return base;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final pages = const [
-      DataEditorPage(),
-      AnalysisHub(),
+    final l10n = AppLocalizations.of(context);
+    final pages = [
+      const DataEditorPage(),
+      const AnalysisHub(),
       TransformPage(embedded: true),
     ];
 
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          tooltip: '保存并返回',
+          tooltip: l10n.saveAndBack,
           icon: const Icon(Icons.arrow_back),
           onPressed: _exit,
         ),
@@ -69,7 +137,7 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
               overflow: TextOverflow.ellipsis,
             ),
             Text(
-              '${project.dataset.nCases} 个案 × ${project.dataset.nVars} 变量',
+              _subtitle(l10n),
               style: Theme.of(context)
                   .textTheme
                   .bodySmall
@@ -79,7 +147,17 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
         ),
         actions: [
           IconButton(
-            tooltip: '保存工程',
+            tooltip: l10n.importCsvSav,
+            icon: const Icon(Icons.file_open),
+            onPressed: () => _importMenu(),
+          ),
+          IconButton(
+            tooltip: l10n.exportCsv,
+            icon: const Icon(Icons.save_alt),
+            onPressed: () => _export(),
+          ),
+          IconButton(
+            tooltip: l10n.saveProject,
             icon: const Icon(Icons.save_outlined),
             onPressed: _save,
           ),
@@ -88,9 +166,9 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
               if (v == 'save') _save();
               if (v == 'exit') _exit();
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'save', child: Text('保存工程')),
-              PopupMenuItem(value: 'exit', child: Text('关闭工程')),
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'save', child: Text(l10n.saveProject)),
+              PopupMenuItem(value: 'exit', child: Text(l10n.closeProject)),
             ],
           ),
         ],
@@ -99,21 +177,21 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.table_chart_outlined),
-            selectedIcon: Icon(Icons.table_chart),
-            label: '数据',
+            icon: const Icon(Icons.table_chart_outlined),
+            selectedIcon: const Icon(Icons.table_chart),
+            label: l10n.tabData,
           ),
           NavigationDestination(
-            icon: Icon(Icons.analytics_outlined),
-            selectedIcon: Icon(Icons.analytics),
-            label: '分析',
+            icon: const Icon(Icons.analytics_outlined),
+            selectedIcon: const Icon(Icons.analytics),
+            label: l10n.analysis,
           ),
           NavigationDestination(
-            icon: Icon(Icons.transform_outlined),
-            selectedIcon: Icon(Icons.transform),
-            label: '变换',
+            icon: const Icon(Icons.transform_outlined),
+            selectedIcon: const Icon(Icons.transform),
+            label: l10n.tabTransform,
           ),
         ],
       ),

@@ -1,7 +1,7 @@
 name: stats_flutter
-description: "Stats-flutter — 移动优先的统计分析套件，灵感来自 GNU PSPP，含学习与测试模块。"
+description: "Stats-flutter — 移动优先的工程化统计分析套件，含学习与测试模块。"
 publish_to: 'none'
-version: 1.1.0+2
+version: 1.2.0+3
 
 environment:
   sdk: ^3.11.5
@@ -15,6 +15,7 @@ dependencies:
   collection: ^1.19.0
   intl: any
   csv: ^6.0.0
+  excel: ^4.0.6
   file_picker: ^8.1.6
   path_provider: ^2.1.5
   shared_preferences: ^2.3.4
@@ -47,9 +48,6 @@ flutter_launcher_icons:
     image_path: "assets/icon/app_icon.png"
     icon_size: 256
   macos:
-    generate: true
-    image_path: "assets/icon/app_icon.png"
-  web:
     generate: true
     image_path: "assets/icon/app_icon.png"
   remove_alpha_ios: true

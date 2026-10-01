@@ -2,7 +2,7 @@
 
 ## Learn
 
-Eight short lessons: descriptives, t-tests, ANOVA, correlation, regression, chi-square, nonparametrics, reliability. Each lesson includes core formulas and links to PSPP procedures.
+Eight short lessons: descriptives, t-tests, ANOVA, correlation, regression, chi-square, nonparametrics, reliability. Each lesson includes core formulas and pointers to the matching analysis procedures.
 
 ## Quiz
 

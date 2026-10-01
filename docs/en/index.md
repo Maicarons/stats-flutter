@@ -3,7 +3,7 @@ layout: home
 hero:
   name: StatLab
   text: Mobile-first statistics
-  tagline: Inspired by GNU PSPP · Flutter multi-platform · Learn & Quiz built-in
+  tagline: Flutter multi-platform · Learn & Quiz built-in
   actions:
     - theme: brand
       text: Get Started

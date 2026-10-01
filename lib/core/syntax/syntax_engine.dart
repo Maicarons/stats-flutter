@@ -1,4 +1,4 @@
-/// PSPP 语法子集执行器：解析并运行常用命令
+/// 语法子集执行器：解析并运行常用命令
 library;
 
 
@@ -28,7 +28,7 @@ class SyntaxResult {
 
 class SyntaxParser {
   static List<String> splitCommands(String source) {
-    // 以句点结尾分割（PSPP 风格），忽略字符串内句点
+    // 以句点结尾分割（SPSS 风格），忽略字符串内句点
     final out = <String>[];
     final buf = StringBuffer();
     var inStr = false;

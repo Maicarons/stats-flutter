@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -10,6 +11,16 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await appSettings.load();
   runApp(const StatsFlutterApp());
+}
+
+/// 允许鼠标 / 触控笔拖拽滚动（大数据表格在桌面与移动端都更好操作）
+class DragScrollBehavior extends MaterialScrollBehavior {
+  const DragScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        ...PointerDeviceKind.values,
+      };
 }
 
 class StatsFlutterApp extends StatelessWidget {
@@ -38,6 +49,7 @@ class StatsFlutterApp extends StatelessWidget {
             Locale('en'),
             Locale('zh'),
           ],
+          scrollBehavior: const DragScrollBehavior(),
           home: const SplashPage(),
         );
       },

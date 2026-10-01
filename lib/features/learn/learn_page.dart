@@ -38,7 +38,7 @@ class LearnPage extends StatelessWidget {
                           color: scheme.onPrimaryContainer)),
                   const SizedBox(height: 6),
                   Text(
-                    '对照 PSPP 统计过程，用短课掌握假设检验、回归、非参数与信度。'
+                    '用短课掌握描述统计、假设检验、回归、非参数与信度等核心方法。'
                     '每课含要点与核心公式，学完可直接去「测试」练手。',
                     style: TextStyle(
                         color:

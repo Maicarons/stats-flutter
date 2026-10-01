@@ -1,6 +1,6 @@
 # 快速开始
 
-**Stats-flutter** 是对标 [GNU PSPP](https://www.gnu.org/software/pspp/) 的 Flutter 统计分析应用，采用**工程化**管理统计表。
+**Stats-flutter** 是一个 Flutter 统计分析应用，采用**工程化**管理统计表。
 
 - GitHub: https://github.com/Maicarons/stats-flutter
 - 最新版本: [v1.0.0](https://github.com/Maicarons/stats-flutter/releases/tag/v1.0.0)
@@ -20,7 +20,7 @@ git clone https://github.com/Maicarons/stats-flutter.git
 cd stats-flutter
 
 flutter pub get
-flutter run -d windows   # 或 chrome / macos / linux
+flutter run -d windows   # 或 macos / linux
 ```
 
 ## 界面导览
@@ -67,4 +67,4 @@ cd docs && npm install && npm run docs:dev
 - [工程管理](/guide/projects) — 多工程工作流
 - [数据编辑器](/guide/data-editor) — 表格与变量
 - [统计分析](/guide/analysis) — 跑通一次分析
-- [数据变换](/guide/transforms) — PSPP 变换命令
+- [数据变换](/guide/transforms) — 数据变换命令

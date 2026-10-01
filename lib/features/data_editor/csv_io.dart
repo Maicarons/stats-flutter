@@ -1,4 +1,4 @@
-/// CSV 导入 / 导出
+/// CSV / Excel 导入、CSV 导出
 library;
 
 import 'dart:convert';
@@ -10,19 +10,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/models/dataset.dart';
 import '../../shared/dataset_store.dart';
+import 'excel_io.dart';
 
-Future<void> importCsvInteractive(BuildContext context) async {
+Future<void> importCsvInteractive(BuildContext context, AppLocalizations l10n,
+    {bool excelToo = false}) async {
+  final messenger = ScaffoldMessenger.of(context);
   try {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['csv', 'tsv', 'txt'],
+      allowedExtensions:
+          excelToo ? ['csv', 'tsv', 'txt', 'xlsx'] : ['csv', 'tsv', 'txt'],
       withData: true,
     );
     if (result == null || result.files.isEmpty) return;
     final f = result.files.first;
+    if (excelToo && f.name.toLowerCase().endsWith('.xlsx')) {
+      await importExcelBytes(messenger, l10n, f.name, f.bytes);
+      return;
+    }
     String text;
     if (f.bytes != null) {
       text = utf8.decode(f.bytes!, allowMalformed: true);
@@ -44,22 +53,21 @@ Future<void> importCsvInteractive(BuildContext context) async {
       name: f.name.replaceAll(RegExp(r'\.(csv|tsv|txt)$'), ''),
     );
     datasetStore.replace(ds);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已导入 ${ds.nCases} 个案 × ${ds.nVars} 变量')),
-      );
-    }
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.importSuccess(ds.nCases, ds.nVars))),
+    );
   } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('导入失败：$e')));
-    }
+    messenger.showSnackBar(
+        SnackBar(content: Text(l10n.importFailed(e.toString()))));
   }
 }
 
-Future<void> exportCsvInteractive(BuildContext context) async {
+Future<void> exportCsvInteractive(
+    BuildContext context, AppLocalizations l10n) async {
+  final messenger = ScaffoldMessenger.of(context);
   try {
     final ds = datasetStore.data;
+
     final buffer = StringBuffer();
     buffer.writeln(ds.variables.map((v) => v.name).join(','));
     for (final row in ds.cases) {
@@ -85,16 +93,16 @@ Future<void> exportCsvInteractive(BuildContext context) async {
             children: [
               ListTile(
                 leading: const Icon(Icons.save),
-                title: Text('已保存到 ${file.path}'),
+                title: Text(l10n.savedTo(file.path)),
               ),
               ListTile(
                 leading: const Icon(Icons.share),
-                title: const Text('分享文件'),
+                title: Text(l10n.shareFile),
                 onTap: () => Navigator.pop(ctx, 'share'),
               ),
               ListTile(
                 leading: const Icon(Icons.copy),
-                title: const Text('复制到剪贴板'),
+                title: Text(l10n.copyToClipboard),
                 onTap: () => Navigator.pop(ctx, 'copy'),
               ),
             ],
@@ -102,20 +110,17 @@ Future<void> exportCsvInteractive(BuildContext context) async {
         ),
       );
       if (action == 'share') {
-        await Share.shareXFiles([XFile(file.path)], text: 'StatLab 数据导出');
+        await Share.shareXFiles([XFile(file.path)],
+            text: l10n.shareDataText);
       } else if (action == 'copy') {
         await Clipboard.setData(ClipboardData(text: content));
-        if (context.mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('已复制')));
-        }
+        messenger
+            .showSnackBar(SnackBar(content: Text(l10n.copied)));
       }
     }
   } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('导出失败：$e')));
-    }
+    messenger.showSnackBar(
+        SnackBar(content: Text(l10n.exportFailed(e.toString()))));
   }
 }
 

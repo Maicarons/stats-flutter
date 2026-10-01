@@ -42,7 +42,7 @@ Weighted estimation, SPLIT FILE helpers, complete NPAR set additions, and exact 
 
 ## 0.1.0
 
-Initial release of `statkit`, a pure-Dart statistics kernel inspired by GNU PSPP.
+Initial release of `statkit`, a pure-Dart statistics kernel.
 
 ### Modules
 

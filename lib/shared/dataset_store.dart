@@ -4,12 +4,16 @@ library;
 import 'package:flutter/foundation.dart';
 
 import '../core/models/dataset.dart';
+import 'edit_history.dart';
 import 'project_store.dart';
 
 class DatasetStore extends ChangeNotifier {
   String? _lastAnalysis;
+  final EditHistory history = EditHistory();
 
   String? get lastAnalysis => _lastAnalysis;
+  bool get canUndo => history.canUndo;
+  bool get canRedo => history.canRedo;
 
   /// 当前数据集（来自打开的工程；无工程时给空白）
   Dataset get data {
@@ -24,6 +28,7 @@ class DatasetStore extends ChangeNotifier {
   bool get hasProject => projectStore.current != null;
 
   void replace(Dataset d) {
+    history.checkpoint(data);
     final p = projectStore.current;
     if (p != null) {
       // 在工程内替换内容
@@ -50,6 +55,27 @@ class DatasetStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 记录单元格级编辑（撤销栈增量）
+  void recordCellEdit(int row, int col, Object? before, Object? after) {
+    history.recordCellEdit(row, col, before, after);
+  }
+
+  /// 撤销
+  void undo() {
+    if (!history.canUndo) return;
+    history.undo(data);
+    _lastAnalysis = null;
+    touch();
+  }
+
+  /// 重做
+  void redo() {
+    if (!history.canRedo) return;
+    history.redo(data);
+    _lastAnalysis = null;
+    touch();
+  }
+
   void setLastAnalysis(String name) {
     _lastAnalysis = name;
     notifyListeners();
@@ -63,6 +89,7 @@ class DatasetStore extends ChangeNotifier {
   void onProjectChanged() {
     _fallback = null;
     _lastAnalysis = null;
+    history.clear();
     notifyListeners();
   }
 }

@@ -1,6 +1,6 @@
 # Getting Started
 
-**Stats-flutter** is a Flutter statistical suite inspired by [GNU PSPP](https://www.gnu.org/software/pspp/), with **project-based** dataset management.
+**Stats-flutter** is a Flutter statistical suite with **project-based** dataset management.
 
 - GitHub: https://github.com/Maicarons/stats-flutter
 - Release: [v1.0.0](https://github.com/Maicarons/stats-flutter/releases/tag/v1.0.0)
@@ -15,7 +15,7 @@ Flutter ≥ 3.41, Dart ≥ 3.11.
 git clone https://github.com/Maicarons/stats-flutter.git
 cd stats-flutter
 flutter pub get
-flutter run -d windows   # or chrome / macos / linux
+flutter run -d windows   # or macos / linux
 ```
 
 ## Navigation

@@ -1,6 +1,6 @@
 # Transforms
 
-PSPP-style Transform menu inside the **project workspace**.
+Transform menu inside the **project workspace**.
 
 ## Commands
 
@@ -17,7 +17,7 @@ PSPP-style Transform menu inside the **project workspace**.
 
 ## Syntax editor
 
-A PSPP-style subset runner is available from the Data menu:
+A syntax subset runner is available from the Data menu:
 
 ```text
 DESCRIPTIVES pre post.

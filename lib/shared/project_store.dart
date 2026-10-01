@@ -1,6 +1,7 @@
 /// 工程仓库：列表 + 磁盘持久化
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -14,11 +15,16 @@ class ProjectStore extends ChangeNotifier {
   final List<ProjectMeta> _metas = [];
   Project? _current;
   bool _loaded = false;
+  bool _dirty = false;
+  DateTime? _lastSavedAt;
+  Timer? _debounce;
   Directory? _root;
 
   List<ProjectMeta> get projects => List.unmodifiable(_metas);
   Project? get current => _current;
   bool get loaded => _loaded;
+  bool get dirty => _dirty;
+  DateTime? get lastSavedAt => _lastSavedAt;
   String get rootPath => _root?.path ?? '';
 
   /// 初始化：扫描工程目录
@@ -101,8 +107,12 @@ class ProjectStore extends ChangeNotifier {
   Future<void> saveCurrent() async {
     final p = _current;
     if (p == null || _root == null) return;
+    _debounce?.cancel();
+    _debounce = null;
     p.touch();
     await _persist(p);
+    _dirty = false;
+    _lastSavedAt = DateTime.now();
     // 更新列表元数据
     final i = _metas.indexWhere((m) => m.id == p.meta.id);
     if (i >= 0) {
@@ -184,8 +194,23 @@ class ProjectStore extends ChangeNotifier {
   /// 当前数据集（供分析层使用）
   Dataset? get currentDataset => _current?.dataset;
 
-  /// 标脏保存（编辑后调用）
-  Future<void> markDirty() => saveCurrent();
+  /// 标脏（编辑后调用）：去抖自动保存，避免逐单元格全量写盘
+  Future<void> markDirty() async {
+    _dirty = true;
+    notifyListeners();
+    _debounce ??= Timer(const Duration(seconds: 2), () {
+      _debounce = null;
+      if (_dirty && _current != null) {
+        saveCurrent();
+      }
+    });
+  }
+
+  /// 释放去抖定时器
+  void disposeTimer() {
+    _debounce?.cancel();
+    _debounce = null;
+  }
 }
 
 /// 全局单例
