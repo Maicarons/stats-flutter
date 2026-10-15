@@ -1478,4 +1478,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unsaved => 'Unsaved';
+
+  @override
+  String get chartSection => 'Chart';
+
+  @override
+  String get copiedToClipboard => 'Copied to clipboard';
 }

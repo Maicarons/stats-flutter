@@ -494,5 +494,7 @@
   "anScatterDesc": "两变量关系",
   "anBar": "条形图",
   "anBarDesc": "分类频数",
-  "unsaved": "未保存"
+  "unsaved": "未保存",
+  "chartSection": "图表",
+  "copiedToClipboard": "已复制到剪贴板"
 }

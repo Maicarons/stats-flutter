@@ -3,14 +3,17 @@ import 'dart:math' as math;
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:statkit/statkit.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/models/dataset.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../shared/dataset_store.dart';
 import '../../core/io/missing_aware.dart';
+import '../../shared/ui/ui.dart';
 import '../output/report_builder.dart';
 import '../output/report_export.dart';
 
@@ -24,7 +27,7 @@ class AnalysisRunner extends StatefulWidget {
 }
 
 class _AnalysisRunnerState extends State<AnalysisRunner> {
-  final List<String> _selectedVars = [];
+  List<String> _selectedVars = [];
   String? _groupVar;
   String? _yVar;
   String? _xVar;
@@ -34,6 +37,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   AnalysisReport? _report;
   Widget? _chart;
   bool _busy = false;
+  String? _error;
 
   Dataset get ds => datasetStore.data;
   AppLocalizations get l10n => AppLocalizations.of(context);
@@ -71,31 +75,45 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
             ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildParams(),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: _busy ? null : _run,
-            icon: _busy
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.play_arrow),
-            label: Text(_busy ? l10n.running : l10n.runAnalysis),
+      body: ConstrainedContent(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.x4),
+        child: ListView(
+          padding: const EdgeInsets.only(
+            top: AppSpacing.x3,
+            bottom: AppSpacing.x6,
           ),
-          if (_report != null) ...[
-            const SizedBox(height: 20),
-            _ReportView(report: _report!),
+          children: [
+            _buildParams(),
+            const SizedBox(height: AppSpacing.x4),
+            if (_error != null) ...[
+              InlineError(message: _error!),
+              const SizedBox(height: AppSpacing.x3),
+            ],
+            FilledButton.icon(
+              onPressed: _busy ? null : _run,
+              icon: _busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.play_arrow),
+              label: Text(_busy ? l10n.running : l10n.runAnalysis),
+            ),
+            if (_report != null) ...[
+              const SizedBox(height: AppSpacing.x5),
+              _ReportView(report: _report!),
+            ],
+            if (_chart != null) ...[
+              const SizedBox(height: AppSpacing.x4),
+              ChartCard(
+                title: l10n.chartSection,
+                height: 260,
+                child: _chart!,
+              ),
+            ],
           ],
-          if (_chart != null) ...[
-            const SizedBox(height: 16),
-            _chart!,
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -134,19 +152,19 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                     ?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
             if (multiVars.contains(id))
-              _VarPicker(
+              ParamVarPicker(
                 label: l10n.selectVariables,
                 names: _numericVars,
                 selected: _selectedVars,
-                onChanged: (v) => setState(() {}),
+                onChanged: (v) => setState(() => _selectedVars = v),
               ),
             if (needGroup.contains(id)) ...[
-              _VarPicker(
+              ParamVarPicker(
                 label: l10n.analysisVariable,
                 names: _numericVars,
                 selected: _selectedVars.take(1).toList(),
                 single: true,
-                onChanged: (_) => setState(() {}),
+                onChanged: (v) => setState(() => _selectedVars = v),
               ),
               const SizedBox(height: 12),
               _Dropdown(
@@ -157,20 +175,20 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ),
             ],
             if (needPair.contains(id))
-              _VarPicker(
+              ParamVarPicker(
                 label: l10n.pairVariables,
                 names: _numericVars,
                 selected: _selectedVars,
                 max: 2,
-                onChanged: (_) => setState(() {}),
+                onChanged: (v) => setState(() => _selectedVars = v),
               ),
             if (id == 'ttest_one') ...[
-              _VarPicker(
+              ParamVarPicker(
                 label: l10n.analysisVariable,
                 names: _numericVars,
                 selected: _selectedVars.take(1).toList(),
                 single: true,
-                onChanged: (_) => setState(() {}),
+                onChanged: (v) => setState(() => _selectedVars = v),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -268,6 +286,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   Future<void> _run() async {
     setState(() {
       _busy = true;
+      _error = null;
       _report = null;
       _chart = null;
     });
@@ -380,13 +399,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
           );
       }
     } catch (e) {
-      _report = AnalysisReport(
-        title: widget.title,
-        subtitle: l10n.error,
-        sections: [
-          ReportSection(heading: l10n.failed, body: e.toString()),
-        ],
-      );
+      _error = e.toString();
     }
     if (mounted) setState(() => _busy = false);
   }
@@ -653,41 +666,31 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         ),
       ],
     );
-    _chart = SizedBox(
-      height: 260,
-      child: BarChart(
-        BarChartData(
-          barGroups: List.generate(
-            bins.length,
-            (i) => BarChartGroupData(x: i, barRods: [
-              BarChartRodData(
-                toY: bins[i].count.toDouble(),
-                width: 14,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ]),
-          ),
-          titlesData: FlTitlesData(
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (v, _) {
-                  final i = v.toInt();
-                  if (i < 0 || i >= bins.length) return const SizedBox();
-                  return Text(formatNum(bins[i].midpoint, digits: 1),
-                      style: const TextStyle(fontSize: 9));
-                },
+    final app = context.appColors;
+    _chart = BarChart(
+      BarChartData(
+        barGroups: List.generate(
+          bins.length,
+          (i) => BarChartGroupData(x: i, barRods: [
+            BarChartRodData(
+              toY: bins[i].count.toDouble(),
+              width: 14,
+              color: app.chartAt(0),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(4),
               ),
             ),
-            leftTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: true)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-          borderData: FlBorderData(show: false),
-          gridData: const FlGridData(show: true, drawVerticalLine: false),
+          ]),
         ),
+        titlesData: ChartStyle.titles(
+          context,
+          bottomLabels: [
+            for (final b in bins) formatNum(b.midpoint, digits: 1),
+          ],
+        ),
+        barTouchData: ChartStyle.barTouch(context),
+        borderData: FlBorderData(show: false),
+        gridData: ChartStyle.grid(context),
       ),
     );
   }
@@ -724,25 +727,27 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         ),
       ],
     );
-    _chart = SizedBox(
-      height: 280,
-      child: ScatterChart(
-        ScatterChartData(
-          scatterSpots: [
-            for (var i = 0; i < n; i++)
-              ScatterSpot(x[i], y[i]),
-          ],
-          minX: (x.sublist(0, n).reduce((a, b) => a < b ? a : b)),
-          maxX: (x.sublist(0, n).reduce((a, b) => a > b ? a : b)),
-          minY: (y.sublist(0, n).reduce((a, b) => a < b ? a : b)),
-          maxY: (y.sublist(0, n).reduce((a, b) => a > b ? a : b)),
-          titlesData: const FlTitlesData(
-            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-          gridData: const FlGridData(show: true),
-          borderData: FlBorderData(show: true),
-        ),
+    _chart = ScatterChart(
+      ScatterChartData(
+        scatterSpots: [
+          for (var i = 0; i < n; i++)
+            ScatterSpot(
+              x[i],
+              y[i],
+              dotPainter: FlDotCirclePainter(
+                radius: 3,
+                color: context.appColors.chartAt(0).withValues(alpha: 0.75),
+                strokeWidth: 0,
+              ),
+            ),
+        ],
+        minX: (x.sublist(0, n).reduce((a, b) => a < b ? a : b)),
+        maxX: (x.sublist(0, n).reduce((a, b) => a > b ? a : b)),
+        minY: (y.sublist(0, n).reduce((a, b) => a < b ? a : b)),
+        maxY: (y.sublist(0, n).reduce((a, b) => a > b ? a : b)),
+        titlesData: ChartStyle.titles(context),
+        gridData: ChartStyle.grid(context),
+        borderData: ChartStyle.border(context),
       ),
     );
   }
@@ -779,43 +784,29 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         ),
       ],
     );
-    _chart = SizedBox(
-      height: 260,
-      child: BarChart(
-        BarChartData(
-          barGroups: List.generate(
-            freq.rows.length,
-            (i) => BarChartGroupData(x: i, barRods: [
-              BarChartRodData(
-                toY: freq.rows[i].frequency.toDouble(),
-                width: 18,
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ]),
-          ),
-          titlesData: FlTitlesData(
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (v, _) {
-                  final i = v.toInt();
-                  if (i < 0 || i >= freq.rows.length) return const SizedBox();
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(freq.rows[i].label,
-                        style: const TextStyle(fontSize: 9)),
-                  );
-                },
+    final app = context.appColors;
+    _chart = BarChart(
+      BarChartData(
+        barGroups: List.generate(
+          freq.rows.length,
+          (i) => BarChartGroupData(x: i, barRods: [
+            BarChartRodData(
+              toY: freq.rows[i].frequency.toDouble(),
+              width: 18,
+              color: app.chartAt(i),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(6),
               ),
             ),
-            leftTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: true)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-          borderData: FlBorderData(show: false),
+          ]),
         ),
+        titlesData: ChartStyle.titles(
+          context,
+          bottomLabels: [for (final e in freq.rows) e.label],
+        ),
+        barTouchData: ChartStyle.barTouch(context),
+        borderData: FlBorderData(show: false),
+        gridData: ChartStyle.grid(context),
       ),
     );
   }
@@ -1171,19 +1162,23 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         ),
       ],
     );
-    _chart = SizedBox(
-      height: 280,
-      child: ScatterChart(
-        ScatterChartData(
-          scatterSpots: [
-            for (final p in r.qq) ScatterSpot(p.theoretical, p.sample),
-          ],
-          titlesData: const FlTitlesData(
-            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-          gridData: const FlGridData(show: true),
-        ),
+    _chart = ScatterChart(
+      ScatterChartData(
+        scatterSpots: [
+          for (final p in r.qq)
+            ScatterSpot(
+              p.theoretical,
+              p.sample,
+              dotPainter: FlDotCirclePainter(
+                radius: 2.6,
+                color: context.appColors.chartAt(0).withValues(alpha: 0.8),
+                strokeWidth: 0,
+              ),
+            ),
+        ],
+        titlesData: ChartStyle.titles(context),
+        gridData: ChartStyle.grid(context),
+        borderData: ChartStyle.border(context),
       ),
     );
   }
@@ -1244,17 +1239,23 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         ),
       ],
     );
-    _chart = SizedBox(
-      height: 280,
-      child: ScatterChart(
-        ScatterChartData(
-          scatterSpots: [for (final p in pts) ScatterSpot(p.theoretical, p.sample)],
-          titlesData: const FlTitlesData(
-            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-          gridData: const FlGridData(show: true),
-        ),
+    _chart = ScatterChart(
+      ScatterChartData(
+        scatterSpots: [
+          for (final p in pts)
+            ScatterSpot(
+              p.theoretical,
+              p.sample,
+              dotPainter: FlDotCirclePainter(
+                radius: 2.6,
+                color: context.appColors.chartAt(0).withValues(alpha: 0.8),
+                strokeWidth: 0,
+              ),
+            ),
+        ],
+        titlesData: ChartStyle.titles(context),
+        gridData: ChartStyle.grid(context),
+        borderData: ChartStyle.border(context),
       ),
     );
   }
@@ -1622,65 +1623,6 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   }
 }
 
-class _VarPicker extends StatelessWidget {
-  final String label;
-  final List<String> names;
-  final List<String> selected;
-  final bool single;
-  final int? max;
-  final ValueChanged<List<String>> onChanged;
-
-  const _VarPicker({
-    required this.label,
-    required this.names,
-    required this.selected,
-    required this.onChanged,
-    this.single = false,
-    this.max,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: names.map((n) {
-            final isSel = selected.contains(n);
-            return FilterChip(
-              label: Text(n),
-              selected: isSel,
-              onSelected: (v) {
-                final list = List<String>.from(selected);
-                if (single || max == 1) {
-                  list
-                    ..clear()
-                    ..add(n);
-                } else if (v) {
-                  if (max != null && list.length >= max!) {
-                    list.removeAt(0);
-                  }
-                  list.add(n);
-                } else {
-                  list.remove(n);
-                }
-                selected
-                  ..clear()
-                  ..addAll(list);
-                onChanged(list);
-              },
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-}
-
 class _Dropdown extends StatelessWidget {
   final String label;
   final String? value;
@@ -1714,53 +1656,123 @@ class _ReportView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(report.title,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w700)),
-          Text(report.subtitle,
-              style: TextStyle(color: scheme.outline, fontSize: 13)),
-          const Divider(height: 24),
-          for (final s in report.sections) ...[
-            Text(s.heading,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w700)),
-            if (s.body != null) ...[
-              const SizedBox(height: 6),
-              Text(s.body!),
-            ],
-            for (final t in s.tables) ...[
-              const SizedBox(height: 10),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: _TableWidget(table: t),
+    final text = Theme.of(context).textTheme;
+
+    return SelectionArea(
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.x4),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerLow,
+          borderRadius: AppRadius.rLg,
+          border: Border.all(color: scheme.outlineVariant),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        report.title,
+                        style: text.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      if (report.subtitle.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            report.subtitle,
+                            style: text.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: l10n.shareReport,
+                  icon: const Icon(Icons.copy_all_outlined, size: 18),
+                  onPressed: () async {
+                    await Clipboard.setData(
+                      ClipboardData(text: report.toPlainText()),
+                    );
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(l10n.copiedToClipboard),
+                        duration: const Duration(milliseconds: 1200),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const Divider(height: AppSpacing.x5),
+            for (final s in report.sections) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.x2),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 3,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: scheme.primary,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.x2),
+                    Expanded(
+                      child: Text(
+                        s.heading,
+                        style: text.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              if (s.body != null) ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.x2),
+                  child: Text(
+                    s.body!,
+                    style: text.bodyMedium?.copyWith(height: 1.6),
+                  ),
+                ),
+              ],
+              for (final t in s.tables) ...[
+                const SizedBox(height: AppSpacing.x2),
+                _TableWidget(table: t),
+              ],
+              if (s.notes != null) ...[
+                const SizedBox(height: AppSpacing.x2),
+                Text(
+                  s.notes!,
+                  style: text.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.x5),
             ],
-            if (s.notes != null) ...[
-              const SizedBox(height: 8),
-              Text(s.notes!,
-                  style: TextStyle(color: scheme.outline, fontSize: 12)),
-            ],
-            const SizedBox(height: 16),
+            Text(
+              l10n.generatedAt(report.createdAt.toLocal().toIso8601String()),
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: AppFontSize.caption,
+              ),
+            ),
           ],
-          Text(
-            l10n.generatedAt(report.createdAt.toLocal().toIso8601String()),
-            style: TextStyle(color: scheme.outline, fontSize: 11),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1770,39 +1782,110 @@ class _TableWidget extends StatelessWidget {
   final ReportTable table;
   const _TableWidget({required this.table});
 
+  static final RegExp _numericRe = RegExp(r'^-?[0-9][0-9,.\s]*%?$');
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (table.caption != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Text(table.caption!,
-                style: TextStyle(
-                    color: scheme.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600)),
-          ),
-        DataTable(
-          headingRowColor: WidgetStatePropertyAll(scheme.surfaceContainerHigh),
-          columnSpacing: 16,
-          headingTextStyle: const TextStyle(
-              fontWeight: FontWeight.w700, fontSize: 12),
-          dataTextStyle: const TextStyle(fontSize: 12),
-          columns: [
-            for (final h in table.headers) DataColumn(label: Text(h)),
-          ],
-          rows: [
-            for (final r in table.rows)
-              DataRow(cells: [
-                for (var i = 0; i < table.headers.length; i++)
-                  DataCell(Text(i < r.length ? r[i] : '')),
-              ]),
-          ],
+    final cols = table.headers.length;
+
+    // 全列数值 → 右对齐（首列除外）
+    final numericCol = <bool>[
+      for (var c = 0; c < cols; c++)
+        c > 0 &&
+            table.rows.any((r) => c < r.length && r[c].trim().isNotEmpty) &&
+            table.rows
+                .where((r) => c < r.length && r[c].trim().isNotEmpty)
+                .every((r) => _numericRe.hasMatch(r[c].trim())),
+    ];
+
+    Widget cell(String s, int c, {required bool header}) {
+      final numeric = !header && numericCol[c];
+      return Container(
+        constraints: BoxConstraints(minWidth: c == 0 ? 112 : 76),
+        padding: EdgeInsets.symmetric(
+          horizontal: AppSpacing.x3,
+          vertical: header ? AppSpacing.x2 : AppSpacing.x1 + 3,
         ),
-      ],
+        alignment: numeric ? Alignment.centerRight : Alignment.centerLeft,
+        child: Text(
+          s,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: header ? FontWeight.w700 : FontWeight.w400,
+            fontFeatures: const [FontFeature.tabularFigures()],
+            color: header ? scheme.onSurface : scheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: AppRadius.rMd,
+          border: Border.all(color: scheme.outlineVariant),
+        ),
+        child: ClipRRect(
+          borderRadius: AppRadius.rMd,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (table.caption != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.x3,
+                    AppSpacing.x2,
+                    AppSpacing.x3,
+                    0,
+                  ),
+                  child: Text(
+                    table.caption!,
+                    style: TextStyle(
+                      color: scheme.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              Container(
+                color: scheme.surfaceContainerHigh,
+                child: Row(
+                  children: [
+                    for (var c = 0; c < cols; c++)
+                      cell(c < table.headers.length ? table.headers[c] : '', c,
+                          header: true),
+                  ],
+                ),
+              ),
+              for (var r = 0; r < table.rows.length; r++)
+                Container(
+                  decoration: BoxDecoration(
+                    color: r.isOdd
+                        ? scheme.surfaceContainerLow.withValues(alpha: 0.5)
+                        : null,
+                    border: Border(
+                      top: BorderSide(
+                        color: scheme.outlineVariant.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      for (var c = 0; c < cols; c++)
+                        cell(
+                          c < table.rows[r].length ? table.rows[r][c] : '',
+                          c,
+                          header: false,
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1819,21 +1902,36 @@ class _ScatterClusters extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 280,
-      child: ScatterChart(
-        ScatterChartData(
-          scatterSpots: [
-            for (var i = 0; i < pts.length; i++)
-              ScatterSpot(pts[i][0], pts[i][1]),
-            for (final c in centers)
-              ScatterSpot(c.centroid[0], c.centroid[1]),
-          ],
-          titlesData: const FlTitlesData(
-            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-        ),
+    final app = context.appColors;
+
+    return ScatterChart(
+      ScatterChartData(
+        scatterSpots: [
+          for (var i = 0; i < pts.length; i++)
+            ScatterSpot(
+              pts[i][0],
+              pts[i][1],
+              dotPainter: FlDotCirclePainter(
+                radius: 3.2,
+                color: app.chartAt(i < assignments.length ? assignments[i] : 0),
+                strokeWidth: 0,
+              ),
+            ),
+          for (var c = 0; c < centers.length; c++)
+            ScatterSpot(
+              centers[c].centroid[0],
+              centers[c].centroid[1],
+              dotPainter: FlDotCirclePainter(
+                radius: 6,
+                color: app.chartAt(c),
+                strokeWidth: 2,
+                strokeColor: Theme.of(context).colorScheme.surface,
+              ),
+            ),
+        ],
+        titlesData: ChartStyle.titles(context),
+        gridData: ChartStyle.grid(context),
+        borderData: ChartStyle.border(context),
       ),
     );
   }

@@ -2875,6 +2875,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unsaved'**
   String get unsaved;
+
+  /// No description provided for @chartSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Chart'**
+  String get chartSection;
+
+  /// No description provided for @copiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard'**
+  String get copiedToClipboard;
 }
 
 class _AppLocalizationsDelegate

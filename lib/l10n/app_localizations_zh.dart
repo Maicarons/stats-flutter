@@ -1464,4 +1464,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get unsaved => '未保存';
+
+  @override
+  String get chartSection => '图表';
+
+  @override
+  String get copiedToClipboard => '已复制到剪贴板';
 }

@@ -615,5 +615,7 @@
   "anScatterDesc": "Relationship between two variables",
   "anBar": "Bar chart",
   "anBarDesc": "Category frequencies",
-  "unsaved": "Unsaved"
+  "unsaved": "Unsaved",
+  "chartSection": "Chart",
+  "copiedToClipboard": "Copied to clipboard"
 }
