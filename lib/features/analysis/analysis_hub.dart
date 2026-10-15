@@ -121,6 +121,9 @@ class _AnalysisHubState extends State<AnalysisHub> {
               ..._buildQuickSections(l10n),
               for (var i = 0; i < analysisCatalog.length; i++)
                 _CategorySection(
+                  // 稳定 key：收藏/最近区块插入或移除时，
+                  // 分类需要保持展开状态，而不是被重建折叠。
+                  key: ValueKey('analysis-category-${analysisCatalog[i].items.first.id}'),
                   category: analysisCatalog[i],
                   initiallyExpanded: i == 0,
                   onTap: _open,
@@ -256,6 +259,7 @@ class _CategorySection extends StatelessWidget {
   final void Function(String) onToggleFavorite;
 
   const _CategorySection({
+    super.key,
     required this.category,
     required this.initiallyExpanded,
     required this.onTap,

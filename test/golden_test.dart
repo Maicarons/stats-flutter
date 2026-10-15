@@ -94,6 +94,16 @@ void main() {
         size: phone, dark: false, name: 'lesson_phone_light');
   });
 
+  testWidgets('课程详情 · 手机 · 深色', (t) async {
+    await snap(t, page: LessonDetailPage(lesson: learnLessons.first),
+        size: phone, dark: true, name: 'lesson_phone_dark');
+  });
+
+  testWidgets('测试页设置 · 手机 · 深色', (t) async {
+    await snap(t, page: const QuizPage(), size: phone, dark: true,
+        name: 'quiz_setup_phone_dark');
+  });
+
   testWidgets('自适应导航 · 手机 · 浅色', (t) async {
     await snap(
       t,

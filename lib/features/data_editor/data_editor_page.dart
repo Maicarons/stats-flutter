@@ -451,6 +451,8 @@ class _VarSheet extends StatelessWidget {
         final typeName = _localeName(context, v.type.en, v.type.zh);
         final measureName = _localeName(context, v.measure.en, v.measure.zh);
         return AppCard(
+          // 稳定 key：搜索过滤 / 删除变量后，展开状态跟着变量走
+          key: ValueKey('var-${v.name}'),
           padding: EdgeInsets.zero,
           child: ExpansionTile(
             shape: const Border(),

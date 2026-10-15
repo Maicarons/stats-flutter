@@ -4,6 +4,7 @@ import 'package:stats_flutter/core/models/dataset.dart';
 import 'package:stats_flutter/core/theme/app_theme.dart';
 import 'package:stats_flutter/features/data_editor/data_editor_page.dart';
 import 'package:stats_flutter/features/learn/learn_page.dart';
+import 'package:stats_flutter/features/quiz/quiz_page.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 import 'package:stats_flutter/shared/dataset_store.dart';
 
@@ -63,7 +64,28 @@ void main() {
         await expectLater(tester, meetsGuideline(textContrastGuideline));
         await tester.pump(const Duration(seconds: 3));
       });
+
+      testWidgets('测试页对比度达 AA（$mode）', (tester) async {
+        _sizeTo(tester, const Size(420, 900));
+        await tester.pumpWidget(_app(const QuizPage(), dark: dark));
+        await tester.pumpAndSettle();
+        await expectLater(tester, meetsGuideline(textContrastGuideline));
+
+        // 进入答题界面后再检查一次（选项卡 + 进度条）
+        await tester.tap(find.text('Start quiz'));
+        await tester.pumpAndSettle();
+        await expectLater(tester, meetsGuideline(textContrastGuideline));
+      });
     }
+  });
+
+  group('触摸目标', () {
+    testWidgets('测试页所有可点元素满足 Android 最小触摸尺寸', (tester) async {
+      _sizeTo(tester, const Size(420, 900));
+      await tester.pumpWidget(_app(const QuizPage()));
+      await tester.pumpAndSettle();
+      await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+    });
   });
 
   group('无障碍标签', () {
