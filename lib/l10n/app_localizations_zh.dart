@@ -1470,4 +1470,203 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get copiedToClipboard => '已复制到剪贴板';
+
+  @override
+  String get trTitle => '数据变换';
+
+  @override
+  String get trType => '变换类型';
+
+  @override
+  String get trOpCompute => 'COMPUTE 计算';
+
+  @override
+  String get trOpRecode => 'RECODE 重编码';
+
+  @override
+  String get trOpCount => 'COUNT 计数';
+
+  @override
+  String get trOpRank => 'RANK 秩次';
+
+  @override
+  String get trOpSort => 'SORT 排序';
+
+  @override
+  String get trOpSelect => 'SELECT IF 筛选';
+
+  @override
+  String get trOpAggregate => 'AGGREGATE 汇总';
+
+  @override
+  String get trOpFlip => 'FLIP 转置';
+
+  @override
+  String get trRun => '执行变换';
+
+  @override
+  String get trTargetVar => '目标变量';
+
+  @override
+  String get trTargetName => '目标变量名';
+
+  @override
+  String get trTargetHint => '例如 total_score';
+
+  @override
+  String get trNewVar => '（新建）';
+
+  @override
+  String get trExpr => '表达式';
+
+  @override
+  String get trExprHint => '例如 pre + post 或 sqrt(hours) * 2';
+
+  @override
+  String get trComputeHelp =>
+      '支持 + - * / ( ) 与 abs sqrt ln exp log10 sin cos tan round trunc';
+
+  @override
+  String get trSourceVar => '源变量';
+
+  @override
+  String get trRecodeTargetHint => '例如 method_lab';
+
+  @override
+  String get trRules => '规则（旧值=新值，逗号分隔）';
+
+  @override
+  String get trRulesHint => '1=讲授, 2=探究, 3=混合';
+
+  @override
+  String get trCountTargetHint => '例如 n_pass';
+
+  @override
+  String get trCountVars => '参与计数的变量';
+
+  @override
+  String get trMatchValue => '匹配值';
+
+  @override
+  String get trRankDescending => '降序排名';
+
+  @override
+  String get trSortDescending => '降序';
+
+  @override
+  String get trSortKeys => '排序键（按顺序）';
+
+  @override
+  String get trCondition => '条件表达式';
+
+  @override
+  String get trConditionHint => '例如 post >= 70 && method == 2';
+
+  @override
+  String get trConditionHelp => '支持 > < >= <= == != 与 && ||';
+
+  @override
+  String get trGroupVar => '分组变量';
+
+  @override
+  String get trAggVars => '汇总的数值变量（求均值）';
+
+  @override
+  String get trFlipNote => '将行与列互换（转置），生成新数据集。';
+
+  @override
+  String get trCurrentData => '当前数据';
+
+  @override
+  String get trDataset => '数据集';
+
+  @override
+  String get trResult => '执行结果';
+
+  @override
+  String get trNeedTargetExpr => '请填写目标变量与表达式';
+
+  @override
+  String get trNeedSource => '请选择源变量';
+
+  @override
+  String get trNeedVars => '请选择变量';
+
+  @override
+  String get trNeedSortKeys => '请选择排序键';
+
+  @override
+  String get trNeedCondition => '请填写条件';
+
+  @override
+  String get trNeedGroupAndVars => '请选择分组变量与汇总变量';
+
+  @override
+  String get trUnknownOp => '未知操作';
+
+  @override
+  String trError(String msg) {
+    return '错误：$msg';
+  }
+
+  @override
+  String get copy => '复制';
+
+  @override
+  String get stCurrentDataset => '当前数据集';
+
+  @override
+  String get stStorage => '存储位置';
+
+  @override
+  String get abInfoTab => '信息';
+
+  @override
+  String get abReadmeZh => '中文 README';
+
+  @override
+  String get abReadmeEn => 'English README';
+
+  @override
+  String abReadmeFailed(String msg) {
+    return '加载 README 失败：$msg';
+  }
+
+  @override
+  String get abIntroTitle => '项目简介';
+
+  @override
+  String get abIntroBody =>
+      '工程化统计分析套件，覆盖数据编辑、统计过程、数据变换、学习与测试。统计内核为独立纯 Dart 包 statkit。';
+
+  @override
+  String get abDocs => '文档站';
+
+  @override
+  String get abLicense => '开源许可';
+
+  @override
+  String get abLicenseValue => 'AGPL-3.0 · 开源项目';
+
+  @override
+  String get abStack => '技术栈';
+
+  @override
+  String get abStackValue => 'Flutter · Dart';
+
+  @override
+  String get abRuntime => '本机运行时';
+
+  @override
+  String get abPlatform =>
+      'Flutter 应用 · 平台：Windows / macOS / Linux / Android / iOS';
+
+  @override
+  String get abKernel => '统计内核：packages/statkit（纯 Dart，13 组测试）';
+
+  @override
+  String get abUiLang => '界面语言：中文 / English（可在设置中切换）';
+
+  @override
+  String get abTheme => '主题：浅色 / 深色 / 跟随系统 · 8 种主题色';
 }

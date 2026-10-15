@@ -2887,6 +2887,390 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copied to clipboard'**
   String get copiedToClipboard;
+
+  /// No description provided for @trTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transform'**
+  String get trTitle;
+
+  /// No description provided for @trType.
+  ///
+  /// In en, this message translates to:
+  /// **'Transform type'**
+  String get trType;
+
+  /// No description provided for @trOpCompute.
+  ///
+  /// In en, this message translates to:
+  /// **'COMPUTE'**
+  String get trOpCompute;
+
+  /// No description provided for @trOpRecode.
+  ///
+  /// In en, this message translates to:
+  /// **'RECODE'**
+  String get trOpRecode;
+
+  /// No description provided for @trOpCount.
+  ///
+  /// In en, this message translates to:
+  /// **'COUNT'**
+  String get trOpCount;
+
+  /// No description provided for @trOpRank.
+  ///
+  /// In en, this message translates to:
+  /// **'RANK'**
+  String get trOpRank;
+
+  /// No description provided for @trOpSort.
+  ///
+  /// In en, this message translates to:
+  /// **'SORT'**
+  String get trOpSort;
+
+  /// No description provided for @trOpSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'SELECT IF'**
+  String get trOpSelect;
+
+  /// No description provided for @trOpAggregate.
+  ///
+  /// In en, this message translates to:
+  /// **'AGGREGATE'**
+  String get trOpAggregate;
+
+  /// No description provided for @trOpFlip.
+  ///
+  /// In en, this message translates to:
+  /// **'FLIP'**
+  String get trOpFlip;
+
+  /// No description provided for @trRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Run transform'**
+  String get trRun;
+
+  /// No description provided for @trTargetVar.
+  ///
+  /// In en, this message translates to:
+  /// **'Target variable'**
+  String get trTargetVar;
+
+  /// No description provided for @trTargetName.
+  ///
+  /// In en, this message translates to:
+  /// **'Target variable name'**
+  String get trTargetName;
+
+  /// No description provided for @trTargetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. total_score'**
+  String get trTargetHint;
+
+  /// No description provided for @trNewVar.
+  ///
+  /// In en, this message translates to:
+  /// **'(new)'**
+  String get trNewVar;
+
+  /// No description provided for @trExpr.
+  ///
+  /// In en, this message translates to:
+  /// **'Expression'**
+  String get trExpr;
+
+  /// No description provided for @trExprHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. pre + post, or sqrt(hours) * 2'**
+  String get trExprHint;
+
+  /// No description provided for @trComputeHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Supports + - * / ( ) and abs sqrt ln exp log10 sin cos tan round trunc'**
+  String get trComputeHelp;
+
+  /// No description provided for @trSourceVar.
+  ///
+  /// In en, this message translates to:
+  /// **'Source variable'**
+  String get trSourceVar;
+
+  /// No description provided for @trRecodeTargetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. method_label'**
+  String get trRecodeTargetHint;
+
+  /// No description provided for @trRules.
+  ///
+  /// In en, this message translates to:
+  /// **'Rules (old=new, comma separated)'**
+  String get trRules;
+
+  /// No description provided for @trRulesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'1=lecture, 2=inquiry, 3=blended'**
+  String get trRulesHint;
+
+  /// No description provided for @trCountTargetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. n_pass'**
+  String get trCountTargetHint;
+
+  /// No description provided for @trCountVars.
+  ///
+  /// In en, this message translates to:
+  /// **'Variables to count'**
+  String get trCountVars;
+
+  /// No description provided for @trMatchValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Match value'**
+  String get trMatchValue;
+
+  /// No description provided for @trRankDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Rank descending'**
+  String get trRankDescending;
+
+  /// No description provided for @trSortDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Descending'**
+  String get trSortDescending;
+
+  /// No description provided for @trSortKeys.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort keys (in order)'**
+  String get trSortKeys;
+
+  /// No description provided for @trCondition.
+  ///
+  /// In en, this message translates to:
+  /// **'Condition expression'**
+  String get trCondition;
+
+  /// No description provided for @trConditionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. post >= 70 && method == 2'**
+  String get trConditionHint;
+
+  /// No description provided for @trConditionHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Supports > < >= <= == != with && ||'**
+  String get trConditionHelp;
+
+  /// No description provided for @trGroupVar.
+  ///
+  /// In en, this message translates to:
+  /// **'Group variable'**
+  String get trGroupVar;
+
+  /// No description provided for @trAggVars.
+  ///
+  /// In en, this message translates to:
+  /// **'Numeric variables to aggregate (mean)'**
+  String get trAggVars;
+
+  /// No description provided for @trFlipNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap rows and columns (transpose) to create a new dataset.'**
+  String get trFlipNote;
+
+  /// No description provided for @trCurrentData.
+  ///
+  /// In en, this message translates to:
+  /// **'Current data'**
+  String get trCurrentData;
+
+  /// No description provided for @trDataset.
+  ///
+  /// In en, this message translates to:
+  /// **'Dataset'**
+  String get trDataset;
+
+  /// No description provided for @trResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Result'**
+  String get trResult;
+
+  /// No description provided for @trNeedTargetExpr.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a target variable and an expression'**
+  String get trNeedTargetExpr;
+
+  /// No description provided for @trNeedSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a source variable'**
+  String get trNeedSource;
+
+  /// No description provided for @trNeedVars.
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least one variable'**
+  String get trNeedVars;
+
+  /// No description provided for @trNeedSortKeys.
+  ///
+  /// In en, this message translates to:
+  /// **'Select sort keys'**
+  String get trNeedSortKeys;
+
+  /// No description provided for @trNeedCondition.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a condition'**
+  String get trNeedCondition;
+
+  /// No description provided for @trNeedGroupAndVars.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a group variable and variables to aggregate'**
+  String get trNeedGroupAndVars;
+
+  /// No description provided for @trUnknownOp.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown operation'**
+  String get trUnknownOp;
+
+  /// No description provided for @trError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {msg}'**
+  String trError(String msg);
+
+  /// No description provided for @copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy;
+
+  /// No description provided for @stCurrentDataset.
+  ///
+  /// In en, this message translates to:
+  /// **'Current dataset'**
+  String get stCurrentDataset;
+
+  /// No description provided for @stStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage location'**
+  String get stStorage;
+
+  /// No description provided for @abInfoTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get abInfoTab;
+
+  /// No description provided for @abReadmeZh.
+  ///
+  /// In en, this message translates to:
+  /// **'中文 README'**
+  String get abReadmeZh;
+
+  /// No description provided for @abReadmeEn.
+  ///
+  /// In en, this message translates to:
+  /// **'English README'**
+  String get abReadmeEn;
+
+  /// No description provided for @abReadmeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load README: {msg}'**
+  String abReadmeFailed(String msg);
+
+  /// No description provided for @abIntroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Introduction'**
+  String get abIntroTitle;
+
+  /// No description provided for @abIntroBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A project-based statistical analysis suite covering data editing, statistical procedures, data transformation, learning and testing. The statistics kernel is the standalone pure-Dart package statkit.'**
+  String get abIntroBody;
+
+  /// No description provided for @abDocs.
+  ///
+  /// In en, this message translates to:
+  /// **'Documentation'**
+  String get abDocs;
+
+  /// No description provided for @abLicense.
+  ///
+  /// In en, this message translates to:
+  /// **'License'**
+  String get abLicense;
+
+  /// No description provided for @abLicenseValue.
+  ///
+  /// In en, this message translates to:
+  /// **'AGPL-3.0 · open source'**
+  String get abLicenseValue;
+
+  /// No description provided for @abStack.
+  ///
+  /// In en, this message translates to:
+  /// **'Tech stack'**
+  String get abStack;
+
+  /// No description provided for @abStackValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Flutter · Dart'**
+  String get abStackValue;
+
+  /// No description provided for @abRuntime.
+  ///
+  /// In en, this message translates to:
+  /// **'Runtime'**
+  String get abRuntime;
+
+  /// No description provided for @abPlatform.
+  ///
+  /// In en, this message translates to:
+  /// **'Flutter app · Windows / macOS / Linux / Android / iOS'**
+  String get abPlatform;
+
+  /// No description provided for @abKernel.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics kernel: packages/statkit (pure Dart, 13 test groups)'**
+  String get abKernel;
+
+  /// No description provided for @abUiLang.
+  ///
+  /// In en, this message translates to:
+  /// **'UI language: 中文 / English (switch in Settings)'**
+  String get abUiLang;
+
+  /// No description provided for @abTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme: light / dark / system · 8 seed colors'**
+  String get abTheme;
 }
 
 class _AppLocalizationsDelegate

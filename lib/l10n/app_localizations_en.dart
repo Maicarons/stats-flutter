@@ -1484,4 +1484,206 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get copiedToClipboard => 'Copied to clipboard';
+
+  @override
+  String get trTitle => 'Transform';
+
+  @override
+  String get trType => 'Transform type';
+
+  @override
+  String get trOpCompute => 'COMPUTE';
+
+  @override
+  String get trOpRecode => 'RECODE';
+
+  @override
+  String get trOpCount => 'COUNT';
+
+  @override
+  String get trOpRank => 'RANK';
+
+  @override
+  String get trOpSort => 'SORT';
+
+  @override
+  String get trOpSelect => 'SELECT IF';
+
+  @override
+  String get trOpAggregate => 'AGGREGATE';
+
+  @override
+  String get trOpFlip => 'FLIP';
+
+  @override
+  String get trRun => 'Run transform';
+
+  @override
+  String get trTargetVar => 'Target variable';
+
+  @override
+  String get trTargetName => 'Target variable name';
+
+  @override
+  String get trTargetHint => 'e.g. total_score';
+
+  @override
+  String get trNewVar => '(new)';
+
+  @override
+  String get trExpr => 'Expression';
+
+  @override
+  String get trExprHint => 'e.g. pre + post, or sqrt(hours) * 2';
+
+  @override
+  String get trComputeHelp =>
+      'Supports + - * / ( ) and abs sqrt ln exp log10 sin cos tan round trunc';
+
+  @override
+  String get trSourceVar => 'Source variable';
+
+  @override
+  String get trRecodeTargetHint => 'e.g. method_label';
+
+  @override
+  String get trRules => 'Rules (old=new, comma separated)';
+
+  @override
+  String get trRulesHint => '1=lecture, 2=inquiry, 3=blended';
+
+  @override
+  String get trCountTargetHint => 'e.g. n_pass';
+
+  @override
+  String get trCountVars => 'Variables to count';
+
+  @override
+  String get trMatchValue => 'Match value';
+
+  @override
+  String get trRankDescending => 'Rank descending';
+
+  @override
+  String get trSortDescending => 'Descending';
+
+  @override
+  String get trSortKeys => 'Sort keys (in order)';
+
+  @override
+  String get trCondition => 'Condition expression';
+
+  @override
+  String get trConditionHint => 'e.g. post >= 70 && method == 2';
+
+  @override
+  String get trConditionHelp => 'Supports > < >= <= == != with && ||';
+
+  @override
+  String get trGroupVar => 'Group variable';
+
+  @override
+  String get trAggVars => 'Numeric variables to aggregate (mean)';
+
+  @override
+  String get trFlipNote =>
+      'Swap rows and columns (transpose) to create a new dataset.';
+
+  @override
+  String get trCurrentData => 'Current data';
+
+  @override
+  String get trDataset => 'Dataset';
+
+  @override
+  String get trResult => 'Result';
+
+  @override
+  String get trNeedTargetExpr => 'Enter a target variable and an expression';
+
+  @override
+  String get trNeedSource => 'Select a source variable';
+
+  @override
+  String get trNeedVars => 'Select at least one variable';
+
+  @override
+  String get trNeedSortKeys => 'Select sort keys';
+
+  @override
+  String get trNeedCondition => 'Enter a condition';
+
+  @override
+  String get trNeedGroupAndVars =>
+      'Select a group variable and variables to aggregate';
+
+  @override
+  String get trUnknownOp => 'Unknown operation';
+
+  @override
+  String trError(String msg) {
+    return 'Error: $msg';
+  }
+
+  @override
+  String get copy => 'Copy';
+
+  @override
+  String get stCurrentDataset => 'Current dataset';
+
+  @override
+  String get stStorage => 'Storage location';
+
+  @override
+  String get abInfoTab => 'Info';
+
+  @override
+  String get abReadmeZh => '中文 README';
+
+  @override
+  String get abReadmeEn => 'English README';
+
+  @override
+  String abReadmeFailed(String msg) {
+    return 'Failed to load README: $msg';
+  }
+
+  @override
+  String get abIntroTitle => 'Introduction';
+
+  @override
+  String get abIntroBody =>
+      'A project-based statistical analysis suite covering data editing, statistical procedures, data transformation, learning and testing. The statistics kernel is the standalone pure-Dart package statkit.';
+
+  @override
+  String get abDocs => 'Documentation';
+
+  @override
+  String get abLicense => 'License';
+
+  @override
+  String get abLicenseValue => 'AGPL-3.0 · open source';
+
+  @override
+  String get abStack => 'Tech stack';
+
+  @override
+  String get abStackValue => 'Flutter · Dart';
+
+  @override
+  String get abRuntime => 'Runtime';
+
+  @override
+  String get abPlatform =>
+      'Flutter app · Windows / macOS / Linux / Android / iOS';
+
+  @override
+  String get abKernel =>
+      'Statistics kernel: packages/statkit (pure Dart, 13 test groups)';
+
+  @override
+  String get abUiLang => 'UI language: 中文 / English (switch in Settings)';
+
+  @override
+  String get abTheme => 'Theme: light / dark / system · 8 seed colors';
 }
