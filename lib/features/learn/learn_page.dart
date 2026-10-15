@@ -2,13 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/theme/design_tokens.dart';
+import '../../shared/locale_util.dart';
 import '../../shared/ui/ui.dart';
 import 'learn_content.dart';
 import 'lesson_detail_page.dart';
-
-/// 当前界面语言是否为中文（用于选择双语内容）。
-bool isZhLocale(BuildContext context) =>
-    Localizations.localeOf(context).languageCode == 'zh';
 
 class LearnPage extends StatelessWidget {
   final bool embedded;
@@ -18,7 +15,7 @@ class LearnPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final zh = isZhLocale(context);
+    final zh = isZhUi(context);
 
     // 按类别分组，保持内容中首次出现的顺序。
     final byCat = <String, List<LearnLesson>>{};

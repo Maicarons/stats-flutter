@@ -8,6 +8,7 @@ import 'package:stats_flutter/l10n/app_localizations.dart';
 import '../../core/models/project.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../shared/dataset_store.dart';
+import '../../shared/locale_util.dart';
 import '../../shared/project_store.dart';
 import '../../shared/ui/ui.dart';
 import '../analysis/analysis_hub.dart';
@@ -88,7 +89,7 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
     } else if (v == 'sav') {
       await importSavInteractive(context);
     } else if (v == 'demo') {
-      datasetStore.resetDemo();
+      datasetStore.resetDemo(zh: isZhUi(context));
     }
     if (mounted) setState(() {});
   }

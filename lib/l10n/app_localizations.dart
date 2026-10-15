@@ -3409,6 +3409,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Explanation: {text}'**
   String quizExplanation(String text);
+
+  /// No description provided for @addFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favourites'**
+  String get addFavorite;
+
+  /// No description provided for @removeFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favourites'**
+  String get removeFavorite;
+
+  /// No description provided for @clearSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clearSelection;
+
+  /// No description provided for @searchVariables.
+  ///
+  /// In en, this message translates to:
+  /// **'Search variables…'**
+  String get searchVariables;
+
+  /// No description provided for @significanceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Significance {stars}'**
+  String significanceLabel(String stars);
+
+  /// No description provided for @clear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clear;
+
+  /// No description provided for @update.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get update;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @add.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get add;
+
+  /// No description provided for @value.
+  ///
+  /// In en, this message translates to:
+  /// **'Value'**
+  String get value;
+
+  /// No description provided for @mvTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing values · {name}'**
+  String mvTitle(String name);
+
+  /// No description provided for @mvDiscrete.
+  ///
+  /// In en, this message translates to:
+  /// **'Discrete missing values (comma separated)'**
+  String get mvDiscrete;
+
+  /// No description provided for @mvDiscreteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. -99, -98'**
+  String get mvDiscreteHint;
+
+  /// No description provided for @mvRangeLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Range lower bound (optional)'**
+  String get mvRangeLow;
+
+  /// No description provided for @mvRangeHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'Range upper bound (optional)'**
+  String get mvRangeHigh;
+
+  /// No description provided for @mvNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Blank cells always count as missing. A range and discrete values can be used together.'**
+  String get mvNote;
+
+  /// No description provided for @vlTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Value labels · {name}'**
+  String vlTitle(String name);
+
+  /// No description provided for @vlCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} label(s)'**
+  String vlCount(int n);
+
+  /// No description provided for @vlClearAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all'**
+  String get vlClearAll;
+
+  /// No description provided for @vlEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No value labels yet — add one above.'**
+  String get vlEmptyHint;
+
+  /// No description provided for @savImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {cases} cases × {vars} variables ({product})'**
+  String savImported(int cases, int vars, String product);
+
+  /// No description provided for @savImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to import .sav: {msg}'**
+  String savImportFailed(String msg);
 }
 
 class _AppLocalizationsDelegate

@@ -8,6 +8,7 @@ import '../../core/app_info.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../shared/app_settings.dart';
 import '../../shared/dataset_store.dart';
+import '../../shared/locale_util.dart';
 import '../../shared/project_store.dart';
 import '../../shared/ui/ui.dart';
 
@@ -236,6 +237,7 @@ class SettingsPage extends StatelessWidget {
 
   Future<void> _confirmReset(
       BuildContext context, AppLocalizations l10n) async {
+    final zh = isZhUi(context);
     final ok = await showConfirmDialog(
       context,
       title: l10n.reset,
@@ -246,7 +248,7 @@ class SettingsPage extends StatelessWidget {
     );
     if (!ok) return;
     await appSettings.reset();
-    datasetStore.resetDemo();
+    datasetStore.resetDemo(zh: zh);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.resetDone)),

@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/theme/design_tokens.dart';
 
@@ -34,7 +35,7 @@ class AnalysisTile extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: description == null ? title : '$title，$description',
+      label: description == null ? title : '$title. $description',
       child: Material(
         color: scheme.surfaceContainerLow,
         borderRadius: AppRadius.rMd,
@@ -118,7 +119,9 @@ class AnalysisTile extends StatelessWidget {
                 ),
                 if (onToggleFavorite != null)
                   IconButton(
-                    tooltip: favorite ? '取消收藏' : '收藏',
+                    tooltip: favorite
+                        ? AppLocalizations.of(context).removeFavorite
+                        : AppLocalizations.of(context).addFavorite,
                     onPressed: onToggleFavorite,
                     icon: Icon(
                       favorite ? Icons.star_rounded : Icons.star_border_rounded,

@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/theme/design_tokens.dart';
 
@@ -51,7 +52,7 @@ class SignificanceBadge extends StatelessWidget {
     final color = pValueColor(context, p);
 
     return Semantics(
-      label: '显著性 $label',
+      label: AppLocalizations.of(context).significanceLabel(label),
       child: Container(
         padding: EdgeInsets.symmetric(
           horizontal: small ? 5 : 7,

@@ -2,8 +2,10 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/models/dataset.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../shared/dataset_store.dart';
 
 class MissingValuesDialog extends StatefulWidget {
@@ -50,10 +52,21 @@ class _MissingValuesDialogState extends State<MissingValuesDialog> {
     Navigator.pop(context, true);
   }
 
+  void _clear() {
+    v.missingValues.clear();
+    v.missingRangeLow = null;
+    v.missingRangeHigh = null;
+    datasetStore.touch();
+    Navigator.pop(context, true);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+
     return AlertDialog(
-      title: Text('缺失值 · ${v.name}'),
+      title: Text(l10n.mvTitle(v.name)),
       content: SizedBox(
         width: 380,
         child: Column(
@@ -61,59 +74,51 @@ class _MissingValuesDialogState extends State<MissingValuesDialog> {
           children: [
             TextField(
               controller: _discrete,
-              decoration: const InputDecoration(
-                labelText: '离散缺失值（逗号分隔）',
-                hintText: '例如 -99, -98',
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: l10n.mvDiscrete,
+                hintText: l10n.mvDiscreteHint,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.x3),
             Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _rangeLow,
-                    decoration:
-                        const InputDecoration(labelText: '范围下限（可选）'),
+                    decoration: InputDecoration(labelText: l10n.mvRangeLow),
                     keyboardType: TextInputType.number,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.x2),
                 Expanded(
                   child: TextField(
                     controller: _rangeHigh,
-                    decoration:
-                        const InputDecoration(labelText: '范围上限（可选）'),
+                    decoration: InputDecoration(labelText: l10n.mvRangeHigh),
                     keyboardType: TextInputType.number,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.x2 + 2),
             Text(
-              '空白单元格始终视为缺失。范围与离散值可同时使用。',
+              l10n.mvNote,
               style: TextStyle(
-                  fontSize: 11.5,
-                  color: Theme.of(context).colorScheme.outline),
+                fontSize: AppFontSize.caption,
+                color: scheme.onSurfaceVariant,
+                height: 1.5,
+              ),
             ),
           ],
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () {
-            v.missingValues.clear();
-            v.missingRangeLow = null;
-            v.missingRangeHigh = null;
-            datasetStore.touch();
-            Navigator.pop(context, true);
-          },
-          child: const Text('清除'),
-        ),
+        TextButton(onPressed: _clear, child: Text(l10n.clear)),
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('取消'),
+          child: Text(l10n.cancel),
         ),
-        FilledButton(onPressed: _save, child: const Text('保存')),
+        FilledButton(onPressed: _save, child: Text(l10n.save)),
       ],
     );
   }

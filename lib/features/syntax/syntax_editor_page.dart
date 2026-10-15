@@ -11,6 +11,7 @@ import 'package:stats_flutter/l10n/app_localizations.dart';
 import '../../core/models/dataset.dart';
 import '../../core/syntax/syntax_engine.dart';
 import '../../shared/dataset_store.dart';
+import '../../shared/locale_util.dart';
 import 'syntax_highlight_controller.dart';
 
 class SyntaxEditorPage extends StatefulWidget {
@@ -83,7 +84,11 @@ LIST.
 
   void _run() {
     final l10n = AppLocalizations.of(context);
-    final results = SyntaxExecutor.run(_codeCtrl.text, ds);
+    final results = SyntaxExecutor.run(
+      _codeCtrl.text,
+      ds,
+      messages: isZhUi(context) ? SyntaxMessages.zh : SyntaxMessages.en,
+    );
     final buf = StringBuffer();
     var ok = 0, fail = 0;
     for (final r in results) {

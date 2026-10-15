@@ -286,16 +286,19 @@ class Dataset {
   }
 
   /// 生成示例数据（成绩分析教学用）
-  factory Dataset.demoScores() {
+  /// [zh] 为 true 时使用中文标签，否则使用英文标签；数据本身不变。
+  factory Dataset.demoScores({bool zh = true}) {
     final vars = [
-      Variable(name: 'id', label: '学号', type: VarType.numeric, decimals: 0, measure: MeasureLevel.nominal),
-      Variable(name: 'gender', label: '性别', type: VarType.numeric, decimals: 0, measure: MeasureLevel.nominal)
-        ..valueLabels.addAll({1: '男', 2: '女'}),
-      Variable(name: 'method', label: '教学法', type: VarType.numeric, decimals: 0, measure: MeasureLevel.nominal)
-        ..valueLabels.addAll({1: '讲授', 2: '探究', 3: '混合'}),
-      Variable(name: 'pre', label: '前测', type: VarType.numeric, measure: MeasureLevel.scale),
-      Variable(name: 'post', label: '后测', type: VarType.numeric, measure: MeasureLevel.scale),
-      Variable(name: 'hours', label: '周学习时长', type: VarType.numeric, measure: MeasureLevel.scale),
+      Variable(name: 'id', label: zh ? '学号' : 'ID', type: VarType.numeric, decimals: 0, measure: MeasureLevel.nominal),
+      Variable(name: 'gender', label: zh ? '性别' : 'Gender', type: VarType.numeric, decimals: 0, measure: MeasureLevel.nominal)
+        ..valueLabels.addAll(zh ? {1: '男', 2: '女'} : {1: 'Male', 2: 'Female'}),
+      Variable(name: 'method', label: zh ? '教学法' : 'Method', type: VarType.numeric, decimals: 0, measure: MeasureLevel.nominal)
+        ..valueLabels.addAll(zh
+            ? {1: '讲授', 2: '探究', 3: '混合'}
+            : {1: 'Lecture', 2: 'Inquiry', 3: 'Blended'}),
+      Variable(name: 'pre', label: zh ? '前测' : 'Pre-test', type: VarType.numeric, measure: MeasureLevel.scale),
+      Variable(name: 'post', label: zh ? '后测' : 'Post-test', type: VarType.numeric, measure: MeasureLevel.scale),
+      Variable(name: 'hours', label: zh ? '周学习时长' : 'Weekly study hours', type: VarType.numeric, measure: MeasureLevel.scale),
     ];
     // 确定性伪随机，保证测试可重复
     var seed = 42;

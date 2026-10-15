@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/theme/design_tokens.dart';
 
@@ -70,6 +71,7 @@ class _ParamVarPickerState extends State<ParamVarPicker> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final query = _q.trim().toLowerCase();
@@ -119,7 +121,7 @@ class _ParamVarPickerState extends State<ParamVarPicker> {
               TextButton.icon(
                 onPressed: () => widget.onChanged(const []),
                 icon: const Icon(Icons.close, size: 15),
-                label: const Text('清空'),
+                label: Text(l10n.clearSelection),
                 style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.x2),
@@ -133,7 +135,7 @@ class _ParamVarPickerState extends State<ParamVarPicker> {
             controller: _search,
             enabled: widget.enabled,
             decoration: InputDecoration(
-              hintText: '搜索变量…',
+              hintText: l10n.searchVariables,
               prefixIcon: const Icon(Icons.search, size: 18),
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(
@@ -159,7 +161,7 @@ class _ParamVarPickerState extends State<ParamVarPicker> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.x3),
             child: Text(
-              '没有匹配的变量',
+              l10n.noVariablesMatch,
               style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
           )

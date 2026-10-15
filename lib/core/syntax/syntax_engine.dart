@@ -26,6 +26,82 @@ class SyntaxResult {
   });
 }
 
+/// 语法执行器的界面文案（中/英）。命令关键字与数值输出保持语言中立，
+/// 仅提示与帮助文本随界面语言变化。
+class SyntaxMessages {
+  final String Function(String verb) unsupportedCommand;
+  final String Function(String e) error;
+  final String helpText;
+  final String computeSyntax;
+  final String recodeSyntax;
+  final String corrNeedsTwo;
+
+  const SyntaxMessages({
+    required this.unsupportedCommand,
+    required this.error,
+    required this.helpText,
+    required this.computeSyntax,
+    required this.recodeSyntax,
+    required this.corrNeedsTwo,
+  });
+
+  static const zh = SyntaxMessages(
+    unsupportedCommand: _zhUnsupported,
+    error: _zhError,
+    helpText: _zhHelp,
+    computeSyntax: 'COMPUTE 语法: COMPUTE target = expression.',
+    recodeSyntax: 'RECODE 语法: RECODE v (old=new) INTO t.',
+    corrNeedsTwo: 'CORRELATIONS 需要至少 2 个变量',
+  );
+
+  static const en = SyntaxMessages(
+    unsupportedCommand: _enUnsupported,
+    error: _enError,
+    helpText: _enHelp,
+    computeSyntax: 'COMPUTE syntax: COMPUTE target = expression.',
+    recodeSyntax: 'RECODE syntax: RECODE v (old=new) INTO t.',
+    corrNeedsTwo: 'CORRELATIONS needs at least 2 variables',
+  );
+}
+
+String _zhUnsupported(String verb) => '尚未支持的命令: $verb\n输入 HELP 查看支持列表';
+String _enUnsupported(String verb) =>
+    'Unsupported command: $verb\nType HELP for the supported list';
+String _zhError(String e) => '错误: $e';
+String _enError(String e) => 'Error: $e';
+
+const _zhHelp = '''
+支持的命令（子集）:
+  COMPUTE newvar = expression.
+  RECODE var (old=new) ...
+  RANK var.
+  SORT CASES BY var1 var2.
+  SELECT IF condition.
+  DESCRIPTIVES var1 var2.
+  FREQUENCIES var.
+  T-TEST /TESTVAL=0 /VARIABLES=var.
+  CORRELATIONS /VARIABLES=v1 v2.
+  LIST.
+  DISPLAY.
+  HELP.
+表达式支持 + - * / ( ) 与 abs sqrt ln exp log10 sin cos tan round trunc''';
+
+const _enHelp = '''
+Supported commands (subset):
+  COMPUTE newvar = expression.
+  RECODE var (old=new) ...
+  RANK var.
+  SORT CASES BY var1 var2.
+  SELECT IF condition.
+  DESCRIPTIVES var1 var2.
+  FREQUENCIES var.
+  T-TEST /TESTVAL=0 /VARIABLES=var.
+  CORRELATIONS /VARIABLES=v1 v2.
+  LIST.
+  DISPLAY.
+  HELP.
+Expressions support + - * / ( ) and abs sqrt ln exp log10 sin cos tan round trunc''';
+
 class SyntaxParser {
   static List<String> splitCommands(String source) {
     // 以句点结尾分割（SPSS 风格），忽略字符串内句点
@@ -83,23 +159,28 @@ class SyntaxParser {
 }
 
 class SyntaxExecutor {
-  static List<SyntaxResult> run(String source, Dataset ds) {
+  static List<SyntaxResult> run(
+    String source,
+    Dataset ds, {
+    SyntaxMessages messages = SyntaxMessages.zh,
+  }) {
     final results = <SyntaxResult>[];
     for (final raw in SyntaxParser.splitCommands(source)) {
       final cmd = SyntaxParser.parse(raw);
       if (cmd == null) continue;
-      results.add(_execute(cmd, ds));
+      results.add(_execute(cmd, ds, messages));
     }
     return results;
   }
 
-  static SyntaxResult _execute(SyntaxCommand cmd, Dataset ds) {
+  static SyntaxResult _execute(
+      SyntaxCommand cmd, Dataset ds, SyntaxMessages messages) {
     try {
       switch (cmd.verb) {
         case 'COMPUTE':
-          return _compute(cmd, ds);
+          return _compute(cmd, ds, messages);
         case 'RECODE':
-          return _recode(cmd, ds);
+          return _recode(cmd, ds, messages);
         case 'RANK':
           return _rank(cmd, ds);
         case 'SORT':
@@ -118,7 +199,7 @@ class SyntaxExecutor {
           return _ttest(cmd, ds);
         case 'CORRELATIONS':
         case 'CORR':
-          return _corr(cmd, ds);
+          return _corr(cmd, ds, messages);
         case 'LIST':
           return _list(ds);
         case 'DISPLAY':
@@ -131,51 +212,34 @@ class SyntaxExecutor {
                 'Vars: ${ds.variables.map((v) => v.name).join(", ")}',
           );
         case 'HELP':
-          return const SyntaxResult(
+          return SyntaxResult(
             command: 'HELP',
             ok: true,
-            output: _helpText,
+            output: messages.helpText,
           );
         default:
           return SyntaxResult(
             command: cmd.raw,
             ok: false,
-            output: '尚未支持的命令: ${cmd.verb}\n输入 HELP 查看支持列表',
+            output: messages.unsupportedCommand(cmd.verb),
           );
       }
     } catch (e) {
       return SyntaxResult(
         command: cmd.raw,
         ok: false,
-        output: '错误: $e',
+        output: messages.error('$e'),
       );
     }
   }
 
-  static const _helpText = '''
-支持的命令（子集）:
-  COMPUTE newvar = expression.
-  RECODE var (old=new) ...
-  RANK var.
-  SORT CASES BY var1 var2.
-  SELECT IF condition.
-  DESCRIPTIVES var1 var2.
-  FREQUENCIES var.
-  T-TEST /TESTVAL=0 /VARIABLES=var.
-  CORRELATIONS /VARIABLES=v1 v2.
-  LIST.
-  DISPLAY.
-  HELP.
-表达式支持 + - * / ( ) 与 abs sqrt ln exp log10 sin cos tan round trunc''';
-
-  static SyntaxResult _compute(SyntaxCommand cmd, Dataset ds) {
+  static SyntaxResult _compute(
+      SyntaxCommand cmd, Dataset ds, SyntaxMessages messages) {
     final raw = cmd.args.join(' ');
     final m = RegExp(r'^(\w+)\s*=\s*(.+)$', caseSensitive: false).firstMatch(raw);
     if (m == null) {
       return SyntaxResult(
-          command: cmd.raw,
-          ok: false,
-          output: 'COMPUTE 语法: COMPUTE target = expression.');
+          command: cmd.raw, ok: false, output: messages.computeSyntax);
     }
     final r = Transforms.compute(
       ds,
@@ -185,7 +249,8 @@ class SyntaxExecutor {
     return SyntaxResult(command: cmd.raw, ok: true, output: r.message);
   }
 
-  static SyntaxResult _recode(SyntaxCommand cmd, Dataset ds) {
+  static SyntaxResult _recode(
+      SyntaxCommand cmd, Dataset ds, SyntaxMessages messages) {
     // RECODE a (1=10) (2=20) INTO b.  简化
     final raw = cmd.args.join(' ');
     final intoM = RegExp(r'INTO\s+(\w+)', caseSensitive: false).firstMatch(raw);
@@ -193,7 +258,7 @@ class SyntaxExecutor {
     final varM = RegExp(r'^(\w+)').firstMatch(raw.trim());
     if (varM == null) {
       return SyntaxResult(
-          command: cmd.raw, ok: false, output: 'RECODE 语法: RECODE v (old=new) INTO t.');
+          command: cmd.raw, ok: false, output: messages.recodeSyntax);
     }
     final rules = <String, String>{};
     for (final m in RegExp(r'\(([^)]+)\)').allMatches(raw)) {
@@ -273,11 +338,12 @@ class SyntaxExecutor {
     return SyntaxResult(command: cmd.raw, ok: true, output: buf.toString());
   }
 
-  static SyntaxResult _corr(SyntaxCommand cmd, Dataset ds) {
+  static SyntaxResult _corr(
+      SyntaxCommand cmd, Dataset ds, SyntaxMessages messages) {
     final names = _varList(cmd.args.join(' '));
     if (names.length < 2) {
       return SyntaxResult(
-          command: cmd.raw, ok: false, output: 'CORRELATIONS 需要至少 2 个变量');
+          command: cmd.raw, ok: false, output: messages.corrNeedsTwo);
     }
     final cols = [for (final n in names) ds.numericColumn(n)];
     final m = Correlation.matrix(cols);

@@ -70,8 +70,10 @@ class ProjectStore extends ChangeNotifier {
     required String name,
     String? description,
     bool withDemo = false,
+    bool demoZh = true,
   }) async {
-    final ds = withDemo ? Dataset.demoScores() : Dataset(name: name);
+    final ds =
+        withDemo ? Dataset.demoScores(zh: demoZh) : Dataset(name: name);
     final p = Project.create(
       name: name,
       description: description,

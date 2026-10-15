@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/theme/design_tokens.dart';
+import '../../shared/locale_util.dart';
 import '../../shared/ui/ui.dart';
 import 'learn_content.dart';
-import 'learn_page.dart' show isZhLocale;
 
 class LessonDetailPage extends StatelessWidget {
   final LearnLesson lesson;
@@ -15,7 +15,7 @@ class LessonDetailPage extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    final zh = isZhLocale(context);
+    final zh = isZhUi(context);
     final formulas = lesson.formulasFor(zh);
 
     return Scaffold(

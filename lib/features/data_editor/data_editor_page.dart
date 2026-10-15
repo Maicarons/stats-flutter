@@ -4,6 +4,7 @@ import 'package:stats_flutter/l10n/app_localizations.dart';
 import '../../core/models/dataset.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../shared/dataset_store.dart';
+import '../../shared/locale_util.dart';
 import '../../shared/ui/ui.dart';
 import '../syntax/syntax_editor_page.dart';
 import '../transform/transform_page.dart';
@@ -220,7 +221,7 @@ class _DataEditorPageState extends State<DataEditorPage>
   Future<void> _onMenu(String v, AppLocalizations l10n) async {
     switch (v) {
       case 'demo':
-        datasetStore.resetDemo();
+        datasetStore.resetDemo(zh: isZhUi(context));
         break;
       case 'import':
         await importCsvInteractive(context, l10n, excelToo: true);

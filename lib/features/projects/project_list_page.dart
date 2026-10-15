@@ -9,6 +9,7 @@ import '../../core/models/project.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../shared/brand_logo.dart';
 import '../../shared/dataset_store.dart';
+import '../../shared/locale_util.dart';
 import '../../shared/project_store.dart';
 import '../../shared/ui/ui.dart';
 import '../settings/about_page.dart';
@@ -298,6 +299,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
 
   Future<void> _createDialog({required bool demo}) async {
     final l10n = AppLocalizations.of(context);
+    final zh = isZhUi(context);
     final nameCtrl = TextEditingController(
       text: demo
           ? l10n.projDemoName
@@ -342,6 +344,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
           : nameCtrl.text.trim(),
       description: descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
       withDemo: demo,
+      demoZh: zh,
     );
     if (!mounted) return;
     datasetStore.onProjectChanged();

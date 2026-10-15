@@ -1771,4 +1771,83 @@ class AppLocalizationsEn extends AppLocalizations {
   String quizExplanation(String text) {
     return 'Explanation: $text';
   }
+
+  @override
+  String get addFavorite => 'Add to favourites';
+
+  @override
+  String get removeFavorite => 'Remove from favourites';
+
+  @override
+  String get clearSelection => 'Clear';
+
+  @override
+  String get searchVariables => 'Search variables…';
+
+  @override
+  String significanceLabel(String stars) {
+    return 'Significance $stars';
+  }
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String get update => 'Update';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get add => 'Add';
+
+  @override
+  String get value => 'Value';
+
+  @override
+  String mvTitle(String name) {
+    return 'Missing values · $name';
+  }
+
+  @override
+  String get mvDiscrete => 'Discrete missing values (comma separated)';
+
+  @override
+  String get mvDiscreteHint => 'e.g. -99, -98';
+
+  @override
+  String get mvRangeLow => 'Range lower bound (optional)';
+
+  @override
+  String get mvRangeHigh => 'Range upper bound (optional)';
+
+  @override
+  String get mvNote =>
+      'Blank cells always count as missing. A range and discrete values can be used together.';
+
+  @override
+  String vlTitle(String name) {
+    return 'Value labels · $name';
+  }
+
+  @override
+  String vlCount(int n) {
+    return '$n label(s)';
+  }
+
+  @override
+  String get vlClearAll => 'Clear all';
+
+  @override
+  String get vlEmptyHint => 'No value labels yet — add one above.';
+
+  @override
+  String savImported(int cases, int vars, String product) {
+    return 'Imported $cases cases × $vars variables ($product)';
+  }
+
+  @override
+  String savImportFailed(String msg) {
+    return 'Failed to import .sav: $msg';
+  }
 }

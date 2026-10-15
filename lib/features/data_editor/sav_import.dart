@@ -6,11 +6,13 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/io/sav_io.dart';
 import '../../shared/dataset_store.dart';
 
 Future<void> importSavInteractive(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
   try {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -29,15 +31,19 @@ Future<void> importSavInteractive(BuildContext context) async {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              '已导入 ${info.dataset.nCases} 个案 × ${info.dataset.nVars} 变量 (${info.header.productName})'),
+          content: Text(l10n.savImported(
+            info.dataset.nCases,
+            info.dataset.nVars,
+            info.header.productName,
+          )),
         ),
       );
     }
   } catch (e) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('导入 .sav 失败：$e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.savImportFailed('$e'))),
+      );
     }
   }
 }

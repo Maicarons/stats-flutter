@@ -1783,6 +1783,36 @@ class _TableWidget extends StatelessWidget {
   const _TableWidget({required this.table});
 
   static final RegExp _numericRe = RegExp(r'^-?[0-9][0-9,.\s]*%?$');
+  static final RegExp _starRe = RegExp(r'^(.*?)\s*(\*{1,3})$');
+  static final RegExp _pHeaderRe = RegExp(
+    r'^(p\b|p值|sig\.?\b|显著性)',
+    caseSensitive: false,
+  );
+
+  /// 从 `.023` / `<.001` / `0.023` 解析 p 值；无法解析返回 null。
+  static double? _parseP(String s) {
+    final t = s.trim();
+    if (t.isEmpty || t == '—' || t == '-') return null;
+    if (t.startsWith('<') || t.startsWith('≤')) {
+      final v = _toDouble(t.substring(1).trim());
+      return v == null ? null : v / 2;
+    }
+    return _toDouble(t);
+  }
+
+  static double? _toDouble(String t) {
+    final v = t.startsWith('.') ? '0$t' : t;
+    return double.tryParse(v.replaceAll(',', ''));
+  }
+
+  static String _starsFor(double p) =>
+      p < 0.001 ? '***' : (p < 0.01 ? '**' : (p < 0.05 ? '*' : ''));
+
+  static double _pForStars(String stars) => switch (stars.length) {
+        >= 3 => 0.0005,
+        2 => 0.005,
+        _ => 0.03,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -1799,8 +1829,34 @@ class _TableWidget extends StatelessWidget {
                 .every((r) => _numericRe.hasMatch(r[c].trim())),
     ];
 
+    // p 值列：着色 + 星级（颜色与文字冗余表达，色盲友好）
+    final pCol = <bool>[
+      for (final h in table.headers) _pHeaderRe.hasMatch(h.trim()),
+    ];
+
     Widget cell(String s, int c, {required bool header}) {
       final numeric = !header && numericCol[c];
+      var label = s;
+      var stars = '';
+      double? p;
+      if (!header && s.trim().isNotEmpty) {
+        if (c < pCol.length && pCol[c]) {
+          p = _parseP(s);
+          if (p != null) stars = _starsFor(p);
+        } else {
+          // 相关系数等单元格自带星号，如 "0.62 **"
+          final m = _starRe.firstMatch(s.trim());
+          if (m != null && m.group(1)!.trim().isNotEmpty) {
+            label = m.group(1)!.trim();
+            stars = m.group(2)!;
+            p = _pForStars(stars);
+          }
+        }
+      }
+      final color = (header || p == null)
+          ? null
+          : (stars.isEmpty ? scheme.onSurfaceVariant : pValueColor(context, p));
+
       return Container(
         constraints: BoxConstraints(minWidth: c == 0 ? 112 : 76),
         padding: EdgeInsets.symmetric(
@@ -1808,14 +1864,27 @@ class _TableWidget extends StatelessWidget {
           vertical: header ? AppSpacing.x2 : AppSpacing.x1 + 3,
         ),
         alignment: numeric ? Alignment.centerRight : Alignment.centerLeft,
-        child: Text(
-          s,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: header ? FontWeight.w700 : FontWeight.w400,
-            fontFeatures: const [FontFeature.tabularFigures()],
-            color: header ? scheme.onSurface : scheme.onSurfaceVariant,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: header
+                    ? FontWeight.w700
+                    : (stars.isEmpty ? FontWeight.w400 : FontWeight.w600),
+                fontFeatures: const [FontFeature.tabularFigures()],
+                color: header
+                    ? scheme.onSurface
+                    : (color ?? scheme.onSurfaceVariant),
+              ),
+            ),
+            if (stars.isNotEmpty) ...[
+              const SizedBox(width: 4),
+              SignificanceBadge(text: stars, p: p, small: true),
+            ],
+          ],
         ),
       );
     }

@@ -81,8 +81,8 @@ class DatasetStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void resetDemo() {
-    replace(Dataset.demoScores());
+  void resetDemo({bool zh = true}) {
+    replace(Dataset.demoScores(zh: zh));
   }
 
   /// 工程切换时重置

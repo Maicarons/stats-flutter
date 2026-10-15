@@ -4,12 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/theme/design_tokens.dart';
+import '../../shared/locale_util.dart';
 import '../../shared/ui/ui.dart';
 import 'quiz_bank.dart';
-
-/// 当前界面语言是否为中文（用于选择双语题库）。
-bool _isZh(BuildContext context) =>
-    Localizations.localeOf(context).languageCode == 'zh';
 
 class QuizPage extends StatefulWidget {
   final bool embedded;
@@ -222,7 +219,7 @@ class _QuizPageState extends State<QuizPage> {
     TextTheme text,
   ) {
     final q = _paper[_current];
-    final zh = _isZh(context);
+    final zh = isZhUi(context);
     final options = q.optionsFor(zh);
 
     return Column(
@@ -335,7 +332,7 @@ class _QuizPageState extends State<QuizPage> {
     ColorScheme scheme,
     TextTheme text,
   ) {
-    final zh = _isZh(context);
+    final zh = isZhUi(context);
     final score = _score;
     final total = _paper.length;
     final pct = total == 0 ? 0.0 : score / total;

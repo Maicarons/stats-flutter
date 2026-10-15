@@ -19,6 +19,30 @@ bool _numericColumn(ReportTable t, int c) {
   return seen;
 }
 
+/// 判断某列是否为 p 值列（用于显著性标注）。
+final RegExp _pHeaderRe = RegExp(
+  r'^(p\b|p值|sig\.?\b|显著性)',
+  caseSensitive: false,
+);
+
+double? _parseP(String s) {
+  final t = s.trim();
+  if (t.isEmpty || t == '—' || t == '-') return null;
+  if (t.startsWith('<') || t.startsWith('≤')) {
+    final v = _toDouble(t.substring(1).trim());
+    return v == null ? null : v / 2;
+  }
+  return _toDouble(t);
+}
+
+double? _toDouble(String t) {
+  final v = t.startsWith('.') ? '0$t' : t;
+  return double.tryParse(v.replaceAll(',', ''));
+}
+
+String _stars(double p) =>
+    p < 0.001 ? '***' : (p < 0.01 ? '**' : (p < 0.05 ? '*' : ''));
+
 String reportToHtml(AnalysisReport report, {String title = 'StatLab Report'}) {
   final b = StringBuffer();
   b.writeln('<!DOCTYPE html>');
@@ -52,6 +76,9 @@ String reportToHtml(AnalysisReport report, {String title = 'StatLab Report'}) {
       final numeric = [
         for (var c = 0; c < t.headers.length; c++) _numericColumn(t, c),
       ];
+      final isP = [
+        for (final h in t.headers) _pHeaderRe.hasMatch(h.trim()),
+      ];
       b.writeln('<div class="scroll"><table><thead><tr>');
       for (final h in t.headers) {
         b.writeln('<th>${_esc(h)}</th>');
@@ -60,8 +87,19 @@ String reportToHtml(AnalysisReport report, {String title = 'StatLab Report'}) {
       for (final r in t.rows) {
         b.writeln('<tr>');
         for (var i = 0; i < t.headers.length; i++) {
-          final cls = numeric[i] ? ' class="num"' : '';
-          b.writeln('<td$cls>${_esc(i < r.length ? r[i] : '')}</td>');
+          var html = _esc(i < r.length ? r[i] : '');
+          var cls = numeric[i] ? 'num' : '';
+          if (isP[i]) {
+            final p = _parseP(i < r.length ? r[i] : '');
+            if (p != null) {
+              final st = _stars(p);
+              if (st.isNotEmpty) {
+                html = '$html<span class="stars">$st</span>';
+                cls = cls.isEmpty ? 'sig' : '$cls sig';
+              }
+            }
+          }
+          b.writeln('<td${cls.isEmpty ? '' : ' class="$cls"'}>$html</td>');
         }
         b.writeln('</tr>');
       }
@@ -111,6 +149,8 @@ th{background:var(--head);font-weight:700;position:sticky;top:0}
 tbody tr:last-child td{border-bottom:none}
 tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--head) 55%,transparent)}
 td.num,th.num{text-align:right}
+.sig{color:var(--accent);font-weight:600}
+.stars{margin-left:4px;color:var(--accent);font-weight:800;letter-spacing:.5px}
 .cap{color:var(--accent);font-size:12px;font-weight:700;margin:12px 0 2px}
 .note{color:var(--muted);font-size:12px;margin-top:8px}
 footer{color:var(--muted);font-size:11px;margin-top:22px;text-align:center}

@@ -1751,4 +1751,82 @@ class AppLocalizationsZh extends AppLocalizations {
   String quizExplanation(String text) {
     return '解析：$text';
   }
+
+  @override
+  String get addFavorite => '收藏';
+
+  @override
+  String get removeFavorite => '取消收藏';
+
+  @override
+  String get clearSelection => '清空';
+
+  @override
+  String get searchVariables => '搜索变量…';
+
+  @override
+  String significanceLabel(String stars) {
+    return '显著性 $stars';
+  }
+
+  @override
+  String get clear => '清除';
+
+  @override
+  String get update => '更新';
+
+  @override
+  String get edit => '编辑';
+
+  @override
+  String get add => '添加';
+
+  @override
+  String get value => '值';
+
+  @override
+  String mvTitle(String name) {
+    return '缺失值 · $name';
+  }
+
+  @override
+  String get mvDiscrete => '离散缺失值（逗号分隔）';
+
+  @override
+  String get mvDiscreteHint => '例如 -99, -98';
+
+  @override
+  String get mvRangeLow => '范围下限（可选）';
+
+  @override
+  String get mvRangeHigh => '范围上限（可选）';
+
+  @override
+  String get mvNote => '空白单元格始终视为缺失。范围与离散值可同时使用。';
+
+  @override
+  String vlTitle(String name) {
+    return '值标签 · $name';
+  }
+
+  @override
+  String vlCount(int n) {
+    return '共 $n 条';
+  }
+
+  @override
+  String get vlClearAll => '清空全部';
+
+  @override
+  String get vlEmptyHint => '暂无值标签，请先在上方添加。';
+
+  @override
+  String savImported(int cases, int vars, String product) {
+    return '已导入 $cases 个案 × $vars 变量（$product）';
+  }
+
+  @override
+  String savImportFailed(String msg) {
+    return '导入 .sav 失败：$msg';
+  }
 }
