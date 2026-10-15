@@ -741,5 +741,6 @@
   "@savImported": {"placeholders": {"cases": {"type": "int"}, "vars": {"type": "int"}, "product": {"type": "String"}}},
   "savImportFailed": "Failed to import .sav: {msg}",
   "@savImportFailed": {"placeholders": {"msg": {"type": "String"}}},
-  "chartSemanticsHint": "Chart illustration only — the exact values are listed in the result table."
+  "chartSemanticsHint": "Chart illustration only — the exact values are listed in the result table.",
+  "copySection": "Copy section"
 }

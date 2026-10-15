@@ -1854,4 +1854,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get chartSemanticsHint =>
       'Chart illustration only — the exact values are listed in the result table.';
+
+  @override
+  String get copySection => 'Copy section';
 }

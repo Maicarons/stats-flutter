@@ -3547,6 +3547,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Chart illustration only — the exact values are listed in the result table.'**
   String get chartSemanticsHint;
+
+  /// No description provided for @copySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy section'**
+  String get copySection;
 }
 
 class _AppLocalizationsDelegate

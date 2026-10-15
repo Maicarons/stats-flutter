@@ -1718,56 +1718,7 @@ class _ReportView extends StatelessWidget {
               ],
             ),
             const Divider(height: AppSpacing.x5),
-            for (final s in report.sections) ...[
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.x2),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 3,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: scheme.primary,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.x2),
-                    Expanded(
-                      child: Text(
-                        s.heading,
-                        style: text.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (s.body != null) ...[
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.x2),
-                  child: Text(
-                    s.body!,
-                    style: text.bodyMedium?.copyWith(height: 1.6),
-                  ),
-                ),
-              ],
-              for (final t in s.tables) ...[
-                const SizedBox(height: AppSpacing.x2),
-                _TableWidget(table: t),
-              ],
-              if (s.notes != null) ...[
-                const SizedBox(height: AppSpacing.x2),
-                Text(
-                  s.notes!,
-                  style: text.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.x5),
-            ],
+            for (final s in report.sections) _SectionBlock(section: s),
             Text(
               l10n.generatedAt(report.createdAt.toLocal().toIso8601String()),
               style: TextStyle(
@@ -1778,6 +1729,108 @@ class _ReportView extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 报告分区：标题 + 可选复制 + 正文 + 表格 + 注释。
+class _SectionBlock extends StatelessWidget {
+  final ReportSection section;
+  const _SectionBlock({required this.section});
+
+  /// 本节纯文本（与报告导出格式一致）。
+  String _plainText() {
+    final b = StringBuffer('## ${section.heading}');
+    if (section.body != null) {
+      b
+        ..writeln()
+        ..writeln(section.body);
+    }
+    for (final t in section.tables) {
+      b
+        ..writeln()
+        ..writeln(t.toText());
+    }
+    if (section.notes != null) {
+      b
+        ..writeln()
+        ..write(section.notes);
+    }
+    return b.toString().trimRight();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 3,
+              height: 14,
+              decoration: BoxDecoration(
+                color: scheme.primary,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.x2),
+            Expanded(
+              child: Text(
+                section.heading,
+                style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            IconButton(
+              tooltip: l10n.copySection,
+              visualDensity: VisualDensity.compact,
+              iconSize: 16,
+              color: scheme.onSurfaceVariant,
+              icon: const Icon(Icons.copy_outlined),
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: _plainText()));
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.copiedToClipboard),
+                    duration: const Duration(milliseconds: 1200),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        if (section.body != null)
+          Padding(
+            padding: const EdgeInsets.only(
+              bottom: AppSpacing.x2,
+              top: AppSpacing.x1,
+            ),
+            child: Text(
+              section.body!,
+              style: text.bodyMedium?.copyWith(height: 1.6),
+            ),
+          ),
+        for (final t in section.tables) ...[
+          const SizedBox(height: AppSpacing.x2),
+          _TableWidget(table: t),
+        ],
+        if (section.notes != null) ...[
+          const SizedBox(height: AppSpacing.x2),
+          Text(
+            section.notes!,
+            style: text.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+              height: 1.5,
+            ),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.x5),
+      ],
     );
   }
 }

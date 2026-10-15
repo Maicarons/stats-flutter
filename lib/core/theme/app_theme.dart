@@ -32,6 +32,25 @@ abstract final class AppTheme {
   static TextStyle tabularText(TextStyle style) =>
       style.copyWith(fontFeatures: tabular);
 
+  /// 组件主题里的文本样式：必须显式带上字体族，
+  /// 否则 [TextStyle] 会退回平台默认字体（按钮 / 标签 / 导航栏文字就不再用 Inter）。
+  static TextStyle _font({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? height,
+    double? letterSpacing,
+  }) =>
+      TextStyle(
+        fontFamily: fontFamily,
+        fontFamilyFallback: fontFallback,
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        height: height,
+        letterSpacing: letterSpacing,
+      );
+
   static ThemeData light(Color seed) => _base(
         ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light),
         AppColors.light,
@@ -76,6 +95,7 @@ abstract final class AppTheme {
         backgroundColor: scheme.surface,
         surfaceTintColor: scheme.surface,
         titleTextStyle: text.titleLarge?.copyWith(
+          color: scheme.onSurface,
           fontSize: AppFontSize.title,
           fontWeight: FontWeight.w700,
         ),
@@ -91,8 +111,8 @@ abstract final class AppTheme {
           horizontal: AppSpacing.x3 + 2,
           vertical: AppSpacing.x3,
         ),
-        hintStyle: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
-        labelStyle: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
+        hintStyle: _font(color: scheme.onSurfaceVariant, fontSize: 14),
+        labelStyle: _font(color: scheme.onSurfaceVariant, fontSize: 14),
         border: const OutlineInputBorder(
           borderRadius: AppRadius.rMd,
           borderSide: BorderSide.none,
@@ -122,7 +142,7 @@ abstract final class AppTheme {
             vertical: AppSpacing.x3 + 2,
           ),
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.rMd),
-          textStyle: const TextStyle(
+          textStyle: _font(
             fontWeight: FontWeight.w600,
             fontSize: AppFontSize.titleSm,
           ),
@@ -136,7 +156,7 @@ abstract final class AppTheme {
           ),
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.rMd),
           side: BorderSide(color: scheme.outlineVariant),
-          textStyle: const TextStyle(
+          textStyle: _font(
             fontWeight: FontWeight.w600,
             fontSize: AppFontSize.titleSm,
           ),
@@ -145,7 +165,7 @@ abstract final class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.rMd),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          textStyle: _font(fontWeight: FontWeight.w600, fontSize: 14),
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
@@ -158,14 +178,25 @@ abstract final class AppTheme {
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: SegmentedButton.styleFrom(
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.rMd),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          textStyle: _font(fontWeight: FontWeight.w600, fontSize: 13),
         ),
       ),
 
       chipTheme: ChipThemeData(
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.rSm),
         side: BorderSide(color: scheme.outlineVariant),
-        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        // 标签样式必须自带颜色：仅给字号/字重会覆盖掉默认色，
+        // 未选中标签会失去颜色而「看不见」。
+        labelStyle: _font(
+          color: scheme.onSurfaceVariant,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+        secondaryLabelStyle: _font(
+          color: scheme.onSecondaryContainer,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.x2,
           vertical: AppSpacing.x1,
@@ -177,6 +208,7 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.rXl),
         titleTextStyle: text.titleLarge?.copyWith(
+          color: scheme.onSurface,
           fontSize: AppFontSize.title,
           fontWeight: FontWeight.w700,
         ),
@@ -192,7 +224,7 @@ abstract final class AppTheme {
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: scheme.inverseSurface,
-        contentTextStyle: TextStyle(color: scheme.onInverseSurface, fontSize: 14),
+        contentTextStyle: _font(color: scheme.onInverseSurface, fontSize: 14),
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.rMd),
         insetPadding: const EdgeInsets.all(AppSpacing.x4),
       ),
@@ -200,14 +232,14 @@ abstract final class AppTheme {
         color: scheme.surfaceContainerHigh,
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.rMd),
-        textStyle: text.bodyMedium,
+        textStyle: text.bodyMedium?.copyWith(color: scheme.onSurface),
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
           color: scheme.inverseSurface,
           borderRadius: AppRadius.rSm,
         ),
-        textStyle: TextStyle(color: scheme.onInverseSurface, fontSize: 12),
+        textStyle: _font(color: scheme.onInverseSurface, fontSize: 12),
       ),
       dividerTheme: DividerThemeData(
         color: scheme.outlineVariant,
@@ -224,11 +256,11 @@ abstract final class AppTheme {
         unselectedLabelColor: scheme.onSurfaceVariant,
         indicatorSize: TabBarIndicatorSize.label,
         dividerColor: Colors.transparent,
-        labelStyle: const TextStyle(
+        labelStyle: _font(
           fontWeight: FontWeight.w700,
           fontSize: AppFontSize.titleSm,
         ),
-        unselectedLabelStyle: const TextStyle(
+        unselectedLabelStyle: _font(
           fontWeight: FontWeight.w500,
           fontSize: AppFontSize.titleSm,
         ),
@@ -242,7 +274,10 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith(
-          (states) => TextStyle(
+          (states) => _font(
+            color: states.contains(WidgetState.selected)
+                ? scheme.onSurface
+                : scheme.onSurfaceVariant,
             fontSize: AppFontSize.label,
             fontWeight: states.contains(WidgetState.selected)
                 ? FontWeight.w700
@@ -254,12 +289,12 @@ abstract final class AppTheme {
         backgroundColor: scheme.surfaceContainerLow,
         indicatorColor: scheme.primaryContainer,
         labelType: NavigationRailLabelType.all,
-        selectedLabelTextStyle: TextStyle(
+        selectedLabelTextStyle: _font(
           color: scheme.onSurface,
           fontWeight: FontWeight.w700,
           fontSize: AppFontSize.label,
         ),
-        unselectedLabelTextStyle: TextStyle(
+        unselectedLabelTextStyle: _font(
           color: scheme.onSurfaceVariant,
           fontWeight: FontWeight.w500,
           fontSize: AppFontSize.label,
@@ -271,10 +306,7 @@ abstract final class AppTheme {
         focusElevation: 2,
         highlightElevation: 4,
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.rLg),
-        extendedTextStyle: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-        ),
+        extendedTextStyle: _font(fontWeight: FontWeight.w600, fontSize: 14),
       ),
 
       progressIndicatorTheme: ProgressIndicatorThemeData(

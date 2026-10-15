@@ -1832,4 +1832,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get chartSemanticsHint => '图表仅为直观展示，具体数值见上方结果表。';
+
+  @override
+  String get copySection => '复制本节';
 }
