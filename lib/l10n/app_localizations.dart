@@ -3271,6 +3271,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Theme: light / dark / system · 8 seed colors'**
   String get abTheme;
+
+  /// No description provided for @more.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get more;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @noVariablesMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching variables'**
+  String get noVariablesMatch;
+
+  /// No description provided for @learnIntroBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Master descriptive statistics, hypothesis testing, regression, non-parametric methods and reliability through short lessons. Each lesson has key points and core formulas; finish it and head to the Quiz to practise.'**
+  String get learnIntroBody;
+
+  /// No description provided for @keyFormulas.
+  ///
+  /// In en, this message translates to:
+  /// **'Core formulas'**
+  String get keyFormulas;
+
+  /// No description provided for @quizSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Random questions · instant scoring'**
+  String get quizSetupTitle;
+
+  /// No description provided for @quizSetupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The bank holds {n} questions covering descriptive statistics, t-tests, ANOVA, correlation, regression, chi-square, non-parametric tests and reliability. Submit to see explanations and your mistakes.'**
+  String quizSetupBody(int n);
+
+  /// No description provided for @quizCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of questions'**
+  String get quizCount;
+
+  /// No description provided for @quizNQuestions.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} questions'**
+  String quizNQuestions(int n);
+
+  /// No description provided for @quizStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start quiz'**
+  String get quizStart;
+
+  /// No description provided for @quizProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {a} of {b}'**
+  String quizProgress(int a, int b);
+
+  /// No description provided for @quizScoreLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your score'**
+  String get quizScoreLabel;
+
+  /// No description provided for @quizFeedbackHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'Excellent! Try a bigger set, or practise the same methods in Data analysis.'**
+  String get quizFeedbackHigh;
+
+  /// No description provided for @quizFeedbackMid.
+  ///
+  /// In en, this message translates to:
+  /// **'Not bad — review the explanations for the questions you missed.'**
+  String get quizFeedbackMid;
+
+  /// No description provided for @quizFeedbackLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Go through the Learn module to consolidate the concepts, then try again.'**
+  String get quizFeedbackLow;
+
+  /// No description provided for @quizTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'New set'**
+  String get quizTryAgain;
+
+  /// No description provided for @quizBackToSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to setup'**
+  String get quizBackToSetup;
+
+  /// No description provided for @quizReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get quizReview;
+
+  /// No description provided for @quizUnanswered.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {n} unanswered question(s). Submit anyway?'**
+  String quizUnanswered(int n);
+
+  /// No description provided for @quizItemTopic.
+  ///
+  /// In en, this message translates to:
+  /// **'Q{i} · {topic}'**
+  String quizItemTopic(int i, String topic);
+
+  /// No description provided for @quizCorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'correct'**
+  String get quizCorrect;
+
+  /// No description provided for @quizYourChoice.
+  ///
+  /// In en, this message translates to:
+  /// **'your choice'**
+  String get quizYourChoice;
+
+  /// No description provided for @quizExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Explanation: {text}'**
+  String quizExplanation(String text);
 }
 
 class _AppLocalizationsDelegate

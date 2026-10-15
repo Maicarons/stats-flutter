@@ -1686,4 +1686,89 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get abTheme => 'Theme: light / dark / system · 8 seed colors';
+
+  @override
+  String get more => 'More';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get noVariablesMatch => 'No matching variables';
+
+  @override
+  String get learnIntroBody =>
+      'Master descriptive statistics, hypothesis testing, regression, non-parametric methods and reliability through short lessons. Each lesson has key points and core formulas; finish it and head to the Quiz to practise.';
+
+  @override
+  String get keyFormulas => 'Core formulas';
+
+  @override
+  String get quizSetupTitle => 'Random questions · instant scoring';
+
+  @override
+  String quizSetupBody(int n) {
+    return 'The bank holds $n questions covering descriptive statistics, t-tests, ANOVA, correlation, regression, chi-square, non-parametric tests and reliability. Submit to see explanations and your mistakes.';
+  }
+
+  @override
+  String get quizCount => 'Number of questions';
+
+  @override
+  String quizNQuestions(int n) {
+    return '$n questions';
+  }
+
+  @override
+  String get quizStart => 'Start quiz';
+
+  @override
+  String quizProgress(int a, int b) {
+    return 'Question $a of $b';
+  }
+
+  @override
+  String get quizScoreLabel => 'Your score';
+
+  @override
+  String get quizFeedbackHigh =>
+      'Excellent! Try a bigger set, or practise the same methods in Data analysis.';
+
+  @override
+  String get quizFeedbackMid =>
+      'Not bad — review the explanations for the questions you missed.';
+
+  @override
+  String get quizFeedbackLow =>
+      'Go through the Learn module to consolidate the concepts, then try again.';
+
+  @override
+  String get quizTryAgain => 'New set';
+
+  @override
+  String get quizBackToSetup => 'Back to setup';
+
+  @override
+  String get quizReview => 'Review';
+
+  @override
+  String quizUnanswered(int n) {
+    return 'You have $n unanswered question(s). Submit anyway?';
+  }
+
+  @override
+  String quizItemTopic(int i, String topic) {
+    return 'Q$i · $topic';
+  }
+
+  @override
+  String get quizCorrect => 'correct';
+
+  @override
+  String get quizYourChoice => 'your choice';
+
+  @override
+  String quizExplanation(String text) {
+    return 'Explanation: $text';
+  }
 }

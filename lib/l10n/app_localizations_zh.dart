@@ -1669,4 +1669,86 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get abTheme => '主题：浅色 / 深色 / 跟随系统 · 8 种主题色';
+
+  @override
+  String get more => '更多';
+
+  @override
+  String get delete => '删除';
+
+  @override
+  String get noVariablesMatch => '没有匹配的变量';
+
+  @override
+  String get learnIntroBody =>
+      '用短课掌握描述统计、假设检验、回归、非参数与信度等核心方法。每课含要点与核心公式，学完可直接去「测试」练手。';
+
+  @override
+  String get keyFormulas => '核心公式';
+
+  @override
+  String get quizSetupTitle => '随机抽题 · 即时判分';
+
+  @override
+  String quizSetupBody(int n) {
+    return '题库共 $n 题，覆盖描述统计、t 检验、ANOVA、相关、回归、卡方、非参数与信度。交卷后可查看解析与错题。';
+  }
+
+  @override
+  String get quizCount => '题目数量';
+
+  @override
+  String quizNQuestions(int n) {
+    return '$n 题';
+  }
+
+  @override
+  String get quizStart => '开始测试';
+
+  @override
+  String quizProgress(int a, int b) {
+    return '第 $a / $b 题';
+  }
+
+  @override
+  String get quizScoreLabel => '本次得分';
+
+  @override
+  String get quizFeedbackHigh => '非常棒！可以挑战更高题量，或去数据分析里实践同样的方法。';
+
+  @override
+  String get quizFeedbackMid => '还不错，建议复习错题解析。';
+
+  @override
+  String get quizFeedbackLow => '建议先到「学习」模块巩固概念，再来测试。';
+
+  @override
+  String get quizTryAgain => '再来一套';
+
+  @override
+  String get quizBackToSetup => '返回设置';
+
+  @override
+  String get quizReview => '答题回顾';
+
+  @override
+  String quizUnanswered(int n) {
+    return '还有 $n 题未作答，确定交卷？';
+  }
+
+  @override
+  String quizItemTopic(int i, String topic) {
+    return '第 $i 题 · $topic';
+  }
+
+  @override
+  String get quizCorrect => '正确';
+
+  @override
+  String get quizYourChoice => '你的选择';
+
+  @override
+  String quizExplanation(String text) {
+    return '解析：$text';
+  }
 }

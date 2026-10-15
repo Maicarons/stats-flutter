@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/models/dataset.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../shared/dataset_store.dart';
+import '../../shared/ui/ui.dart';
 import '../syntax/syntax_editor_page.dart';
 import '../transform/transform_page.dart';
 import 'csv_io.dart';
@@ -10,6 +12,10 @@ import 'sav_import.dart';
 import 'editable_data_grid.dart';
 import 'missing_values_dialog.dart';
 import 'value_labels_dialog.dart';
+
+/// 依当前语言取枚举的本地化名称。
+String _localeName(BuildContext context, String en, String zh) =>
+    Localizations.localeOf(context).languageCode == 'zh' ? zh : en;
 
 class DataEditorPage extends StatefulWidget {
   /// true：作为工作区 Tab，不画外层 AppBar
@@ -60,46 +66,40 @@ class _DataEditorPageState extends State<DataEditorPage>
       ],
     );
 
-    final column = Column(
+    final body = Column(
       children: [
         if (widget.embedded) tabs,
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-          child: TextField(
-            controller: _search,
-            decoration: InputDecoration(
-              hintText: l10n.searchHint,
-              prefixIcon: const Icon(Icons.search),
-              isDense: true,
-              suffixIcon: _search.text.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _search.clear();
-                        setState(() {});
-                      },
-                    ),
-            ),
-            onChanged: (_) => setState(() {}),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.x3,
+            AppSpacing.x2,
+            AppSpacing.x2,
+            0,
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
           child: Row(
             children: [
-              _StatChip(
-                label: l10n.cases,
-                value: '${ds.nCases}',
-                color: scheme.primaryContainer,
+              Expanded(
+                child: TextField(
+                  controller: _search,
+                  decoration: InputDecoration(
+                    hintText: l10n.searchHint,
+                    prefixIcon: const Icon(Icons.search),
+                    isDense: true,
+                    suffixIcon: _search.text.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: l10n.cancel,
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _search.clear();
+                              setState(() {});
+                            },
+                          ),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
               ),
-              const SizedBox(width: 8),
-              _StatChip(
-                label: l10n.variables,
-                value: '${ds.nVars}',
-                color: scheme.tertiaryContainer,
-              ),
-              const Spacer(),
+              const SizedBox(width: AppSpacing.x1),
               IconButton(
                 tooltip: l10n.undo,
                 onPressed:
@@ -114,6 +114,7 @@ class _DataEditorPageState extends State<DataEditorPage>
               ),
               IconButton(
                 tooltip: l10n.showValueLabels,
+                isSelected: _showValueLabels,
                 onPressed: () =>
                     setState(() => _showValueLabels = !_showValueLabels),
                 icon: Icon(
@@ -122,6 +123,7 @@ class _DataEditorPageState extends State<DataEditorPage>
                 ),
               ),
               PopupMenuButton<String>(
+                tooltip: l10n.more,
                 onSelected: (v) => _onMenu(v, l10n),
                 itemBuilder: (_) => [
                   PopupMenuItem(value: 'demo', child: Text(l10n.loadDemo)),
@@ -140,9 +142,14 @@ class _DataEditorPageState extends State<DataEditorPage>
             ],
           ),
         ),
-        // 显式导入导出工具条
+        // 导入 / 导出
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.x3,
+            AppSpacing.x2,
+            AppSpacing.x3,
+            0,
+          ),
           child: Row(
             children: [
               Expanded(
@@ -152,7 +159,7 @@ class _DataEditorPageState extends State<DataEditorPage>
                   label: Text(l10n.importData),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.x2),
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => _onMenu('import_sav', l10n),
@@ -160,7 +167,7 @@ class _DataEditorPageState extends State<DataEditorPage>
                   label: const Text('SAV'),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.x2),
               Expanded(
                 child: FilledButton.icon(
                   onPressed: () => _onMenu('export', l10n),
@@ -171,6 +178,7 @@ class _DataEditorPageState extends State<DataEditorPage>
             ],
           ),
         ),
+        const SizedBox(height: AppSpacing.x2),
         Expanded(
           child: TabBarView(
             controller: _tab,
@@ -190,15 +198,21 @@ class _DataEditorPageState extends State<DataEditorPage>
       appBar: widget.embedded
           ? null
           : AppBar(
-              title: Text(ds.name,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              title: Text(
+                ds.name,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
               bottom: tabs,
             ),
-      body: column,
+      body: widget.embedded
+          ? body
+          : ConstrainedContent(child: body),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _addCase(l10n),
+        onPressed: _addCase,
         icon: const Icon(Icons.add),
         label: Text(l10n.addCase),
+        backgroundColor: scheme.primaryContainer,
+        foregroundColor: scheme.onPrimaryContainer,
       ),
     );
   }
@@ -221,7 +235,7 @@ class _DataEditorPageState extends State<DataEditorPage>
         _addVar(l10n);
         break;
       case 'addcase':
-        _addCase(l10n);
+        _addCase();
         break;
       case 'syntax':
         if (context.mounted) {
@@ -249,7 +263,7 @@ class _DataEditorPageState extends State<DataEditorPage>
     }
   }
 
-  void _addCase(AppLocalizations l10n) {
+  void _addCase() {
     datasetStore.history.checkpoint(ds);
     ds.addCase();
     datasetStore.touch();
@@ -263,7 +277,9 @@ class _DataEditorPageState extends State<DataEditorPage>
         title: Text(l10n.addVariable),
         content: TextField(
           controller: nameCtrl,
+          autofocus: true,
           decoration: InputDecoration(labelText: l10n.variableName),
+          onSubmitted: (_) => Navigator.pop(ctx),
         ),
         actions: [
           TextButton(
@@ -289,7 +305,7 @@ class _DataEditorPageState extends State<DataEditorPage>
     final v = await showDialog<String>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('WEIGHT CASES'),
+        title: Text(l10n.weightCases),
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx, ''),
@@ -320,7 +336,7 @@ class _DataEditorPageState extends State<DataEditorPage>
     final v = await showDialog<String>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('SPLIT FILE'),
+        title: Text(l10n.splitFile),
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.pop(ctx, ''),
@@ -355,6 +371,7 @@ class _DataEditorPageState extends State<DataEditorPage>
           controller: ctrl,
           autofocus: true,
           decoration: InputDecoration(hintText: l10n.findHint),
+          onSubmitted: (s) => Navigator.pop(ctx, s),
         ),
         actions: [
           TextButton(
@@ -392,27 +409,7 @@ class _DataEditorPageState extends State<DataEditorPage>
   }
 }
 
-class _StatChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-  const _StatChip(
-      {required this.label, required this.value, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text('$label $value',
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-    );
-  }
-}
-
+/// 变量视图：每个变量一张卡片，展开后编辑标签/尺度/类型/值标签/缺失值。
 class _VarSheet extends StatelessWidget {
   final String filter;
   const _VarSheet({required this.filter});
@@ -420,184 +417,229 @@ class _VarSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final ds = datasetStore.data;
+    final q = filter.toLowerCase();
     final vars = ds.variables
         .where((v) =>
             filter.isEmpty ||
-            v.name.toLowerCase().contains(filter.toLowerCase()) ||
-            v.label.toLowerCase().contains(filter.toLowerCase()))
+            v.name.toLowerCase().contains(q) ||
+            v.label.toLowerCase().contains(q))
         .toList();
+
+    if (vars.isEmpty) {
+      return EmptyState(
+        icon: Icons.view_column_outlined,
+        title: l10n.noVariablesMatch,
+        message: l10n.searchHint,
+        compact: true,
+      );
+    }
+
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 88),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.x3,
+        AppSpacing.x2,
+        AppSpacing.x3,
+        AppSpacing.x7,
+      ),
       itemCount: vars.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.x2),
       itemBuilder: (context, i) {
         final v = vars[i];
-        return Card(
+        final typeName = _localeName(context, v.type.en, v.type.zh);
+        final measureName = _localeName(context, v.measure.en, v.measure.zh);
+        return AppCard(
+          padding: EdgeInsets.zero,
           child: ExpansionTile(
             shape: const Border(),
-            title: Text(v.name,
-                style: const TextStyle(fontWeight: FontWeight.w600)),
+            collapsedShape: const Border(),
+            title: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    v.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.x2),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHigh,
+                    borderRadius: AppRadius.rSm,
+                  ),
+                  child: Text(
+                    v.isNumeric ? '#' : 'A',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             subtitle: Text(
-              '${v.type.zh} · ${v.measure.zh} · ${l10n.decimals} ${v.decimals}'
+              '$typeName · $measureName · ${l10n.decimals} ${v.decimals}'
               '${v.label.isEmpty ? '' : ' · ${v.label}'}',
               style: const TextStyle(fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+            ),
+            childrenPadding: const EdgeInsets.fromLTRB(
+              AppSpacing.x4,
+              0,
+              AppSpacing.x4,
+              AppSpacing.x3,
             ),
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: Column(
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: v.label,
+                      decoration: InputDecoration(labelText: l10n.label),
+                      onChanged: (s) {
+                        v.label = s;
+                        datasetStore.touch();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.x2),
+                  Expanded(
+                    child: DropdownButtonFormField<MeasureLevel>(
+                      initialValue: v.measure,
+                      decoration: InputDecoration(labelText: l10n.measure),
+                      items: MeasureLevel.values
+                          .map((m) => DropdownMenuItem(
+                                value: m,
+                                child: Text(
+                                    _localeName(context, m.en, m.zh)),
+                              ))
+                          .toList(),
+                      onChanged: (m) {
+                        if (m != null) {
+                          v.measure = m;
+                          datasetStore.touch();
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.x2),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<VarType>(
+                      initialValue: v.type,
+                      decoration: InputDecoration(labelText: l10n.type),
+                      items: VarType.values
+                          .map((t) => DropdownMenuItem(
+                                value: t,
+                                child: Text(
+                                    _localeName(context, t.en, t.zh)),
+                              ))
+                          .toList(),
+                      onChanged: (t) {
+                        if (t != null) {
+                          v.type = t;
+                          datasetStore.touch();
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.x2),
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: '${v.decimals}',
+                      decoration:
+                          InputDecoration(labelText: l10n.decimals),
+                      keyboardType: TextInputType.number,
+                      onChanged: (s) {
+                        v.decimals = int.tryParse(s) ?? 2;
+                        datasetStore.touch();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.x3),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(l10n.valueLabels,
+                    style: Theme.of(context).textTheme.labelLarge),
+              ),
+              const SizedBox(height: AppSpacing.x1),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: AppSpacing.x1,
+                  runSpacing: AppSpacing.x1,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            initialValue: v.label,
-                            decoration:
-                                InputDecoration(labelText: l10n.label),
-                            onChanged: (s) {
-                              v.label = s;
+                    if (v.valueLabels.isEmpty)
+                      Text(
+                        l10n.noValueLabels,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      )
+                    else
+                      ...v.valueLabels.entries.map((e) => Chip(
+                            label: Text('${e.key} = ${e.value}'),
+                            visualDensity: VisualDensity.compact,
+                            deleteButtonTooltipMessage: l10n.delete,
+                            onDeleted: () {
+                              v.valueLabels.remove(e.key);
                               datasetStore.touch();
                             },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: DropdownButtonFormField<MeasureLevel>(
-                            initialValue: v.measure,
-                            decoration:
-                                InputDecoration(labelText: l10n.measure),
-                            items: MeasureLevel.values
-                                .map((m) => DropdownMenuItem(
-                                      value: m,
-                                      child: Text(m.zh),
-                                    ))
-                                .toList(),
-                            onChanged: (m) {
-                              if (m != null) {
-                                v.measure = m;
-                                datasetStore.touch();
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<VarType>(
-                            initialValue: v.type,
-                            decoration:
-                                InputDecoration(labelText: l10n.type),
-                            items: VarType.values
-                                .map((t) => DropdownMenuItem(
-                                      value: t,
-                                      child: Text(t.zh),
-                                    ))
-                                .toList(),
-                            onChanged: (t) {
-                              if (t != null) {
-                                v.type = t;
-                                datasetStore.touch();
-                              }
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: TextFormField(
-                            initialValue: '${v.decimals}',
-                            decoration:
-                                InputDecoration(labelText: l10n.decimals),
-                            keyboardType: TextInputType.number,
-                            onChanged: (s) {
-                              v.decimals = int.tryParse(s) ?? 2;
-                              datasetStore.touch();
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(l10n.valueLabels,
-                          style:
-                              Theme.of(context).textTheme.labelLarge),
-                    ),
-                    const SizedBox(height: 6),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [
-                          if (v.valueLabels.isEmpty)
-                            Text(l10n.noValueLabels,
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .outline))
-                          else
-                            ...v.valueLabels.entries.map((e) => Chip(
-                                  label: Text('${e.key} = ${e.value}'),
-                                  visualDensity: VisualDensity.compact,
-                                  onDeleted: () {
-                                    v.valueLabels.remove(e.key);
-                                    datasetStore.touch();
-                                  },
-                                )),
-                          ActionChip(
-                            avatar: const Icon(Icons.edit, size: 16),
-                            label: Text(l10n.editValueLabels),
-                            onPressed: () => showDialog(
-                              context: context,
-                              builder: (_) => ValueLabelsDialog(variable: v),
-                            ),
-                          ),
-                        ],
+                          )),
+                    ActionChip(
+                      avatar: const Icon(Icons.edit, size: 16),
+                      label: Text(l10n.editValueLabels),
+                      onPressed: () => showDialog(
+                        context: context,
+                        builder: (_) => ValueLabelsDialog(variable: v),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.block, size: 16),
-                            label: Text(l10n.missingValues),
-                            onPressed: () => showDialog(
-                              context: context,
-                              builder: (_) =>
-                                  MissingValuesDialog(variable: v),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.delete_outline, size: 16),
-                            label: Text(l10n.deleteVariable),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor:
-                                  Theme.of(context).colorScheme.error,
-                            ),
-                            onPressed: () {
-                              final idx = ds.indexOf(v.name);
-                              if (idx >= 0) {
-                                datasetStore.history.checkpoint(ds);
-                                ds.removeVariable(idx);
-                                datasetStore.touch();
-                              }
-                            },
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: AppSpacing.x3),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.block, size: 16),
+                      label: Text(l10n.missingValues),
+                      onPressed: () => showDialog(
+                        context: context,
+                        builder: (_) => MissingValuesDialog(variable: v),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.x2),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.delete_outline, size: 16),
+                      label: Text(l10n.deleteVariable),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: scheme.error,
+                      ),
+                      onPressed: () {
+                        final idx = ds.indexOf(v.name);
+                        if (idx >= 0) {
+                          datasetStore.history.checkpoint(ds);
+                          ds.removeVariable(idx);
+                          datasetStore.touch();
+                        }
+                      },
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
