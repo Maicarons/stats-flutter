@@ -57,8 +57,7 @@ docs/.vitepress/cache/
 clip/
 
 .playwright-mcp/
-tool/*
-!tool/benchmark.dart
+tool/
 
 # Internal dev notes (not published)
 _internal/
