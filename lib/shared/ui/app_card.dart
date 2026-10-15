@@ -32,36 +32,41 @@ class AppCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final app = context.appColors;
     final r = radius ?? AppRadius.rLg;
+    final hasAccent = accent != null;
+
+    final row = Row(
+      // 强调条需要撑满卡片高度；无强调条时用 center，避免在无界高度
+      // （如 ListView）下把无限约束传给子节点。
+      crossAxisAlignment:
+          hasAccent ? CrossAxisAlignment.stretch : CrossAxisAlignment.center,
+      children: [
+        if (hasAccent)
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.x3),
+            child: Container(
+              width: 3,
+              decoration: BoxDecoration(
+                color: accent,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+        Expanded(child: child),
+      ],
+    );
 
     Widget content = Padding(
       padding: padding,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (accent != null)
-            Padding(
-              padding: const EdgeInsets.only(right: AppSpacing.x3),
-              child: Container(
-                width: 3,
-                decoration: BoxDecoration(
-                  color: accent,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-          Expanded(child: child),
-        ],
-      ),
+      // IntrinsicHeight 让 stretch 在高度无界时仍然成立。
+      child: hasAccent ? IntrinsicHeight(child: row) : row,
     );
 
-    if (onTap != null && !dense) {
+    if (onTap != null) {
       content = InkWell(
         onTap: onTap,
         borderRadius: r,
         child: content,
       );
-    } else if (onTap != null) {
-      content = InkWell(onTap: onTap, borderRadius: r, child: content);
     }
 
     final decoration = BoxDecoration(

@@ -605,5 +605,6 @@
   "vlClearAll": "清空全部",
   "vlEmptyHint": "暂无值标签，请先在上方添加。",
   "savImported": "已导入 {cases} 个案 × {vars} 变量（{product}）",
-  "savImportFailed": "导入 .sav 失败：{msg}"
+  "savImportFailed": "导入 .sav 失败：{msg}",
+  "chartSemanticsHint": "图表仅为直观展示，具体数值见上方结果表。"
 }

@@ -104,6 +104,7 @@ class _AnalysisHubState extends State<AnalysisHub> {
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(
+                        tooltip: l10n.cancel,
                         icon: const Icon(Icons.clear, size: 18),
                         onPressed: () {
                           _search.clear();

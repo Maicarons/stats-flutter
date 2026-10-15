@@ -145,6 +145,7 @@ class _ParamVarPickerState extends State<ParamVarPicker> {
               suffixIcon: _q.isEmpty
                   ? null
                   : IconButton(
+                      tooltip: l10n.clearSelection,
                       icon: const Icon(Icons.clear, size: 16),
                       visualDensity: VisualDensity.compact,
                       onPressed: () {

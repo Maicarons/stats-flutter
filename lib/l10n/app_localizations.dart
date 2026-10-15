@@ -3541,6 +3541,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to import .sav: {msg}'**
   String savImportFailed(String msg);
+
+  /// No description provided for @chartSemanticsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Chart illustration only — the exact values are listed in the result table.'**
+  String get chartSemanticsHint;
 }
 
 class _AppLocalizationsDelegate

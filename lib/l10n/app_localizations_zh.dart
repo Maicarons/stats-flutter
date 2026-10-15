@@ -1829,4 +1829,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String savImportFailed(String msg) {
     return '导入 .sav 失败：$msg';
   }
+
+  @override
+  String get chartSemanticsHint => '图表仅为直观展示，具体数值见上方结果表。';
 }

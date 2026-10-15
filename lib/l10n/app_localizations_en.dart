@@ -1850,4 +1850,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String savImportFailed(String msg) {
     return 'Failed to import .sav: $msg';
   }
+
+  @override
+  String get chartSemanticsHint =>
+      'Chart illustration only — the exact values are listed in the result table.';
 }

@@ -109,7 +109,11 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ChartCard(
                 title: l10n.chartSection,
                 height: 260,
-                child: _chart!,
+                child: Semantics(
+                  container: true,
+                  label: '${l10n.chartSection}. ${l10n.chartSemanticsHint}',
+                  child: _chart!,
+                ),
               ),
             ],
           ],
