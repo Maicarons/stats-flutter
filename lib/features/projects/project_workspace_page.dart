@@ -1,17 +1,20 @@
-/// 工程工作区：仅含 数据 / 分析 / 变换
+/// 工程工作区：数据 / 分析 / 变换。
+/// 窄屏底部导航，宽屏侧栏；标题区含自动保存状态。
 library;
 
 import 'package:flutter/material.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/models/project.dart';
+import '../../core/theme/design_tokens.dart';
+import '../../shared/dataset_store.dart';
 import '../../shared/project_store.dart';
+import '../../shared/ui/ui.dart';
 import '../analysis/analysis_hub.dart';
 import '../data_editor/csv_io.dart';
+import '../data_editor/data_editor_page.dart';
 import '../data_editor/excel_io.dart';
 import '../data_editor/sav_import.dart';
-import '../../shared/dataset_store.dart';
-import '../data_editor/data_editor_page.dart';
 import '../transform/transform_page.dart';
 
 class ProjectWorkspacePage extends StatefulWidget {
@@ -35,7 +38,23 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(title: Text(l10n.importDataTitle)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.x4,
+                AppSpacing.x1,
+                AppSpacing.x4,
+                AppSpacing.x2,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  l10n.importDataTitle,
+                  style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ),
             ListTile(
               leading: const Icon(Icons.file_open),
               title: Text(l10n.importCsv),
@@ -56,6 +75,7 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
               title: Text(l10n.importDemoData),
               onTap: () => Navigator.pop(ctx, 'demo'),
             ),
+            const SizedBox(height: AppSpacing.x2),
           ],
         ),
       ),
@@ -97,101 +117,177 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
     Navigator.of(context).pop();
   }
 
-  String _subtitle(AppLocalizations l10n) {
-    final base = l10n.casesByVars(project.dataset.nCases, project.dataset.nVars);
-    final savedAt = projectStore.lastSavedAt;
-    if (savedAt != null && !projectStore.dirty) {
-      final hh = savedAt.hour.toString().padLeft(2, '0');
-      final mm = savedAt.minute.toString().padLeft(2, '0');
-      return '$base · ${l10n.autoSavedAt('$hh:$mm')}';
+  Future<void> _onMenu(String v) async {
+    switch (v) {
+      case 'export':
+        await _export();
+        break;
+      case 'save':
+        await _save();
+        break;
+      case 'close':
+        await _exit();
+        break;
     }
-    return base;
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final pages = [
-      const DataEditorPage(),
-      const AnalysisHub(),
-      TransformPage(embedded: true),
-    ];
+    final scheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          tooltip: l10n.saveAndBack,
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _exit,
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              project.meta.name,
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              _subtitle(l10n),
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: Theme.of(context).colorScheme.outline),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: l10n.importCsvSav,
-            icon: const Icon(Icons.file_open),
-            onPressed: () => _importMenu(),
-          ),
-          IconButton(
-            tooltip: l10n.exportCsv,
-            icon: const Icon(Icons.save_alt),
-            onPressed: () => _export(),
-          ),
-          IconButton(
-            tooltip: l10n.saveProject,
-            icon: const Icon(Icons.save_outlined),
-            onPressed: _save,
-          ),
-          PopupMenuButton<String>(
-            onSelected: (v) {
-              if (v == 'save') _save();
-              if (v == 'exit') _exit();
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(value: 'save', child: Text(l10n.saveProject)),
-              PopupMenuItem(value: 'exit', child: Text(l10n.closeProject)),
-            ],
-          ),
-        ],
-      ),
-      body: IndexedStack(index: _index, children: pages),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.table_chart_outlined),
-            selectedIcon: const Icon(Icons.table_chart),
+    return ListenableBuilder(
+      listenable: projectStore,
+      builder: (context, _) => AdaptiveNavScaffold(
+        index: _index,
+        onIndexChanged: (i) => setState(() => _index = i),
+        items: [
+          NavItem(
+            icon: Icons.table_chart_outlined,
+            selectedIcon: Icons.table_chart,
             label: l10n.tabData,
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.analytics_outlined),
-            selectedIcon: const Icon(Icons.analytics),
+          NavItem(
+            icon: Icons.analytics_outlined,
+            selectedIcon: Icons.analytics,
             label: l10n.analysis,
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.transform_outlined),
-            selectedIcon: const Icon(Icons.transform),
+          NavItem(
+            icon: Icons.transform_outlined,
+            selectedIcon: Icons.transform,
             label: l10n.tabTransform,
+          ),
+        ],
+        appBar: AppBar(
+          leading: IconButton(
+            tooltip: l10n.saveAndBack,
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _exit,
+          ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                project.meta.name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Row(
+                  children: [
+                    Text(
+                      l10n.casesByVarsShort(
+                        project.dataset.nCases,
+                        project.dataset.nVars,
+                      ),
+                      style: TextStyle(
+                        fontSize: AppFontSize.caption,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.x2),
+                    _SavePill(
+                      dirty: projectStore.dirty,
+                      savedAt: projectStore.lastSavedAt,
+                      l10n: l10n,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              tooltip: l10n.importCsvSav,
+              icon: const Icon(Icons.file_open),
+              onPressed: _importMenu,
+            ),
+            IconButton(
+              tooltip: l10n.saveProject,
+              icon: const Icon(Icons.save_outlined),
+              onPressed: _save,
+            ),
+            PopupMenuButton<String>(
+              tooltip: l10n.settings,
+              onSelected: _onMenu,
+              itemBuilder: (_) => [
+                PopupMenuItem(value: 'export', child: Text(l10n.exportData)),
+                PopupMenuItem(value: 'save', child: Text(l10n.saveProject)),
+                PopupMenuItem(value: 'close', child: Text(l10n.closeProject)),
+              ],
+            ),
+            const SizedBox(width: AppSpacing.x1),
+          ],
+        ),
+        body: IndexedStack(
+          index: _index,
+          children: const [
+            DataEditorPage(),
+            AnalysisHub(),
+            TransformPage(embedded: true),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 自动保存状态胶囊：已保存 / 未保存，颜色 + 文案双重表达。
+class _SavePill extends StatelessWidget {
+  final bool dirty;
+  final DateTime? savedAt;
+  final AppLocalizations l10n;
+
+  const _SavePill({
+    required this.dirty,
+    required this.savedAt,
+    required this.l10n,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final app = context.appColors;
+    final color = dirty ? app.warning : app.success;
+
+    String text;
+    if (dirty) {
+      text = l10n.unsaved;
+    } else if (savedAt != null) {
+      final hh = savedAt!.hour.toString().padLeft(2, '0');
+      final mm = savedAt!.minute.toString().padLeft(2, '0');
+      text = l10n.autoSavedAt('$hh:$mm');
+    } else {
+      text = l10n.saveProject;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurface,
+            ),
           ),
         ],
       ),

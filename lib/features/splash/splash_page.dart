@@ -1,10 +1,13 @@
-/// 开屏页：统一 Logo + 项目名 → 全局壳
+/// 开屏页：品牌渐变 + Logo 入场，短时自动进入，可轻触跳过。
 library;
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:stats_flutter/l10n/app_localizations.dart';
 
+import '../../core/app_info.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../shared/brand_logo.dart';
 import '../../shared/project_store.dart';
 import '../home/home_shell.dart';
@@ -21,36 +24,42 @@ class _SplashPageState extends State<SplashPage>
   late final AnimationController _ctrl;
   late final Animation<double> _fade;
   late final Animation<double> _scale;
+  Timer? _timer;
+  bool _left = false;
 
   @override
   void initState() {
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 700),
     );
     _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
-    _scale = Tween<double>(begin: 0.86, end: 1).animate(
+    _scale = Tween<double>(begin: 0.9, end: 1).animate(
       CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack),
     );
     _ctrl.forward();
     unawaited(projectStore.load());
-    Timer(const Duration(milliseconds: 2200), () {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 450),
-          pageBuilder: (_, a, __) => FadeTransition(
-            opacity: a,
-            child: const HomeShell(),
-          ),
+    _timer = Timer(const Duration(milliseconds: 1300), _enter);
+  }
+
+  void _enter() {
+    if (!mounted || _left) return;
+    _left = true;
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 380),
+        pageBuilder: (_, a, __) => FadeTransition(
+          opacity: a,
+          child: const HomeShell(),
         ),
-      );
-    });
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _ctrl.dispose();
     super.dispose();
   }
@@ -58,60 +67,124 @@ class _SplashPageState extends State<SplashPage>
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
+    final reduce = AppMotion.reduced(context);
+
+    final gradientEnd = Color.lerp(scheme.primary, scheme.tertiary, 0.42)!;
+
     return Scaffold(
-      backgroundColor: scheme.primary,
-      body: Center(
-        child: FadeTransition(
-          opacity: _fade,
-          child: ScaleTransition(
-            scale: _scale,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 统一 Logo（白底徽章 + 柱状图 + 正态曲线）
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.18),
-                        blurRadius: 28,
-                        offset: const Offset(0, 12),
-                      ),
-                    ],
-                  ),
-                  child: const BrandLogo(size: 112, onPrimary: true),
-                ),
-                const SizedBox(height: 28),
-                Text(
-                  'Stats-flutter',
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.w800,
-                    color: scheme.onPrimary,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  '工程化统计分析',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: scheme.onPrimary.withValues(alpha: 0.85),
-                    letterSpacing: 2,
-                  ),
-                ),
-                const SizedBox(height: 48),
-                SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: scheme.onPrimary.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _enter,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [scheme.primary, gradientEnd],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+          ),
+          child: Stack(
+            children: [
+              // 柔光装饰
+              Positioned(
+                top: -80,
+                right: -60,
+                child: _Glow(color: Colors.white, size: 240),
+              ),
+              Positioned(
+                bottom: -100,
+                left: -70,
+                child: _Glow(color: Colors.white, size: 300),
+              ),
+              Center(
+                child: FadeTransition(
+                  opacity: reduce ? const AlwaysStoppedAnimation(1) : _fade,
+                  child: ScaleTransition(
+                    scale: reduce ? const AlwaysStoppedAnimation(1) : _scale,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(AppRadius.xxl),
+                            boxShadow: context.appColors.shadowLg,
+                          ),
+                          child: const BrandLogo(size: 108, onPrimary: true),
+                        ),
+                        const SizedBox(height: AppSpacing.x5),
+                        Text(
+                          AppInfo.name,
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w800,
+                            color: scheme.onPrimary,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.x2 + 2),
+                        Text(
+                          l10n.splashTagline,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: scheme.onPrimary.withValues(alpha: 0.9),
+                            letterSpacing: 2.5,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.x7),
+                        SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.4,
+                            color: scheme.onPrimary.withValues(alpha: 0.75),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.x6),
+                  child: Text(
+                    l10n.splashSkip,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.onPrimary.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Glow extends StatelessWidget {
+  final Color color;
+  final double size;
+
+  const _Glow({required this.color, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [
+              color.withValues(alpha: 0.16),
+              color.withValues(alpha: 0),
+            ],
           ),
         ),
       ),

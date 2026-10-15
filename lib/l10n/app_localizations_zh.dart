@@ -1110,4 +1110,358 @@ class AppLocalizationsZh extends AppLocalizations {
   String generatedAt(String time) {
     return '生成时间：$time';
   }
+
+  @override
+  String get splashTagline => '工程化统计分析';
+
+  @override
+  String get splashSkip => '轻触跳过';
+
+  @override
+  String get projHeroTitle => '工程列表';
+
+  @override
+  String get projHeroDesc => '每个工程是一份独立统计表。新建、打开、复制或删除工程，进入后可做数据编辑与统计分析。';
+
+  @override
+  String get projNewDemo => '示例工程';
+
+  @override
+  String get projNewBlank => '新建空白';
+
+  @override
+  String get projSearchHint => '搜索工程…';
+
+  @override
+  String projCount(int n) {
+    return '共 $n 个工程';
+  }
+
+  @override
+  String get projEmptyTitle => '还没有工程';
+
+  @override
+  String get projEmptyMsg => '点击「示例工程」或「新建空白」开始。';
+
+  @override
+  String get projNoMatchTitle => '没有匹配的工程';
+
+  @override
+  String get projNoMatchMsg => '换个关键词试试。';
+
+  @override
+  String get projNewProject => '新建工程';
+
+  @override
+  String get projNewDemoTitle => '新建示例工程';
+
+  @override
+  String get projNewBlankTitle => '新建空白工程';
+
+  @override
+  String get projNameField => '工程名称';
+
+  @override
+  String get projDescField => '描述（可选）';
+
+  @override
+  String get projCreate => '创建';
+
+  @override
+  String get projRenameTitle => '重命名工程';
+
+  @override
+  String get projNameLabel => '名称';
+
+  @override
+  String get projDeleteTitle => '删除工程';
+
+  @override
+  String projDeleteMsg(String name) {
+    return '确定删除「$name」？此操作不可恢复。';
+  }
+
+  @override
+  String get projDeleteAction => '删除';
+
+  @override
+  String get projDuplicated => '已复制工程';
+
+  @override
+  String get projOpenFailed => '打开工程失败';
+
+  @override
+  String get projOpen => '打开';
+
+  @override
+  String get projDuplicate => '复制';
+
+  @override
+  String get projRecent => '最近';
+
+  @override
+  String get projAll => '全部工程';
+
+  @override
+  String projUpdatedAt(String time) {
+    return '更新于 $time';
+  }
+
+  @override
+  String get projUntitled => '未命名';
+
+  @override
+  String projCopySuffix(String name) {
+    return '$name 副本';
+  }
+
+  @override
+  String casesByVarsShort(int cases, int vars) {
+    return '$cases 个案 · $vars 变量';
+  }
+
+  @override
+  String get projDemoName => '示例·成绩分析';
+
+  @override
+  String projDefaultName(int n) {
+    return '工程 $n';
+  }
+
+  @override
+  String get anSearchHint => '搜索分析…';
+
+  @override
+  String get anRecent => '最近使用';
+
+  @override
+  String get anFavorites => '收藏';
+
+  @override
+  String get anResults => '搜索结果';
+
+  @override
+  String get anNoMatch => '没有匹配的分析';
+
+  @override
+  String get anAdvanced => '进阶';
+
+  @override
+  String get anCatDescribe => '描述与探索';
+
+  @override
+  String get anCatCompare => '比较均值';
+
+  @override
+  String get anCatCorrelate => '相关与关联';
+
+  @override
+  String get anCatModel => '回归与聚类';
+
+  @override
+  String get anCatNonparam => '非参数与信度';
+
+  @override
+  String get anCatExtra => '补充过程';
+
+  @override
+  String get anCatDimreduce => '降维与分类';
+
+  @override
+  String get anCatCharts => '图表';
+
+  @override
+  String get anDescriptives => '描述统计';
+
+  @override
+  String get anDescriptivesDesc => '均值、标准差、偏度峰度、置信区间';
+
+  @override
+  String get anFrequencies => '频率分析';
+
+  @override
+  String get anFrequenciesDesc => '频数表、百分比、累计';
+
+  @override
+  String get anExplore => '探索分析';
+
+  @override
+  String get anExploreDesc => '分位数、极值、正态性';
+
+  @override
+  String get anTtestOne => '单样本 t 检验';
+
+  @override
+  String get anTtestOneDesc => '均值 vs 检验值';
+
+  @override
+  String get anTtestInd => '独立样本 t 检验';
+
+  @override
+  String get anTtestIndDesc => '两组均值比较 + Levene';
+
+  @override
+  String get anTtestPaired => '配对样本 t 检验';
+
+  @override
+  String get anTtestPairedDesc => '前后测 / 配对设计';
+
+  @override
+  String get anAnova => '单因素 ANOVA';
+
+  @override
+  String get anAnovaDesc => '多组均值 + 效应量';
+
+  @override
+  String get anCorrelation => '相关分析';
+
+  @override
+  String get anCorrelationDesc => 'Pearson / Spearman 矩阵';
+
+  @override
+  String get anCrosstabs => '交叉表卡方';
+
+  @override
+  String get anCrosstabsDesc => '列联表、χ²、Cramér V';
+
+  @override
+  String get anRegression => '线性回归';
+
+  @override
+  String get anRegressionDesc => '简单 / 多元、系数表';
+
+  @override
+  String get anKmeans => 'K-Means 聚类';
+
+  @override
+  String get anKmeansDesc => '快速聚类、中心点';
+
+  @override
+  String get anMannwhitney => 'Mann-Whitney U';
+
+  @override
+  String get anMannwhitneyDesc => '两独立样本秩和';
+
+  @override
+  String get anWilcoxon => 'Wilcoxon 符号秩';
+
+  @override
+  String get anWilcoxonDesc => '两相关样本';
+
+  @override
+  String get anKruskal => 'Kruskal-Wallis H';
+
+  @override
+  String get anKruskalDesc => 'k 独立样本';
+
+  @override
+  String get anReliability => 'Cronbach α 信度';
+
+  @override
+  String get anReliabilityDesc => '量表内部一致性';
+
+  @override
+  String get anMeans => '分层均值 MEANS';
+
+  @override
+  String get anMeansDesc => '分组均值表';
+
+  @override
+  String get anNormality => '正态性检验';
+
+  @override
+  String get anNormalityDesc => 'KS / 偏度峰度';
+
+  @override
+  String get anExamineFull => 'EXAMINE 全套';
+
+  @override
+  String get anExamineFullDesc => '百分位/极值/茎叶/箱线/Q-Q';
+
+  @override
+  String get anBoxplot => '箱线图';
+
+  @override
+  String get anBoxplotDesc => '多组分布对比';
+
+  @override
+  String get anQqplot => 'Q-Q 图';
+
+  @override
+  String get anQqplotDesc => '正态分位图';
+
+  @override
+  String get anRoc => 'ROC 曲线';
+
+  @override
+  String get anRocDesc => 'AUC 与诊断';
+
+  @override
+  String get anTukey => '事后比较 Tukey';
+
+  @override
+  String get anTukeyDesc => 'ANOVA 两两差异';
+
+  @override
+  String get anFactorPca => '主成分因子分析';
+
+  @override
+  String get anFactorPcaDesc => 'PCA 载荷矩阵';
+
+  @override
+  String get anFactorFull => '因子分析（全）';
+
+  @override
+  String get anFactorFullDesc => 'varimax / KMO / Bartlett';
+
+  @override
+  String get anLogistic => '逻辑回归';
+
+  @override
+  String get anLogisticDesc => '二分类预测';
+
+  @override
+  String get anLogisticFull => '逻辑回归（全）';
+
+  @override
+  String get anLogisticFullDesc => 'Wald / OR CI / 分类表 / H-L';
+
+  @override
+  String get anGlmTwo => 'GLM 双元 ANOVA';
+
+  @override
+  String get anGlmTwoDesc => 'A×B 固定效应';
+
+  @override
+  String get anStepwise => '逐步回归';
+
+  @override
+  String get anStepwiseDesc => '前进 / 后退筛选';
+
+  @override
+  String get anCtables => 'CTABLES 透视表';
+
+  @override
+  String get anCtablesDesc => '行列汇总';
+
+  @override
+  String get anHistogram => '直方图';
+
+  @override
+  String get anHistogramDesc => '分布形态';
+
+  @override
+  String get anScatter => '散点图';
+
+  @override
+  String get anScatterDesc => '两变量关系';
+
+  @override
+  String get anBar => '条形图';
+
+  @override
+  String get anBarDesc => '分类频数';
+
+  @override
+  String get unsaved => '未保存';
 }

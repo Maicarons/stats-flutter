@@ -2191,6 +2191,690 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Generated: {time}'**
   String generatedAt(String time);
+
+  /// No description provided for @splashTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistical analysis workbench'**
+  String get splashTagline;
+
+  /// No description provided for @splashSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to skip'**
+  String get splashSkip;
+
+  /// No description provided for @projHeroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Projects'**
+  String get projHeroTitle;
+
+  /// No description provided for @projHeroDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Each project is a standalone dataset. Create, open, duplicate or delete a project, then edit data and run analyses inside.'**
+  String get projHeroDesc;
+
+  /// No description provided for @projNewDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo project'**
+  String get projNewDemo;
+
+  /// No description provided for @projNewBlank.
+  ///
+  /// In en, this message translates to:
+  /// **'New blank'**
+  String get projNewBlank;
+
+  /// No description provided for @projSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search projects…'**
+  String get projSearchHint;
+
+  /// No description provided for @projCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} projects'**
+  String projCount(int n);
+
+  /// No description provided for @projEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No projects yet'**
+  String get projEmptyTitle;
+
+  /// No description provided for @projEmptyMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap “Demo project” or “New blank” to get started.'**
+  String get projEmptyMsg;
+
+  /// No description provided for @projNoMatchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching projects'**
+  String get projNoMatchTitle;
+
+  /// No description provided for @projNoMatchMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Try another keyword.'**
+  String get projNoMatchMsg;
+
+  /// No description provided for @projNewProject.
+  ///
+  /// In en, this message translates to:
+  /// **'New project'**
+  String get projNewProject;
+
+  /// No description provided for @projNewDemoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New demo project'**
+  String get projNewDemoTitle;
+
+  /// No description provided for @projNewBlankTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New blank project'**
+  String get projNewBlankTitle;
+
+  /// No description provided for @projNameField.
+  ///
+  /// In en, this message translates to:
+  /// **'Project name'**
+  String get projNameField;
+
+  /// No description provided for @projDescField.
+  ///
+  /// In en, this message translates to:
+  /// **'Description (optional)'**
+  String get projDescField;
+
+  /// No description provided for @projCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get projCreate;
+
+  /// No description provided for @projRenameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename project'**
+  String get projRenameTitle;
+
+  /// No description provided for @projNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get projNameLabel;
+
+  /// No description provided for @projDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete project'**
+  String get projDeleteTitle;
+
+  /// No description provided for @projDeleteMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete “{name}”? This cannot be undone.'**
+  String projDeleteMsg(String name);
+
+  /// No description provided for @projDeleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get projDeleteAction;
+
+  /// No description provided for @projDuplicated.
+  ///
+  /// In en, this message translates to:
+  /// **'Project duplicated'**
+  String get projDuplicated;
+
+  /// No description provided for @projOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to open project'**
+  String get projOpenFailed;
+
+  /// No description provided for @projOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get projOpen;
+
+  /// No description provided for @projDuplicate.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate'**
+  String get projDuplicate;
+
+  /// No description provided for @projRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get projRecent;
+
+  /// No description provided for @projAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All projects'**
+  String get projAll;
+
+  /// No description provided for @projUpdatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {time}'**
+  String projUpdatedAt(String time);
+
+  /// No description provided for @projUntitled.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled'**
+  String get projUntitled;
+
+  /// No description provided for @projCopySuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} copy'**
+  String projCopySuffix(String name);
+
+  /// No description provided for @casesByVarsShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{cases} cases · {vars} vars'**
+  String casesByVarsShort(int cases, int vars);
+
+  /// No description provided for @projDemoName.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo · scores'**
+  String get projDemoName;
+
+  /// No description provided for @projDefaultName.
+  ///
+  /// In en, this message translates to:
+  /// **'Project {n}'**
+  String projDefaultName(int n);
+
+  /// No description provided for @anSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search analyses…'**
+  String get anSearchHint;
+
+  /// No description provided for @anRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently used'**
+  String get anRecent;
+
+  /// No description provided for @anFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get anFavorites;
+
+  /// No description provided for @anResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Results'**
+  String get anResults;
+
+  /// No description provided for @anNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching analysis'**
+  String get anNoMatch;
+
+  /// No description provided for @anAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get anAdvanced;
+
+  /// No description provided for @anCatDescribe.
+  ///
+  /// In en, this message translates to:
+  /// **'Descriptives & exploration'**
+  String get anCatDescribe;
+
+  /// No description provided for @anCatCompare.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare means'**
+  String get anCatCompare;
+
+  /// No description provided for @anCatCorrelate.
+  ///
+  /// In en, this message translates to:
+  /// **'Correlation & association'**
+  String get anCatCorrelate;
+
+  /// No description provided for @anCatModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Regression & clustering'**
+  String get anCatModel;
+
+  /// No description provided for @anCatNonparam.
+  ///
+  /// In en, this message translates to:
+  /// **'Nonparametric & reliability'**
+  String get anCatNonparam;
+
+  /// No description provided for @anCatExtra.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional procedures'**
+  String get anCatExtra;
+
+  /// No description provided for @anCatDimreduce.
+  ///
+  /// In en, this message translates to:
+  /// **'Dimension reduction & classification'**
+  String get anCatDimreduce;
+
+  /// No description provided for @anCatCharts.
+  ///
+  /// In en, this message translates to:
+  /// **'Charts'**
+  String get anCatCharts;
+
+  /// No description provided for @anDescriptives.
+  ///
+  /// In en, this message translates to:
+  /// **'Descriptives'**
+  String get anDescriptives;
+
+  /// No description provided for @anDescriptivesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Mean, SD, skewness, kurtosis, confidence intervals'**
+  String get anDescriptivesDesc;
+
+  /// No description provided for @anFrequencies.
+  ///
+  /// In en, this message translates to:
+  /// **'Frequencies'**
+  String get anFrequencies;
+
+  /// No description provided for @anFrequenciesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Frequency tables, percentages, cumulative'**
+  String get anFrequenciesDesc;
+
+  /// No description provided for @anExplore.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore'**
+  String get anExplore;
+
+  /// No description provided for @anExploreDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Percentiles, extremes, normality'**
+  String get anExploreDesc;
+
+  /// No description provided for @anTtestOne.
+  ///
+  /// In en, this message translates to:
+  /// **'One-sample t test'**
+  String get anTtestOne;
+
+  /// No description provided for @anTtestOneDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Mean vs test value'**
+  String get anTtestOneDesc;
+
+  /// No description provided for @anTtestInd.
+  ///
+  /// In en, this message translates to:
+  /// **'Independent-samples t test'**
+  String get anTtestInd;
+
+  /// No description provided for @anTtestIndDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Two group means + Levene'**
+  String get anTtestIndDesc;
+
+  /// No description provided for @anTtestPaired.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired-samples t test'**
+  String get anTtestPaired;
+
+  /// No description provided for @anTtestPairedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre/post or matched design'**
+  String get anTtestPairedDesc;
+
+  /// No description provided for @anAnova.
+  ///
+  /// In en, this message translates to:
+  /// **'One-way ANOVA'**
+  String get anAnova;
+
+  /// No description provided for @anAnovaDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple group means + effect size'**
+  String get anAnovaDesc;
+
+  /// No description provided for @anCorrelation.
+  ///
+  /// In en, this message translates to:
+  /// **'Correlation'**
+  String get anCorrelation;
+
+  /// No description provided for @anCorrelationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Pearson / Spearman matrix'**
+  String get anCorrelationDesc;
+
+  /// No description provided for @anCrosstabs.
+  ///
+  /// In en, this message translates to:
+  /// **'Crosstabs & chi-square'**
+  String get anCrosstabs;
+
+  /// No description provided for @anCrosstabsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Contingency table, χ², Cramér V'**
+  String get anCrosstabsDesc;
+
+  /// No description provided for @anRegression.
+  ///
+  /// In en, this message translates to:
+  /// **'Linear regression'**
+  String get anRegression;
+
+  /// No description provided for @anRegressionDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Simple / multiple, coefficient table'**
+  String get anRegressionDesc;
+
+  /// No description provided for @anKmeans.
+  ///
+  /// In en, this message translates to:
+  /// **'K-Means clustering'**
+  String get anKmeans;
+
+  /// No description provided for @anKmeansDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Fast clustering, cluster centers'**
+  String get anKmeansDesc;
+
+  /// No description provided for @anMannwhitney.
+  ///
+  /// In en, this message translates to:
+  /// **'Mann-Whitney U'**
+  String get anMannwhitney;
+
+  /// No description provided for @anMannwhitneyDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Two independent samples, rank sum'**
+  String get anMannwhitneyDesc;
+
+  /// No description provided for @anWilcoxon.
+  ///
+  /// In en, this message translates to:
+  /// **'Wilcoxon signed-rank'**
+  String get anWilcoxon;
+
+  /// No description provided for @anWilcoxonDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Two related samples'**
+  String get anWilcoxonDesc;
+
+  /// No description provided for @anKruskal.
+  ///
+  /// In en, this message translates to:
+  /// **'Kruskal-Wallis H'**
+  String get anKruskal;
+
+  /// No description provided for @anKruskalDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'k independent samples'**
+  String get anKruskalDesc;
+
+  /// No description provided for @anReliability.
+  ///
+  /// In en, this message translates to:
+  /// **'Cronbach α reliability'**
+  String get anReliability;
+
+  /// No description provided for @anReliabilityDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal consistency of a scale'**
+  String get anReliabilityDesc;
+
+  /// No description provided for @anMeans.
+  ///
+  /// In en, this message translates to:
+  /// **'Layered means (MEANS)'**
+  String get anMeans;
+
+  /// No description provided for @anMeansDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Grouped mean table'**
+  String get anMeansDesc;
+
+  /// No description provided for @anNormality.
+  ///
+  /// In en, this message translates to:
+  /// **'Normality tests'**
+  String get anNormality;
+
+  /// No description provided for @anNormalityDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'KS / skewness & kurtosis'**
+  String get anNormalityDesc;
+
+  /// No description provided for @anExamineFull.
+  ///
+  /// In en, this message translates to:
+  /// **'EXAMINE suite'**
+  String get anExamineFull;
+
+  /// No description provided for @anExamineFullDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Percentiles / extremes / stem-and-leaf / boxplot / Q-Q'**
+  String get anExamineFullDesc;
+
+  /// No description provided for @anBoxplot.
+  ///
+  /// In en, this message translates to:
+  /// **'Boxplot'**
+  String get anBoxplot;
+
+  /// No description provided for @anBoxplotDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare distributions across groups'**
+  String get anBoxplotDesc;
+
+  /// No description provided for @anQqplot.
+  ///
+  /// In en, this message translates to:
+  /// **'Q-Q plot'**
+  String get anQqplot;
+
+  /// No description provided for @anQqplotDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal quantile plot'**
+  String get anQqplotDesc;
+
+  /// No description provided for @anRoc.
+  ///
+  /// In en, this message translates to:
+  /// **'ROC curve'**
+  String get anRoc;
+
+  /// No description provided for @anRocDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'AUC and diagnostics'**
+  String get anRocDesc;
+
+  /// No description provided for @anTukey.
+  ///
+  /// In en, this message translates to:
+  /// **'Tukey post hoc'**
+  String get anTukey;
+
+  /// No description provided for @anTukeyDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairwise differences after ANOVA'**
+  String get anTukeyDesc;
+
+  /// No description provided for @anFactorPca.
+  ///
+  /// In en, this message translates to:
+  /// **'PCA factor analysis'**
+  String get anFactorPca;
+
+  /// No description provided for @anFactorPcaDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading matrix'**
+  String get anFactorPcaDesc;
+
+  /// No description provided for @anFactorFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Factor analysis (full)'**
+  String get anFactorFull;
+
+  /// No description provided for @anFactorFullDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'varimax / KMO / Bartlett'**
+  String get anFactorFullDesc;
+
+  /// No description provided for @anLogistic.
+  ///
+  /// In en, this message translates to:
+  /// **'Logistic regression'**
+  String get anLogistic;
+
+  /// No description provided for @anLogisticDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Binary outcome prediction'**
+  String get anLogisticDesc;
+
+  /// No description provided for @anLogisticFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Logistic regression (full)'**
+  String get anLogisticFull;
+
+  /// No description provided for @anLogisticFullDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Wald / OR CI / classification / H-L'**
+  String get anLogisticFullDesc;
+
+  /// No description provided for @anGlmTwo.
+  ///
+  /// In en, this message translates to:
+  /// **'GLM two-way ANOVA'**
+  String get anGlmTwo;
+
+  /// No description provided for @anGlmTwoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A×B fixed effects'**
+  String get anGlmTwoDesc;
+
+  /// No description provided for @anStepwise.
+  ///
+  /// In en, this message translates to:
+  /// **'Stepwise regression'**
+  String get anStepwise;
+
+  /// No description provided for @anStepwiseDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward / backward selection'**
+  String get anStepwiseDesc;
+
+  /// No description provided for @anCtables.
+  ///
+  /// In en, this message translates to:
+  /// **'CTABLES pivot table'**
+  String get anCtables;
+
+  /// No description provided for @anCtablesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Row/column summaries'**
+  String get anCtablesDesc;
+
+  /// No description provided for @anHistogram.
+  ///
+  /// In en, this message translates to:
+  /// **'Histogram'**
+  String get anHistogram;
+
+  /// No description provided for @anHistogramDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Distribution shape'**
+  String get anHistogramDesc;
+
+  /// No description provided for @anScatter.
+  ///
+  /// In en, this message translates to:
+  /// **'Scatter plot'**
+  String get anScatter;
+
+  /// No description provided for @anScatterDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Relationship between two variables'**
+  String get anScatterDesc;
+
+  /// No description provided for @anBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Bar chart'**
+  String get anBar;
+
+  /// No description provided for @anBarDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Category frequencies'**
+  String get anBarDesc;
+
+  /// No description provided for @unsaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsaved'**
+  String get unsaved;
 }
 
 class _AppLocalizationsDelegate

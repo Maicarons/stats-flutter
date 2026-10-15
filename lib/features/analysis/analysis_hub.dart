@@ -1,158 +1,308 @@
+/// 分析中心：搜索 + 最近 + 收藏 + 可折叠分类。
+library;
+
 import 'package:flutter/material.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 
+import '../../core/theme/design_tokens.dart';
+import '../../shared/analysis_prefs.dart';
+import '../../shared/ui/ui.dart';
+import 'analysis_catalog.dart';
 import 'analysis_runner.dart';
 
-class AnalysisHub extends StatelessWidget {
+class AnalysisHub extends StatefulWidget {
   final bool embedded;
-  final dynamic project;
-  const AnalysisHub({super.key, this.embedded = true, this.project});
-
-  static const _categories = [
-    _Cat('描述与探索', Icons.insights, [
-      _Item('描述统计', '均值、标准差、偏度峰度、置信区间', 'descriptives'),
-      _Item('频率分析', '频数表、百分比、累计', 'frequencies'),
-      _Item('探索分析', '分位数、极值、正态性', 'explore'),
-    ]),
-    _Cat('比较均值', Icons.compare_arrows, [
-      _Item('单样本 t 检验', '均值 vs 检验值', 'ttest_one'),
-      _Item('独立样本 t 检验', '两组均值比较 + Levene', 'ttest_ind'),
-      _Item('配对样本 t 检验', '前后测 / 配对设计', 'ttest_paired'),
-      _Item('单因素 ANOVA', '多组均值 + 效应量', 'anova'),
-    ]),
-    _Cat('相关与关联', Icons.hub, [
-      _Item('相关分析', 'Pearson / Spearman 矩阵', 'correlation'),
-      _Item('交叉表卡方', '列联表、χ²、Cramér V', 'crosstabs'),
-    ]),
-    _Cat('回归与聚类', Icons.timeline, [
-      _Item('线性回归', '简单 / 多元、系数表', 'regression'),
-      _Item('K-Means 聚类', '快速聚类、中心点', 'kmeans'),
-    ]),
-    _Cat('非参数与信度', Icons.speed, [
-      _Item('Mann-Whitney U', '两独立样本秩和', 'mannwhitney'),
-      _Item('Wilcoxon 符号秩', '两相关样本', 'wilcoxon'),
-      _Item('Kruskal-Wallis H', 'k 独立样本', 'kruskal'),
-      _Item('Cronbach α 信度', '量表内部一致性', 'reliability'),
-    ]),
-    _Cat('补充过程', Icons.extension, [
-      _Item('分层均值 MEANS', '分组均值表', 'means'),
-      _Item('正态性检验', 'KS / 偏度峰度', 'normality'),
-      _Item('EXAMINE 全套', '百分位/极值/茎叶/箱线/Q-Q', 'examine_full'),
-      _Item('箱线图', '多组分布对比', 'boxplot'),
-      _Item('Q-Q 图', '正态分位图', 'qqplot'),
-      _Item('ROC 曲线', 'AUC 与诊断', 'roc'),
-      _Item('事后比较 Tukey', 'ANOVA 两两差异', 'tukey'),
-    ]),
-    _Cat('降维与分类', Icons.auto_graph, [
-      _Item('主成分因子分析', 'PCA 载荷矩阵', 'factor_pca'),
-      _Item('因子分析（全）', 'varimax / KMO / Bartlett', 'factor_full'),
-      _Item('逻辑回归', '二分类预测', 'logistic'),
-      _Item('逻辑回归（全）', 'Wald/OR CI/分类表/HL', 'logistic_full'),
-      _Item('GLM 双元 ANOVA', 'A×B 固定效应', 'glm_two'),
-      _Item('逐步回归', '前进/后退筛选', 'stepwise'),
-      _Item('CTABLES 透视表', '行列汇总', 'ctables'),
-    ]),
-    _Cat('图表', Icons.bar_chart, [
-      _Item('直方图', '分布形态', 'histogram'),
-      _Item('散点图', '两变量关系', 'scatter'),
-      _Item('条形图', '分类频数', 'bar'),
-    ]),
-  ];
+  const AnalysisHub({super.key, this.embedded = true});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: embedded
-          ? null
-          : AppBar(
-              title: Text(AppLocalizations.of(context).tabAnalysis,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-            ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: [
-          for (final cat in _categories) ...[
-            Padding(
-              padding: const EdgeInsets.only(top: 16, bottom: 8),
-              child: Row(
-                children: [
-                  Icon(cat.icon,
-                      size: 18, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Text(cat.title,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700)),
-                ],
-              ),
-            ),
-            ...cat.items.map((item) => _AnalysisCard(item: item)),
-          ],
-        ],
+  State<AnalysisHub> createState() => _AnalysisHubState();
+}
+
+class _AnalysisHubState extends State<AnalysisHub> {
+  final _search = TextEditingController();
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    analysisPrefs.addListener(_onPrefs);
+    analysisPrefs.load();
+  }
+
+  void _onPrefs() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    analysisPrefs.removeListener(_onPrefs);
+    _search.dispose();
+    super.dispose();
+  }
+
+  List<AnalysisItem> get _matches {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    final l10n = AppLocalizations.of(context);
+    final out = <AnalysisItem>[];
+    for (final c in analysisCatalog) {
+      for (final it in c.items) {
+        if (it.title(l10n).toLowerCase().contains(q) ||
+            it.desc(l10n).toLowerCase().contains(q) ||
+            it.id.contains(q)) {
+          out.add(it);
+        }
+      }
+    }
+    return out;
+  }
+
+  Future<void> _open(AnalysisItem item) async {
+    await analysisPrefs.markUsed(item.id);
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AnalysisRunner(
+          analysisId: item.id,
+          title: item.title(l10n),
+        ),
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final searching = _query.trim().isNotEmpty;
+    final matches = _matches;
+
+    return Scaffold(
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              title: Text(
+                l10n.tabAnalysis,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+      body: ConstrainedContent(
+        padding: EdgeInsets.zero,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.x4,
+            AppSpacing.x3,
+            AppSpacing.x4,
+            AppSpacing.x6,
+          ),
+          children: [
+            TextField(
+              controller: _search,
+              decoration: InputDecoration(
+                hintText: l10n.anSearchHint,
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _search.clear();
+                          setState(() => _query = '');
+                        },
+                      ),
+              ),
+              onChanged: (v) => setState(() => _query = v),
+            ),
+            const SizedBox(height: AppSpacing.x3),
+            if (searching)
+              ..._buildSearchResults(matches)
+            else ...[
+              ..._buildQuickSections(l10n),
+              for (var i = 0; i < analysisCatalog.length; i++)
+                _CategorySection(
+                  category: analysisCatalog[i],
+                  initiallyExpanded: i == 0,
+                  onTap: _open,
+                  onToggleFavorite: (id) => analysisPrefs.toggleFavorite(id),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildSearchResults(List<AnalysisItem> matches) {
+    final l10n = AppLocalizations.of(context);
+    if (matches.isEmpty) {
+      return [
+        const SizedBox(height: AppSpacing.x5),
+        EmptyState(
+          icon: Icons.search_off,
+          title: l10n.anNoMatch,
+          message: l10n.projNoMatchMsg,
+          compact: true,
+        ),
+      ];
+    }
+    return [
+      SectionHeader(
+        title: l10n.anResults,
+        dense: true,
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.x1,
+          AppSpacing.x2,
+          AppSpacing.x1,
+          AppSpacing.x2,
+        ),
+        trailing: Text(
+          '${matches.length}',
+          style: TextStyle(
+            fontSize: AppFontSize.caption,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+      for (final it in matches)
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.x2),
+          child: AnalysisTile(
+            title: it.title(l10n),
+            description: it.desc(l10n),
+            icon: it.icon,
+            compact: true,
+            favorite: analysisPrefs.isFavorite(it.id),
+            onToggleFavorite: () => analysisPrefs.toggleFavorite(it.id),
+            onTap: () => _open(it),
+          ),
+        ),
+    ];
+  }
+
+  List<Widget> _buildQuickSections(AppLocalizations l10n) {
+    final recents = analysisPrefs.recents
+        .map(analysisById)
+        .whereType<AnalysisItem>()
+        .toList();
+    final favs = analysisPrefs.favorites
+        .map(analysisById)
+        .whereType<AnalysisItem>()
+        .toList();
+
+    return [
+      if (recents.isNotEmpty) ...[
+        SectionHeader(
+          title: l10n.anRecent,
+          icon: Icons.history,
+          dense: true,
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.x1,
+            AppSpacing.x2,
+            AppSpacing.x1,
+            AppSpacing.x2,
+          ),
+        ),
+        SizedBox(
+          height: 44,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: recents.length,
+            separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.x2),
+            itemBuilder: (_, i) => ActionChip(
+              avatar: Icon(recents[i].icon, size: 16),
+              label: Text(recents[i].title(l10n)),
+              onPressed: () => _open(recents[i]),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.x3),
+      ],
+      if (favs.isNotEmpty) ...[
+        SectionHeader(
+          title: l10n.anFavorites,
+          icon: Icons.star_rounded,
+          dense: true,
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.x1,
+            AppSpacing.x1,
+            AppSpacing.x1,
+            AppSpacing.x2,
+          ),
+        ),
+        SizedBox(
+          height: 44,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: favs.length,
+            separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.x2),
+            itemBuilder: (_, i) => ActionChip(
+              avatar: Icon(favs[i].icon, size: 16),
+              label: Text(favs[i].title(l10n)),
+              onPressed: () => _open(favs[i]),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.x3),
+      ],
+    ];
+  }
 }
 
-class _Cat {
-  final String title;
-  final IconData icon;
-  final List<_Item> items;
-  const _Cat(this.title, this.icon, this.items);
-}
+class _CategorySection extends StatelessWidget {
+  final AnalysisCategory category;
+  final bool initiallyExpanded;
+  final void Function(AnalysisItem) onTap;
+  final void Function(String) onToggleFavorite;
 
-class _Item {
-  final String title;
-  final String desc;
-  final String id;
-  const _Item(this.title, this.desc, this.id);
-}
-
-class _AnalysisCard extends StatelessWidget {
-  final _Item item;
-  const _AnalysisCard({required this.item});
+  const _CategorySection({
+    required this.category,
+    required this.initiallyExpanded,
+    required this.onTap,
+    required this.onToggleFavorite,
+  });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => AnalysisRunner(analysisId: item.id, title: item.title),
-              ),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(item.title,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 15)),
-                      const SizedBox(height: 4),
-                      Text(item.desc,
-                          style: TextStyle(
-                              color: scheme.outline, fontSize: 12.5)),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right, color: scheme.outline),
-              ],
-            ),
+    final l10n = AppLocalizations.of(context);
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        initiallyExpanded: initiallyExpanded,
+        tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.x1),
+        childrenPadding: const EdgeInsets.only(bottom: AppSpacing.x2),
+        shape: const Border(),
+        collapsedShape: const Border(),
+        leading: Icon(category.icon, size: 20, color: scheme.primary),
+        title: Text(
+          category.title(l10n),
+          style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(
+          '${category.items.length}',
+          style: TextStyle(
+            fontSize: AppFontSize.caption,
+            color: scheme.onSurfaceVariant,
           ),
         ),
+        children: [
+          for (final it in category.items)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.x2),
+              child: AnalysisTile(
+                title: it.title(l10n),
+                description: it.desc(l10n),
+                icon: it.icon,
+                badge: it.advanced ? l10n.anAdvanced : null,
+                favorite: analysisPrefs.isFavorite(it.id),
+                onToggleFavorite: () => onToggleFavorite(it.id),
+                onTap: () => onTap(it),
+              ),
+            ),
+        ],
       ),
     );
   }

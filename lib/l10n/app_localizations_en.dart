@@ -1120,4 +1120,362 @@ class AppLocalizationsEn extends AppLocalizations {
   String generatedAt(String time) {
     return 'Generated: $time';
   }
+
+  @override
+  String get splashTagline => 'Statistical analysis workbench';
+
+  @override
+  String get splashSkip => 'Tap to skip';
+
+  @override
+  String get projHeroTitle => 'Projects';
+
+  @override
+  String get projHeroDesc =>
+      'Each project is a standalone dataset. Create, open, duplicate or delete a project, then edit data and run analyses inside.';
+
+  @override
+  String get projNewDemo => 'Demo project';
+
+  @override
+  String get projNewBlank => 'New blank';
+
+  @override
+  String get projSearchHint => 'Search projects…';
+
+  @override
+  String projCount(int n) {
+    return '$n projects';
+  }
+
+  @override
+  String get projEmptyTitle => 'No projects yet';
+
+  @override
+  String get projEmptyMsg =>
+      'Tap “Demo project” or “New blank” to get started.';
+
+  @override
+  String get projNoMatchTitle => 'No matching projects';
+
+  @override
+  String get projNoMatchMsg => 'Try another keyword.';
+
+  @override
+  String get projNewProject => 'New project';
+
+  @override
+  String get projNewDemoTitle => 'New demo project';
+
+  @override
+  String get projNewBlankTitle => 'New blank project';
+
+  @override
+  String get projNameField => 'Project name';
+
+  @override
+  String get projDescField => 'Description (optional)';
+
+  @override
+  String get projCreate => 'Create';
+
+  @override
+  String get projRenameTitle => 'Rename project';
+
+  @override
+  String get projNameLabel => 'Name';
+
+  @override
+  String get projDeleteTitle => 'Delete project';
+
+  @override
+  String projDeleteMsg(String name) {
+    return 'Delete “$name”? This cannot be undone.';
+  }
+
+  @override
+  String get projDeleteAction => 'Delete';
+
+  @override
+  String get projDuplicated => 'Project duplicated';
+
+  @override
+  String get projOpenFailed => 'Failed to open project';
+
+  @override
+  String get projOpen => 'Open';
+
+  @override
+  String get projDuplicate => 'Duplicate';
+
+  @override
+  String get projRecent => 'Recent';
+
+  @override
+  String get projAll => 'All projects';
+
+  @override
+  String projUpdatedAt(String time) {
+    return 'Updated $time';
+  }
+
+  @override
+  String get projUntitled => 'Untitled';
+
+  @override
+  String projCopySuffix(String name) {
+    return '$name copy';
+  }
+
+  @override
+  String casesByVarsShort(int cases, int vars) {
+    return '$cases cases · $vars vars';
+  }
+
+  @override
+  String get projDemoName => 'Demo · scores';
+
+  @override
+  String projDefaultName(int n) {
+    return 'Project $n';
+  }
+
+  @override
+  String get anSearchHint => 'Search analyses…';
+
+  @override
+  String get anRecent => 'Recently used';
+
+  @override
+  String get anFavorites => 'Favorites';
+
+  @override
+  String get anResults => 'Results';
+
+  @override
+  String get anNoMatch => 'No matching analysis';
+
+  @override
+  String get anAdvanced => 'Advanced';
+
+  @override
+  String get anCatDescribe => 'Descriptives & exploration';
+
+  @override
+  String get anCatCompare => 'Compare means';
+
+  @override
+  String get anCatCorrelate => 'Correlation & association';
+
+  @override
+  String get anCatModel => 'Regression & clustering';
+
+  @override
+  String get anCatNonparam => 'Nonparametric & reliability';
+
+  @override
+  String get anCatExtra => 'Additional procedures';
+
+  @override
+  String get anCatDimreduce => 'Dimension reduction & classification';
+
+  @override
+  String get anCatCharts => 'Charts';
+
+  @override
+  String get anDescriptives => 'Descriptives';
+
+  @override
+  String get anDescriptivesDesc =>
+      'Mean, SD, skewness, kurtosis, confidence intervals';
+
+  @override
+  String get anFrequencies => 'Frequencies';
+
+  @override
+  String get anFrequenciesDesc => 'Frequency tables, percentages, cumulative';
+
+  @override
+  String get anExplore => 'Explore';
+
+  @override
+  String get anExploreDesc => 'Percentiles, extremes, normality';
+
+  @override
+  String get anTtestOne => 'One-sample t test';
+
+  @override
+  String get anTtestOneDesc => 'Mean vs test value';
+
+  @override
+  String get anTtestInd => 'Independent-samples t test';
+
+  @override
+  String get anTtestIndDesc => 'Two group means + Levene';
+
+  @override
+  String get anTtestPaired => 'Paired-samples t test';
+
+  @override
+  String get anTtestPairedDesc => 'Pre/post or matched design';
+
+  @override
+  String get anAnova => 'One-way ANOVA';
+
+  @override
+  String get anAnovaDesc => 'Multiple group means + effect size';
+
+  @override
+  String get anCorrelation => 'Correlation';
+
+  @override
+  String get anCorrelationDesc => 'Pearson / Spearman matrix';
+
+  @override
+  String get anCrosstabs => 'Crosstabs & chi-square';
+
+  @override
+  String get anCrosstabsDesc => 'Contingency table, χ², Cramér V';
+
+  @override
+  String get anRegression => 'Linear regression';
+
+  @override
+  String get anRegressionDesc => 'Simple / multiple, coefficient table';
+
+  @override
+  String get anKmeans => 'K-Means clustering';
+
+  @override
+  String get anKmeansDesc => 'Fast clustering, cluster centers';
+
+  @override
+  String get anMannwhitney => 'Mann-Whitney U';
+
+  @override
+  String get anMannwhitneyDesc => 'Two independent samples, rank sum';
+
+  @override
+  String get anWilcoxon => 'Wilcoxon signed-rank';
+
+  @override
+  String get anWilcoxonDesc => 'Two related samples';
+
+  @override
+  String get anKruskal => 'Kruskal-Wallis H';
+
+  @override
+  String get anKruskalDesc => 'k independent samples';
+
+  @override
+  String get anReliability => 'Cronbach α reliability';
+
+  @override
+  String get anReliabilityDesc => 'Internal consistency of a scale';
+
+  @override
+  String get anMeans => 'Layered means (MEANS)';
+
+  @override
+  String get anMeansDesc => 'Grouped mean table';
+
+  @override
+  String get anNormality => 'Normality tests';
+
+  @override
+  String get anNormalityDesc => 'KS / skewness & kurtosis';
+
+  @override
+  String get anExamineFull => 'EXAMINE suite';
+
+  @override
+  String get anExamineFullDesc =>
+      'Percentiles / extremes / stem-and-leaf / boxplot / Q-Q';
+
+  @override
+  String get anBoxplot => 'Boxplot';
+
+  @override
+  String get anBoxplotDesc => 'Compare distributions across groups';
+
+  @override
+  String get anQqplot => 'Q-Q plot';
+
+  @override
+  String get anQqplotDesc => 'Normal quantile plot';
+
+  @override
+  String get anRoc => 'ROC curve';
+
+  @override
+  String get anRocDesc => 'AUC and diagnostics';
+
+  @override
+  String get anTukey => 'Tukey post hoc';
+
+  @override
+  String get anTukeyDesc => 'Pairwise differences after ANOVA';
+
+  @override
+  String get anFactorPca => 'PCA factor analysis';
+
+  @override
+  String get anFactorPcaDesc => 'Loading matrix';
+
+  @override
+  String get anFactorFull => 'Factor analysis (full)';
+
+  @override
+  String get anFactorFullDesc => 'varimax / KMO / Bartlett';
+
+  @override
+  String get anLogistic => 'Logistic regression';
+
+  @override
+  String get anLogisticDesc => 'Binary outcome prediction';
+
+  @override
+  String get anLogisticFull => 'Logistic regression (full)';
+
+  @override
+  String get anLogisticFullDesc => 'Wald / OR CI / classification / H-L';
+
+  @override
+  String get anGlmTwo => 'GLM two-way ANOVA';
+
+  @override
+  String get anGlmTwoDesc => 'A×B fixed effects';
+
+  @override
+  String get anStepwise => 'Stepwise regression';
+
+  @override
+  String get anStepwiseDesc => 'Forward / backward selection';
+
+  @override
+  String get anCtables => 'CTABLES pivot table';
+
+  @override
+  String get anCtablesDesc => 'Row/column summaries';
+
+  @override
+  String get anHistogram => 'Histogram';
+
+  @override
+  String get anHistogramDesc => 'Distribution shape';
+
+  @override
+  String get anScatter => 'Scatter plot';
+
+  @override
+  String get anScatterDesc => 'Relationship between two variables';
+
+  @override
+  String get anBar => 'Bar chart';
+
+  @override
+  String get anBarDesc => 'Category frequencies';
+
+  @override
+  String get unsaved => 'Unsaved';
 }

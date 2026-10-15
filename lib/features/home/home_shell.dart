@@ -1,10 +1,12 @@
-/// 全局底部导航：工程 / 学习 / 测试 / 设置
-/// 数据、分析、变换在「工程工作区」内（ProjectWorkspacePage）
+/// 全局导航壳：工程 / 学习 / 测试 / 设置。
+/// 窄屏底部 NavigationBar，宽屏自动切换 NavigationRail。
+/// 数据、分析、变换在「工程工作区」内（ProjectWorkspacePage）。
 library;
 
 import 'package:flutter/material.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 
+import '../../shared/ui/ui.dart';
 import '../learn/learn_page.dart';
 import '../projects/project_list_page.dart';
 import '../quiz/quiz_page.dart';
@@ -23,41 +25,39 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final pages = const [
+    const pages = [
       ProjectListPage(embedded: true),
       LearnPage(embedded: true),
       QuizPage(embedded: true),
       SettingsPage(embedded: true),
     ];
 
-    return Scaffold(
+    return AdaptiveNavScaffold(
+      index: _index,
+      onIndexChanged: (i) => setState(() => _index = i),
+      items: [
+        NavItem(
+          icon: Icons.folder_outlined,
+          selectedIcon: Icons.folder,
+          label: l10n.tabProjects,
+        ),
+        NavItem(
+          icon: Icons.school_outlined,
+          selectedIcon: Icons.school,
+          label: l10n.tabLearn,
+        ),
+        NavItem(
+          icon: Icons.quiz_outlined,
+          selectedIcon: Icons.quiz,
+          label: l10n.tabQuiz,
+        ),
+        NavItem(
+          icon: Icons.settings_outlined,
+          selectedIcon: Icons.settings,
+          label: l10n.tabSettings,
+        ),
+      ],
       body: IndexedStack(index: _index, children: pages),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.folder_outlined),
-            selectedIcon: const Icon(Icons.folder),
-            label: l10n.tabProjects,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.school_outlined),
-            selectedIcon: const Icon(Icons.school),
-            label: l10n.tabLearn,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.quiz_outlined),
-            selectedIcon: const Icon(Icons.quiz),
-            label: l10n.tabQuiz,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.settings_outlined),
-            selectedIcon: const Icon(Icons.settings),
-            label: l10n.tabSettings,
-          ),
-        ],
-      ),
     );
   }
 }
