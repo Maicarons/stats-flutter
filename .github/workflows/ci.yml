@@ -27,7 +27,9 @@ jobs:
           channel: stable
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos
-      - run: flutter test
+      # golden 基线与渲染平台相关（见 dart_test.yaml），CI 上排除；
+      # 本地执行：flutter test --tags golden
+      - run: flutter test --exclude-tags golden
 
   docs:
     runs-on: ubuntu-latest

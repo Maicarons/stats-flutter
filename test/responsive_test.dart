@@ -75,6 +75,44 @@ void main() {
         await tester.pump(const Duration(seconds: 3));
       });
     }
+
+    testWidgets('测试页答题 / 交卷 / 结果 @ 375px', (tester) async {
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(375, 800);
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(_app(const QuizPage()));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: '设置页溢出');
+
+      await tester.tap(find.text('Start quiz'));
+      await tester.pumpAndSettle();
+
+      // 逐题作答，直到最后一题（题量随机，故不写死循环次数）
+      var guard = 0;
+      while (guard++ < 40) {
+        expect(tester.takeException(), isNull, reason: '第 $guard 题溢出');
+
+        // 选中第一个选项
+        await tester.tap(find.byType(InkWell).first);
+        await tester.pumpAndSettle();
+
+        final next = find.text('Next');
+        if (next.evaluate().isNotEmpty) {
+          await tester.tap(next);
+          await tester.pumpAndSettle();
+          continue;
+        }
+
+        // 最后一题：交卷（答案齐全，不会弹确认框）
+        await tester.tap(find.text('Submit'));
+        await tester.pumpAndSettle();
+        break;
+      }
+
+      expect(tester.takeException(), isNull, reason: '结果页溢出');
+      expect(find.text('Your score'), findsOneWidget);
+    });
   });
 
   group('响应式断点', () {

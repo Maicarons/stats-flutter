@@ -231,27 +231,33 @@ class _QuizPageState extends State<QuizPage> {
             bottom: AppSpacing.x2,
           ),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 l10n.quizProgress(_current + 1, _paper.length),
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.x2,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: scheme.secondaryContainer,
-                  borderRadius: AppRadius.rSm,
-                ),
-                child: Text(
-                  q.topicFor(zh),
-                  style: TextStyle(
-                    fontSize: AppFontSize.caption,
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onSecondaryContainer,
+              const SizedBox(width: AppSpacing.x2),
+              // Flexible + 省略号：长主题名在窄屏不再撑破行
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.x2,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.secondaryContainer,
+                    borderRadius: AppRadius.rSm,
+                  ),
+                  child: Text(
+                    q.topicFor(zh),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: AppFontSize.caption,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSecondaryContainer,
+                    ),
                   ),
                 ),
               ),
@@ -296,26 +302,42 @@ class _QuizPageState extends State<QuizPage> {
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.x2),
             child: Row(
               children: [
-                OutlinedButton.icon(
-                  onPressed: _current == 0
-                      ? null
-                      : () => setState(() => _current--),
-                  icon: const Icon(Icons.chevron_left, size: 18),
-                  label: Text(l10n.prev),
-                ),
-                const Spacer(),
-                if (_current < _paper.length - 1)
-                  FilledButton.icon(
-                    onPressed: () => setState(() => _current++),
-                    icon: const Icon(Icons.chevron_right, size: 18),
-                    label: Text(l10n.next),
-                  )
-                else
-                  FilledButton.icon(
-                    onPressed: () => _submit(l10n),
-                    icon: const Icon(Icons.done_all, size: 18),
-                    label: Text(l10n.submit),
+                // 等宽按钮 + 省略号：窄屏 / 大字号下也不会撑破行
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _current == 0
+                        ? null
+                        : () => setState(() => _current--),
+                    icon: const Icon(Icons.chevron_left, size: 18),
+                    label: Text(
+                      l10n.prev,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                ),
+                const SizedBox(width: AppSpacing.x2),
+                Expanded(
+                  child: _current < _paper.length - 1
+                      ? FilledButton.icon(
+                          onPressed: () => setState(() => _current++),
+                          icon: const Icon(Icons.chevron_right, size: 18),
+                          label: Text(
+                            l10n.next,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        )
+                      : FilledButton.icon(
+                          onPressed: () => _submit(l10n),
+                          icon: const Icon(Icons.done_all, size: 18),
+                          label: Text(
+                            l10n.submit,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                ),
               ],
             ),
           ),
