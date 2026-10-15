@@ -323,11 +323,12 @@ abstract final class AppTheme {
         ),
       ),
 
+      // 页面转场：Android 与桌面用 Material 3 的 FadeForwards；
+      // iOS / macOS 不指定，交给框架默认（即 Cupertino 侧滑），
+      // 避免依赖可能随 SDK 版本变动 / 移除的平台 Builder 类名。
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
-          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
           TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
           TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
           TargetPlatform.fuchsia: FadeForwardsPageTransitionsBuilder(),
