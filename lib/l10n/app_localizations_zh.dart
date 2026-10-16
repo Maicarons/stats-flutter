@@ -1835,4 +1835,115 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get copySection => '复制本节';
+
+  @override
+  String get anErrorbar => '误差条图';
+
+  @override
+  String get anErrorbarDesc => '均值与 95% CI';
+
+  @override
+  String get errorBarTitle => '误差条图';
+
+  @override
+  String get errorBarNote => '误差条为均值 ± 1.96 × 标准误，即 95% 置信区间。';
+
+  @override
+  String get theoreticalQuantile => '理论分位 z';
+
+  @override
+  String get sampleQuantile => '样本分位 z';
+
+  @override
+  String get qqRefLine => '参考线 y = x';
+
+  @override
+  String get screePlot => '碎石图';
+
+  @override
+  String screeNote(int k) {
+    return '碎石图只绘制已提取的 $k 个主成分（提取数由该分析设定）。';
+  }
+
+  @override
+  String get cumulativeVariance => '累计方差';
+
+  @override
+  String elbowAt(String name) {
+    return '肘部 $name';
+  }
+
+  @override
+  String get legendBox => '四分位箱 Q1–Q3';
+
+  @override
+  String get legendMedian => '中位数';
+
+  @override
+  String get legendWhisker => '须 1.5×IQR';
+
+  @override
+  String get legendMean => '均值';
+
+  @override
+  String get legendOutlier => '离群点';
+
+  @override
+  String get legendClusterCenter => '簇中心';
+
+  @override
+  String legendTopDeviation(int n) {
+    return '偏离最大 $n 点';
+  }
+
+  @override
+  String get legendCi => '95% 置信区间';
+
+  @override
+  String get boxPlotNote =>
+      '箱体为四分位距（Q1–Q3），横线为中位数；须延伸至 1.5×IQR 内的极值；菱形为均值，圆点为离群点。';
+
+  @override
+  String get whisker => '须';
+
+  @override
+  String get ci95 => '95% CI';
+
+  @override
+  String get chartNoData => '数据不足，无法绘制图表';
+
+  @override
+  String get elbow => '肘部';
+
+  @override
+  String get exportSection => '导出本节';
+
+  @override
+  String get exportSectionMarkdown => '导出 Markdown';
+
+  @override
+  String get exportSectionHtml => '导出 HTML';
+
+  @override
+  String sectionExported(String name) {
+    return '已导出「$name」';
+  }
+
+  @override
+  String get groupVariableOptional => '分组变量（可选）';
+
+  @override
+  String get factorB => '因素 B（可选）';
+
+  @override
+  String get stateVar => '状态变量（按中位数二分类）';
+
+  @override
+  String get testVar => '检验变量';
+
+  @override
+  String get predictors => '预测变量（多选）';
+
+  @override
+  String get frozenColumnHint => '首列已冻结';
 }

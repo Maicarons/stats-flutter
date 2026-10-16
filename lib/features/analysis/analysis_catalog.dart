@@ -283,6 +283,12 @@ const List<AnalysisCategory> analysisCatalog = [
         desc: _anScatterDesc,
       ),
       AnalysisItem(
+        id: 'errorbar',
+        icon: Icons.swap_calls,
+        title: _anErrorbar,
+        desc: _anErrorbarDesc,
+      ),
+      AnalysisItem(
         id: 'bar',
         icon: Icons.bar_chart,
         title: _anBar,
@@ -366,3 +372,5 @@ String _anScatter(AppLocalizations l) => l.anScatter;
 String _anScatterDesc(AppLocalizations l) => l.anScatterDesc;
 String _anBar(AppLocalizations l) => l.anBar;
 String _anBarDesc(AppLocalizations l) => l.anBarDesc;
+String _anErrorbar(AppLocalizations l) => l.anErrorbar;
+String _anErrorbarDesc(AppLocalizations l) => l.anErrorbarDesc;

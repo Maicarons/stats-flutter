@@ -98,9 +98,16 @@ class _ParamVarPickerState extends State<ParamVarPicker> {
       children: [
         Row(
           children: [
-            Text(widget.label, style: text.labelLarge),
-            const SizedBox(width: AppSpacing.x2),
-            if (widget.selected.isNotEmpty)
+            Expanded(
+              child: Text(
+                widget.label,
+                style: text.labelLarge,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (widget.selected.isNotEmpty) ...[
+              const SizedBox(width: AppSpacing.x2),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
                 decoration: BoxDecoration(
@@ -116,7 +123,7 @@ class _ParamVarPickerState extends State<ParamVarPicker> {
                   ),
                 ),
               ),
-            const Spacer(),
+            ],
             if (widget.selected.isNotEmpty && widget.enabled)
               TextButton.icon(
                 onPressed: () => widget.onChanged(const []),

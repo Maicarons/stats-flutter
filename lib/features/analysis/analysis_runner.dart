@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:math' as math;
 
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -9,10 +8,11 @@ import 'package:share_plus/share_plus.dart';
 import 'package:statkit/statkit.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 
+import '../../core/io/missing_aware.dart';
 import '../../core/models/dataset.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../shared/dataset_store.dart';
-import '../../core/io/missing_aware.dart';
+import '../../shared/ui/charts/charts.dart';
 import '../../shared/ui/ui.dart';
 import '../output/report_builder.dart';
 import '../output/report_export.dart';
@@ -31,11 +31,17 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   String? _groupVar;
   String? _yVar;
   String? _xVar;
+
+  /// GLM 双元的第二个因素（可选，null = 单因素）。
+  String? _factorB;
   String _corMethod = 'Pearson';
   int _kClusters = 3;
   final _muCtrl = TextEditingController(text: '0');
   AnalysisReport? _report;
   Widget? _chart;
+
+  /// 与 [_chart] 配套的图例（每次运行前清空，避免串味）。
+  List<ChartLegendItem> _legend = const [];
   bool _busy = false;
   String? _error;
 
@@ -109,6 +115,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ChartCard(
                 title: l10n.chartSection,
                 height: 260,
+                legend: _legend,
                 child: Semantics(
                   container: true,
                   label: '${l10n.chartSection}. ${l10n.chartSemanticsHint}',
@@ -122,26 +129,98 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     );
   }
 
+  // —— 参数需求表 ——
+  // 把「哪个分析要哪些选择器」集中定义。目录（analysis_catalog）新增条目时，
+  // 必须在这里归入某一类，否则运行时只会报「请选择变量」而无处可选。
+
+  /// 只需一个数值变量（无分组）。
+  static const Set<String> _singleVarOnly = {
+    'qqplot',
+    'normality',
+    'examine_full',
+  };
+
+  /// 一个数值变量 + 必需分组变量。
+  static const Set<String> _varPlusGroup = {
+    'ttest_ind',
+    'anova',
+    'mannwhitney',
+    'kruskal',
+    'means',
+    'tukey',
+    'glm_two',
+  };
+
+  /// 一个数值变量 + 可选分组变量（不选则按单组处理）。
+  static const Set<String> _varPlusOptionalGroup = {
+    'boxplot',
+    'errorbar',
+  };
+
+  /// 多选数值变量。
+  static const Set<String> _multiVar = {
+    'descriptives',
+    'frequencies',
+    'explore',
+    'histogram',
+    'bar',
+    'reliability',
+    'correlation',
+    'factor_pca',
+    'factor_full',
+  };
+
+  /// 成对变量（正好 2 个）。
+  static const Set<String> _pairedVar = {'ttest_paired', 'wilcoxon'};
+
+  /// Y / X 两个下拉（数值变量）。
+  static const Set<String> _xyVar = {
+    'regression',
+    'scatter',
+    'kmeans',
+    'roc',
+    'logistic',
+    'logistic_full',
+  };
+
+  bool _needsSingleVar(String id) =>
+      id == 'ttest_one' ||
+      _singleVarOnly.contains(id) ||
+      _varPlusGroup.contains(id) ||
+      _varPlusOptionalGroup.contains(id);
+
+  String _yLabel(String id, AppLocalizations l10n) => switch (id) {
+        'regression' || 'logistic' || 'logistic_full' => l10n.dependentVar,
+        'roc' => l10n.stateVar,
+        _ => l10n.varY,
+      };
+
+  String _xLabel(String id, AppLocalizations l10n) => switch (id) {
+        'regression' || 'logistic' || 'logistic_full' => l10n.independentVar,
+        'roc' => l10n.testVar,
+        _ => l10n.varX,
+      };
+
   Widget _buildParams() {
     final l10n = AppLocalizations.of(context);
     final id = widget.analysisId;
-    final multiVars = {
-      'descriptives',
-      'frequencies',
-      'explore',
-      'histogram',
-      'bar',
-      'reliability',
-      'correlation',
-    };
-    final needGroup = {
-      'ttest_ind',
-      'anova',
-      'mannwhitney',
-      'kruskal',
-    };
-    final needPair = {'ttest_paired', 'wilcoxon'};
-    final needXY = {'regression', 'scatter', 'kmeans'};
+    final allVars = ds.variables.map((v) => v.name).toList();
+
+    Widget singleVarPicker() => ParamVarPicker(
+          label: l10n.analysisVariable,
+          names: _numericVars,
+          selected: _selectedVars.take(1).toList(),
+          single: true,
+          onChanged: (v) => setState(() => _selectedVars = v),
+        );
+
+    Widget groupDropdown({required bool optional}) => _Dropdown(
+          label: optional ? l10n.groupVariableOptional : l10n.groupVariable,
+          value: _groupVar,
+          items: allVars,
+          clearable: optional,
+          onChanged: (v) => setState(() => _groupVar = v),
+        );
 
     return Card(
       child: Padding(
@@ -155,30 +234,16 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                     .titleSmall
                     ?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
-            if (multiVars.contains(id))
+            if (_multiVar.contains(id))
               ParamVarPicker(
                 label: l10n.selectVariables,
                 names: _numericVars,
                 selected: _selectedVars,
                 onChanged: (v) => setState(() => _selectedVars = v),
-              ),
-            if (needGroup.contains(id)) ...[
-              ParamVarPicker(
-                label: l10n.analysisVariable,
-                names: _numericVars,
-                selected: _selectedVars.take(1).toList(),
-                single: true,
-                onChanged: (v) => setState(() => _selectedVars = v),
-              ),
-              const SizedBox(height: 12),
-              _Dropdown(
-                label: l10n.groupVariable,
-                value: _groupVar,
-                items: ds.variables.map((v) => v.name).toList(),
-                onChanged: (v) => setState(() => _groupVar = v),
-              ),
-            ],
-            if (needPair.contains(id))
+              )
+            else if (_needsSingleVar(id))
+              singleVarPicker(),
+            if (_pairedVar.contains(id))
               ParamVarPicker(
                 label: l10n.pairVariables,
                 names: _numericVars,
@@ -186,14 +251,22 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                 max: 2,
                 onChanged: (v) => setState(() => _selectedVars = v),
               ),
-            if (id == 'ttest_one') ...[
-              ParamVarPicker(
-                label: l10n.analysisVariable,
-                names: _numericVars,
-                selected: _selectedVars.take(1).toList(),
-                single: true,
-                onChanged: (v) => setState(() => _selectedVars = v),
+            if (_varPlusGroup.contains(id) ||
+                _varPlusOptionalGroup.contains(id)) ...[
+              const SizedBox(height: 12),
+              groupDropdown(optional: _varPlusOptionalGroup.contains(id)),
+            ],
+            if (id == 'glm_two') ...[
+              const SizedBox(height: 12),
+              _Dropdown(
+                label: l10n.factorB,
+                value: _factorB,
+                items: allVars,
+                clearable: true,
+                onChanged: (v) => setState(() => _factorB = v),
               ),
+            ],
+            if (id == 'ttest_one') ...[
               const SizedBox(height: 12),
               TextField(
                 controller: _muCtrl,
@@ -201,16 +274,31 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                 keyboardType: TextInputType.number,
               ),
             ],
-            if (needXY.contains(id)) ...[
+            if (id == 'stepwise') ...[
               _Dropdown(
-                label: id == 'regression' ? l10n.dependentVar : l10n.varY,
+                label: l10n.dependentVar,
+                value: _yVar,
+                items: _numericVars,
+                onChanged: (v) => setState(() => _yVar = v),
+              ),
+              const SizedBox(height: 12),
+              ParamVarPicker(
+                label: l10n.predictors,
+                names: _numericVars,
+                selected: _selectedVars,
+                onChanged: (v) => setState(() => _selectedVars = v),
+              ),
+            ],
+            if (_xyVar.contains(id)) ...[
+              _Dropdown(
+                label: _yLabel(id, l10n),
                 value: _yVar,
                 items: _numericVars,
                 onChanged: (v) => setState(() => _yVar = v),
               ),
               const SizedBox(height: 12),
               _Dropdown(
-                label: id == 'regression' ? l10n.independentVar : l10n.varX,
+                label: _xLabel(id, l10n),
                 value: _xVar,
                 items: _numericVars,
                 onChanged: (v) => setState(() => _xVar = v),
@@ -236,18 +324,18 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                 ),
               ],
             ],
-            if (id == 'crosstabs') ...[
+            if (id == 'crosstabs' || id == 'ctables') ...[
               _Dropdown(
                 label: l10n.rowVariable,
                 value: _yVar,
-                items: ds.variables.map((v) => v.name).toList(),
+                items: allVars,
                 onChanged: (v) => setState(() => _yVar = v),
               ),
               const SizedBox(height: 12),
               _Dropdown(
                 label: l10n.columnVariable,
                 value: _xVar,
-                items: ds.variables.map((v) => v.name).toList(),
+                items: allVars,
                 onChanged: (v) => setState(() => _xVar = v),
               ),
             ],
@@ -293,6 +381,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
       _error = null;
       _report = null;
       _chart = null;
+      _legend = const [];
     });
     try {
       switch (widget.analysisId) {
@@ -388,6 +477,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
           break;
         case 'stepwise':
           _runStepwise();
+          break;
+        case 'errorbar':
+          _runErrorBar();
           break;
         case 'ctables':
           _runCtables();
@@ -576,7 +668,25 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         ),
       ],
     );
-    _chart = _ScatterClusters(pts: pts, assignments: r.assignments, centers: r.centers);
+    _chart = ClusterScatterChart(
+      points: [for (var i = 0; i < n; i++) Offset(x[i], y[i])],
+      assignments: r.assignments,
+      centers: [
+        for (final c in r.centers) Offset(c.centroid[0], c.centroid[1]),
+      ],
+      emptyLabel: l10n.chartNoData,
+    );
+    _legend = [
+      for (var c = 0; c < r.centers.length; c++)
+        ChartLegendItem(
+          color: context.appColors.chartAt(c),
+          label: '${l10n.cluster} ${c + 1}',
+        ),
+      ChartLegendItem(
+        color: Theme.of(context).colorScheme.outline,
+        label: l10n.legendClusterCenter,
+      ),
+    ];
   }
 
   void _runMannWhitney() {
@@ -670,32 +780,10 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         ),
       ],
     );
-    final app = context.appColors;
-    _chart = BarChart(
-      BarChartData(
-        barGroups: List.generate(
-          bins.length,
-          (i) => BarChartGroupData(x: i, barRods: [
-            BarChartRodData(
-              toY: bins[i].count.toDouble(),
-              width: 14,
-              color: app.chartAt(0),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(4),
-              ),
-            ),
-          ]),
-        ),
-        titlesData: ChartStyle.titles(
-          context,
-          bottomLabels: [
-            for (final b in bins) formatNum(b.midpoint, digits: 1),
-          ],
-        ),
-        barTouchData: ChartStyle.barTouch(context),
-        borderData: FlBorderData(show: false),
-        gridData: ChartStyle.grid(context),
-      ),
+    _chart = HistogramChart(
+      bins: bins,
+      emptyLabel: l10n.chartNoData,
+      xTitle: name,
     );
   }
 
@@ -731,28 +819,11 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         ),
       ],
     );
-    _chart = ScatterChart(
-      ScatterChartData(
-        scatterSpots: [
-          for (var i = 0; i < n; i++)
-            ScatterSpot(
-              x[i],
-              y[i],
-              dotPainter: FlDotCirclePainter(
-                radius: 3,
-                color: context.appColors.chartAt(0).withValues(alpha: 0.75),
-                strokeWidth: 0,
-              ),
-            ),
-        ],
-        minX: (x.sublist(0, n).reduce((a, b) => a < b ? a : b)),
-        maxX: (x.sublist(0, n).reduce((a, b) => a > b ? a : b)),
-        minY: (y.sublist(0, n).reduce((a, b) => a < b ? a : b)),
-        maxY: (y.sublist(0, n).reduce((a, b) => a > b ? a : b)),
-        titlesData: ChartStyle.titles(context),
-        gridData: ChartStyle.grid(context),
-        borderData: ChartStyle.border(context),
-      ),
+    _chart = ScatterChartView(
+      points: [for (var i = 0; i < n; i++) Offset(x[i], y[i])],
+      emptyLabel: l10n.chartNoData,
+      xTitle: _xVar,
+      yTitle: _yVar,
     );
   }
 
@@ -788,30 +859,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         ),
       ],
     );
-    final app = context.appColors;
-    _chart = BarChart(
-      BarChartData(
-        barGroups: List.generate(
-          freq.rows.length,
-          (i) => BarChartGroupData(x: i, barRods: [
-            BarChartRodData(
-              toY: freq.rows[i].frequency.toDouble(),
-              width: 18,
-              color: app.chartAt(i),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(6),
-              ),
-            ),
-          ]),
-        ),
-        titlesData: ChartStyle.titles(
-          context,
-          bottomLabels: [for (final e in freq.rows) e.label],
-        ),
-        barTouchData: ChartStyle.barTouch(context),
-        borderData: FlBorderData(show: false),
-        gridData: ChartStyle.grid(context),
-      ),
+    _chart = FrequencyBarChart(
+      rows: freq.rows,
+      emptyLabel: l10n.chartNoData,
     );
   }
 
@@ -1166,25 +1216,73 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         ),
       ],
     );
-    _chart = ScatterChart(
-      ScatterChartData(
-        scatterSpots: [
-          for (final p in r.qq)
-            ScatterSpot(
-              p.theoretical,
-              p.sample,
-              dotPainter: FlDotCirclePainter(
-                radius: 2.6,
-                color: context.appColors.chartAt(0).withValues(alpha: 0.8),
-                strokeWidth: 0,
-              ),
-            ),
-        ],
-        titlesData: ChartStyle.titles(context),
-        gridData: ChartStyle.grid(context),
-        borderData: ChartStyle.border(context),
-      ),
+    _chart = QQPlot(
+      points: r.qq,
+      emptyLabel: l10n.chartNoData,
+      xTitle: l10n.theoreticalQuantile,
+      yTitle: l10n.sampleQuantile,
     );
+  }
+
+  void _runErrorBar() {
+    final name = _selectedVars.isNotEmpty ? _selectedVars.first : null;
+    if (name == null) throw l10n.pleaseSelectVar;
+    final groups = _groupVar != null
+        ? _splitByGroup(name, _groupVar!)
+        : {name: ds.numericColumn(name)};
+    final bars = errorBarsFromGroups(groups);
+    final nAll = groups.values.fold<int>(0, (a, b) => a + b.length);
+    final grandMean = nAll == 0
+        ? null
+        : groups.values
+                .expand((e) => e)
+                .fold<double>(0, (a, b) => a + b) /
+            nAll;
+    _report = AnalysisReport(
+      title: l10n.errorBarTitle,
+      subtitle: _groupVar == null ? name : '$name by ${_groupVar!}',
+      sections: [
+        ReportSection(
+          heading: l10n.distSummary,
+          tables: [
+            ReportTable(
+              headers: [l10n.group, 'N', l10n.mean, 'SD', l10n.se, l10n.ci95],
+              rows: [
+                for (final b in bars)
+                  [
+                    b.label,
+                    '${b.n}',
+                    formatNum(b.mean),
+                    formatNum(b.se * math.sqrt(b.n)),
+                    formatNum(b.se),
+                    '[${formatNum(b.low)}, ${formatNum(b.high)}]',
+                  ],
+              ],
+            ),
+          ],
+          notes: l10n.errorBarNote,
+        ),
+      ],
+    );
+    final accent = context.appColors.chartAt(0);
+    _chart = ErrorBarChart(
+      bars: bars,
+      emptyLabel: l10n.chartNoData,
+      referenceLine: grandMean,
+      tooltips: [
+        for (final b in bars)
+          [
+            b.label,
+            '${l10n.mean}: ${formatNum(b.mean)}',
+            '${l10n.ci95} [${formatNum(b.low)}, ${formatNum(b.high)}]',
+            '${l10n.caseCount}: ${b.n}',
+          ].join('\n'),
+      ],
+    );
+    _legend = [
+      ChartLegendItem(color: accent, label: l10n.legendMean),
+      ChartLegendItem(color: context.appColors.ci, label: l10n.legendCi),
+    ];
   }
 
   void _runBoxplot() {
@@ -1223,10 +1321,41 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
             ),
           ],
+          notes: l10n.boxPlotNote,
         ),
       ],
     );
-    // simple chart as bar of quartiles is weak; use report only + QQ reuse skipped
+    final scheme = Theme.of(context).colorScheme;
+    final accent = context.appColors.chartAt(0);
+    _chart = BoxPlotChart(
+      boxes: boxes,
+      labels: labels,
+      emptyLabel: l10n.chartNoData,
+      tooltips: [
+        for (var i = 0; i < boxes.length; i++)
+          _boxTooltip(l10n, labels[i], boxes[i]),
+      ],
+    );
+    _legend = [
+      ChartLegendItem(
+        color: accent.withValues(alpha: 0.35),
+        label: l10n.legendBox,
+      ),
+      ChartLegendItem(color: accent, label: l10n.legendMedian),
+      ChartLegendItem(color: scheme.outline, label: l10n.legendMean),
+    ];
+  }
+
+  /// 箱线图悬停提示：中位数 / 均值 / 四分位 / 须 / 离群数。
+  String _boxTooltip(AppLocalizations l10n, String label, BoxPlotData b) {
+    return [
+      label,
+      '${l10n.median}: ${formatNum(b.median)}',
+      '${l10n.mean}: ${formatNum(b.mean)}',
+      'Q1–Q3: ${formatNum(b.q1)} – ${formatNum(b.q3)}',
+      '${l10n.whisker}: ${formatNum(b.lowerWhisker)} – ${formatNum(b.upperWhisker)}',
+      '${l10n.outliers}: ${b.outliers.length}',
+    ].join('\n');
   }
 
   void _runQQ() {
@@ -1243,25 +1372,26 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         ),
       ],
     );
-    _chart = ScatterChart(
-      ScatterChartData(
-        scatterSpots: [
-          for (final p in pts)
-            ScatterSpot(
-              p.theoretical,
-              p.sample,
-              dotPainter: FlDotCirclePainter(
-                radius: 2.6,
-                color: context.appColors.chartAt(0).withValues(alpha: 0.8),
-                strokeWidth: 0,
-              ),
-            ),
-        ],
-        titlesData: ChartStyle.titles(context),
-        gridData: ChartStyle.grid(context),
-        borderData: ChartStyle.border(context),
-      ),
+    _chart = QQPlot(
+      points: pts,
+      emptyLabel: l10n.chartNoData,
+      xTitle: l10n.theoreticalQuantile,
+      yTitle: l10n.sampleQuantile,
     );
+    _legend = [
+      ChartLegendItem(
+        color: context.appColors.chartAt(0),
+        label: l10n.sampleQuantile,
+      ),
+      ChartLegendItem(
+        color: Theme.of(context).colorScheme.outline,
+        label: l10n.qqRefLine,
+      ),
+      ChartLegendItem(
+        color: context.appColors.warning,
+        label: l10n.legendTopDeviation(3),
+      ),
+    ];
   }
 
   void _runFactorFull() {
@@ -1269,6 +1399,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final cols = [for (final n in _selectedVars) ds.numericColumn(n)];
     final r = factorAnalyze(cols, names: _selectedVars, maxFactors: 3, rotate: true);
     final rot = r.rotatedLoadings;
+    final kept = r.unrotated.eigenvalues;
     _report = AnalysisReport(
       title: l10n.factorFullTitle,
       subtitle: 'PCA + Varimax',
@@ -1336,8 +1467,37 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
             ],
             notes: l10n.rotationNote(formatNum(r.rotationSS)),
           ),
+        ReportSection(
+          heading: l10n.screePlot,
+          body: l10n.screeNote(kept.length),
+        ),
       ],
     );
+    final p = _selectedVars.length;
+    final cum = kept.fold<double>(0, (a, b) => a + b);
+    final elbow = ScreePlot.elbowComponent(kept);
+    final scheme = Theme.of(context).colorScheme;
+    _chart = ScreePlot(
+      eigenvalues: kept,
+      emptyLabel: l10n.chartNoData,
+      componentLabel: (i) => 'PC$i',
+    );
+    _legend = [
+      ChartLegendItem(
+        color: context.appColors.chartAt(0),
+        label: l10n.eigenvalue,
+      ),
+      if (elbow != null)
+        ChartLegendItem(
+          color: scheme.outline,
+          label: l10n.elbowAt('PC$elbow'),
+        ),
+      ChartLegendItem(
+        color: scheme.outlineVariant,
+        label: '${l10n.cumulativeVariance} = '
+            '${p == 0 ? 0 : (cum / p * 100).toStringAsFixed(1)}%',
+      ),
+    ];
   }
 
 
@@ -1425,7 +1585,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     if (vName == null || _groupVar == null) throw l10n.pleaseSelectGroup;
     // Use groupVar as A, and method-like second factor if available from selected else singleton B
     final aName = _groupVar!;
-    final bName = _selectedVars.length > 1 ? _selectedVars[1] : aName;
+    final bName = _factorB ?? aName;
     final gi = ds.indexOf(aName);
     final bi = ds.indexOf(bName);
     final vi = ds.indexOf(vName);
@@ -1632,11 +1792,16 @@ class _Dropdown extends StatelessWidget {
   final String? value;
   final List<String> items;
   final ValueChanged<String?> onChanged;
+
+  /// 允许「不选」（可选分组 / 可选因素），首项为占位。
+  final bool clearable;
+
   const _Dropdown({
     required this.label,
     required this.value,
     required this.items,
     required this.onChanged,
+    this.clearable = false,
   });
 
   @override
@@ -1644,9 +1809,10 @@ class _Dropdown extends StatelessWidget {
     return DropdownButtonFormField<String>(
       initialValue: value != null && items.contains(value) ? value : null,
       decoration: InputDecoration(labelText: label),
-      items: items
-          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-          .toList(),
+      items: [
+        if (clearable) const DropdownMenuItem<String>(child: Text('—')),
+        ...items.map((e) => DropdownMenuItem(value: e, child: Text(e))),
+      ],
       onChanged: onChanged,
     );
   }
@@ -2016,49 +2182,3 @@ class _TableWidget extends StatelessWidget {
   }
 }
 
-class _ScatterClusters extends StatelessWidget {
-  final List<List<double>> pts;
-  final List<int> assignments;
-  final List<ClusterCenter> centers;
-  const _ScatterClusters({
-    required this.pts,
-    required this.assignments,
-    required this.centers,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final app = context.appColors;
-
-    return ScatterChart(
-      ScatterChartData(
-        scatterSpots: [
-          for (var i = 0; i < pts.length; i++)
-            ScatterSpot(
-              pts[i][0],
-              pts[i][1],
-              dotPainter: FlDotCirclePainter(
-                radius: 3.2,
-                color: app.chartAt(i < assignments.length ? assignments[i] : 0),
-                strokeWidth: 0,
-              ),
-            ),
-          for (var c = 0; c < centers.length; c++)
-            ScatterSpot(
-              centers[c].centroid[0],
-              centers[c].centroid[1],
-              dotPainter: FlDotCirclePainter(
-                radius: 6,
-                color: app.chartAt(c),
-                strokeWidth: 2,
-                strokeColor: Theme.of(context).colorScheme.surface,
-              ),
-            ),
-        ],
-        titlesData: ChartStyle.titles(context),
-        gridData: ChartStyle.grid(context),
-        borderData: ChartStyle.border(context),
-      ),
-    );
-  }
-}

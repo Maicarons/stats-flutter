@@ -1857,4 +1857,116 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get copySection => 'Copy section';
+
+  @override
+  String get anErrorbar => 'Error bar chart';
+
+  @override
+  String get anErrorbarDesc => 'Mean with 95% CI';
+
+  @override
+  String get errorBarTitle => 'Error bar chart';
+
+  @override
+  String get errorBarNote =>
+      'Error bars are mean ± 1.96 × SE, i.e. the 95% confidence interval.';
+
+  @override
+  String get theoreticalQuantile => 'Theoretical quantile z';
+
+  @override
+  String get sampleQuantile => 'Sample quantile z';
+
+  @override
+  String get qqRefLine => 'Reference line y = x';
+
+  @override
+  String get screePlot => 'Scree plot';
+
+  @override
+  String screeNote(int k) {
+    return 'The scree plot draws only the $k extracted components (the extraction limit set by the analysis).';
+  }
+
+  @override
+  String get cumulativeVariance => 'Cumulative variance';
+
+  @override
+  String elbowAt(String name) {
+    return 'Elbow at $name';
+  }
+
+  @override
+  String get legendBox => 'Interquartile box Q1–Q3';
+
+  @override
+  String get legendMedian => 'Median';
+
+  @override
+  String get legendWhisker => 'Whiskers 1.5×IQR';
+
+  @override
+  String get legendMean => 'Mean';
+
+  @override
+  String get legendOutlier => 'Outliers';
+
+  @override
+  String get legendClusterCenter => 'Cluster center';
+
+  @override
+  String legendTopDeviation(int n) {
+    return 'Top $n deviations';
+  }
+
+  @override
+  String get legendCi => '95% confidence interval';
+
+  @override
+  String get boxPlotNote =>
+      'Box = interquartile range (Q1–Q3) with the median line; whiskers reach the most extreme values within 1.5×IQR; diamond = mean; dots = outliers.';
+
+  @override
+  String get whisker => 'Whisker';
+
+  @override
+  String get ci95 => '95% CI';
+
+  @override
+  String get chartNoData => 'Not enough data to draw the chart';
+
+  @override
+  String get elbow => 'Elbow';
+
+  @override
+  String get exportSection => 'Export section';
+
+  @override
+  String get exportSectionMarkdown => 'Export Markdown';
+
+  @override
+  String get exportSectionHtml => 'Export HTML';
+
+  @override
+  String sectionExported(String name) {
+    return 'Exported “$name”';
+  }
+
+  @override
+  String get groupVariableOptional => 'Grouping variable (optional)';
+
+  @override
+  String get factorB => 'Factor B (optional)';
+
+  @override
+  String get stateVar => 'State variable (median split)';
+
+  @override
+  String get testVar => 'Test variable';
+
+  @override
+  String get predictors => 'Predictors (multi-select)';
+
+  @override
+  String get frozenColumnHint => 'First column is frozen';
 }

@@ -3553,6 +3553,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copy section'**
   String get copySection;
+
+  /// No description provided for @anErrorbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Error bar chart'**
+  String get anErrorbar;
+
+  /// No description provided for @anErrorbarDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Mean with 95% CI'**
+  String get anErrorbarDesc;
+
+  /// No description provided for @errorBarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Error bar chart'**
+  String get errorBarTitle;
+
+  /// No description provided for @errorBarNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Error bars are mean ± 1.96 × SE, i.e. the 95% confidence interval.'**
+  String get errorBarNote;
+
+  /// No description provided for @theoreticalQuantile.
+  ///
+  /// In en, this message translates to:
+  /// **'Theoretical quantile z'**
+  String get theoreticalQuantile;
+
+  /// No description provided for @sampleQuantile.
+  ///
+  /// In en, this message translates to:
+  /// **'Sample quantile z'**
+  String get sampleQuantile;
+
+  /// No description provided for @qqRefLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference line y = x'**
+  String get qqRefLine;
+
+  /// No description provided for @screePlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Scree plot'**
+  String get screePlot;
+
+  /// No description provided for @screeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The scree plot draws only the {k} extracted components (the extraction limit set by the analysis).'**
+  String screeNote(int k);
+
+  /// No description provided for @cumulativeVariance.
+  ///
+  /// In en, this message translates to:
+  /// **'Cumulative variance'**
+  String get cumulativeVariance;
+
+  /// No description provided for @elbowAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Elbow at {name}'**
+  String elbowAt(String name);
+
+  /// No description provided for @legendBox.
+  ///
+  /// In en, this message translates to:
+  /// **'Interquartile box Q1–Q3'**
+  String get legendBox;
+
+  /// No description provided for @legendMedian.
+  ///
+  /// In en, this message translates to:
+  /// **'Median'**
+  String get legendMedian;
+
+  /// No description provided for @legendWhisker.
+  ///
+  /// In en, this message translates to:
+  /// **'Whiskers 1.5×IQR'**
+  String get legendWhisker;
+
+  /// No description provided for @legendMean.
+  ///
+  /// In en, this message translates to:
+  /// **'Mean'**
+  String get legendMean;
+
+  /// No description provided for @legendOutlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Outliers'**
+  String get legendOutlier;
+
+  /// No description provided for @legendClusterCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Cluster center'**
+  String get legendClusterCenter;
+
+  /// No description provided for @legendTopDeviation.
+  ///
+  /// In en, this message translates to:
+  /// **'Top {n} deviations'**
+  String legendTopDeviation(int n);
+
+  /// No description provided for @legendCi.
+  ///
+  /// In en, this message translates to:
+  /// **'95% confidence interval'**
+  String get legendCi;
+
+  /// No description provided for @boxPlotNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Box = interquartile range (Q1–Q3) with the median line; whiskers reach the most extreme values within 1.5×IQR; diamond = mean; dots = outliers.'**
+  String get boxPlotNote;
+
+  /// No description provided for @whisker.
+  ///
+  /// In en, this message translates to:
+  /// **'Whisker'**
+  String get whisker;
+
+  /// No description provided for @ci95.
+  ///
+  /// In en, this message translates to:
+  /// **'95% CI'**
+  String get ci95;
+
+  /// No description provided for @chartNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough data to draw the chart'**
+  String get chartNoData;
+
+  /// No description provided for @elbow.
+  ///
+  /// In en, this message translates to:
+  /// **'Elbow'**
+  String get elbow;
+
+  /// No description provided for @exportSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Export section'**
+  String get exportSection;
+
+  /// No description provided for @exportSectionMarkdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Markdown'**
+  String get exportSectionMarkdown;
+
+  /// No description provided for @exportSectionHtml.
+  ///
+  /// In en, this message translates to:
+  /// **'Export HTML'**
+  String get exportSectionHtml;
+
+  /// No description provided for @sectionExported.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported “{name}”'**
+  String sectionExported(String name);
+
+  /// No description provided for @groupVariableOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Grouping variable (optional)'**
+  String get groupVariableOptional;
+
+  /// No description provided for @factorB.
+  ///
+  /// In en, this message translates to:
+  /// **'Factor B (optional)'**
+  String get factorB;
+
+  /// No description provided for @stateVar.
+  ///
+  /// In en, this message translates to:
+  /// **'State variable (median split)'**
+  String get stateVar;
+
+  /// No description provided for @testVar.
+  ///
+  /// In en, this message translates to:
+  /// **'Test variable'**
+  String get testVar;
+
+  /// No description provided for @predictors.
+  ///
+  /// In en, this message translates to:
+  /// **'Predictors (multi-select)'**
+  String get predictors;
+
+  /// No description provided for @frozenColumnHint.
+  ///
+  /// In en, this message translates to:
+  /// **'First column is frozen'**
+  String get frozenColumnHint;
 }
 
 class _AppLocalizationsDelegate
