@@ -25,10 +25,13 @@ class _TransformPageState extends State<TransformPage> {
   final _exprCtrl = TextEditingController();
   final _condCtrl = TextEditingController();
   final _matchCtrl = TextEditingController(text: '1');
+  final _ntilesCtrl = TextEditingController(text: '4');
   String? _sourceVar;
   String? _groupVar;
   List<String> _selected = [];
   bool _desc = false;
+  RankFunction _rankFunction = RankFunction.rank;
+  RankTies _rankTies = RankTies.mean;
 
   /// 执行结果：null 表示未执行；true 成功；false 失败。
   bool? _ok;
@@ -44,8 +47,28 @@ class _TransformPageState extends State<TransformPage> {
     _exprCtrl.dispose();
     _condCtrl.dispose();
     _matchCtrl.dispose();
+    _ntilesCtrl.dispose();
     super.dispose();
   }
+
+  static String _rankFunctionLabel(AppLocalizations l10n, RankFunction f) =>
+      switch (f) {
+        RankFunction.rank => l10n.trRankFRank,
+        RankFunction.n => l10n.trRankFN,
+        RankFunction.rFraction => l10n.trRankFRFraction,
+        RankFunction.proportion => l10n.trRankFProportion,
+        RankFunction.percent => l10n.trRankFPercent,
+        RankFunction.normal => l10n.trRankFNormal,
+        RankFunction.ntiles => l10n.trRankFNtiles,
+      };
+
+  static String _rankTiesLabel(AppLocalizations l10n, RankTies t) =>
+      switch (t) {
+        RankTies.mean => l10n.trRankTiesMean,
+        RankTies.low => l10n.trRankTiesLow,
+        RankTies.high => l10n.trRankTiesHigh,
+        RankTies.condense => l10n.trRankTiesCondense,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -261,6 +284,37 @@ class _TransformPageState extends State<TransformPage> {
         return [
           _dropdown(l10n.trSourceVar, _sourceVar, _varNames,
               (v) => setState(() => _sourceVar = v)),
+          gap,
+          _dropdownOf<RankFunction>(
+            l10n.trRankFunction,
+            _rankFunction,
+            RankFunction.values,
+            (f) => _rankFunctionLabel(l10n, f),
+            (v) {
+              if (v != null) setState(() => _rankFunction = v);
+            },
+          ),
+          if (_rankFunction == RankFunction.ntiles) ...[
+            gap,
+            TextField(
+              controller: _ntilesCtrl,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: l10n.trRankNtiles,
+                hintText: '4',
+              ),
+            ),
+          ],
+          gap,
+          _dropdownOf<RankTies>(
+            l10n.trRankTies,
+            _rankTies,
+            RankTies.values,
+            (t) => _rankTiesLabel(l10n, t),
+            (v) {
+              if (v != null) setState(() => _rankTies = v);
+            },
+          ),
           const SizedBox(height: AppSpacing.x1),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
@@ -268,6 +322,8 @@ class _TransformPageState extends State<TransformPage> {
             value: _desc,
             onChanged: (v) => setState(() => _desc = v),
           ),
+          const SizedBox(height: AppSpacing.x2),
+          _hint(l10n.trRankHelp, scheme),
         ];
       case 'sort':
         return [
@@ -322,6 +378,25 @@ class _TransformPageState extends State<TransformPage> {
       decoration: InputDecoration(labelText: label),
       items:
           items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+      onChanged: onChanged,
+    );
+  }
+
+  /// 枚举下拉：显示用 [label] 本地化，取值是枚举本身。
+  Widget _dropdownOf<T>(
+    String label,
+    T value,
+    List<T> values,
+    String Function(T) labelOf,
+    ValueChanged<T?> onChanged,
+  ) {
+    return DropdownButtonFormField<T>(
+      initialValue: value,
+      decoration: InputDecoration(labelText: label),
+      items: [
+        for (final v in values)
+          DropdownMenuItem(value: v, child: Text(labelOf(v))),
+      ],
       onChanged: onChanged,
     );
   }
@@ -382,7 +457,14 @@ class _TransformPageState extends State<TransformPage> {
           break;
         case 'rank':
           if (_sourceVar == null) throw l10n.trNeedSource;
-          r = Transforms.rank(ds, sourceVar: _sourceVar!, descending: _desc);
+          r = Transforms.rank(
+            ds,
+            sourceVar: _sourceVar!,
+            descending: _desc,
+            function: _rankFunction,
+            ties: _rankTies,
+            ntiles: int.tryParse(_ntilesCtrl.text.trim()) ?? 4,
+          );
           break;
         case 'sort':
           if (_selected.isEmpty) throw l10n.trNeedSortKeys;

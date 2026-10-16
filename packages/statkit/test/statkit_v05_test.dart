@@ -923,4 +923,38 @@ void main() {
       expect(() => ancova(y: const [], a: const []), throwsArgumentError);
     });
   });
+
+  group('正态分位数 normalQuantile', () {
+    test('与已知临界值一致（Acklam 近似，误差 < 1.5e-9）', () {
+      // 双侧 0.05 / 0.01 的临界值
+      expect(normalQuantile(0.975), closeTo(1.959963985, 1e-8));
+      expect(normalQuantile(0.995), closeTo(2.575829304, 1e-8));
+      // 常用单侧临界值
+      expect(normalQuantile(0.90), closeTo(1.281551566, 1e-8));
+      expect(normalQuantile(0.99), closeTo(2.326347874, 1e-8));
+      // 尾部与中位数
+      expect(normalQuantile(0.5), closeTo(0, 1e-12));
+      expect(normalQuantile(0.025), closeTo(-1.959963985, 1e-8));
+      expect(normalQuantile(0.001), closeTo(-3.090232306, 1e-7));
+    });
+
+    test('是 normCdf 的反函数（含两端钳制）', () {
+      for (final p in [0.001, 0.01, 0.2, 0.5, 0.8, 0.99, 0.999]) {
+        expect(normCdf(normalQuantile(p)), closeTo(p, 1e-6));
+      }
+      // 越界钳到 ±6
+      expect(normalQuantile(0), -6);
+      expect(normalQuantile(1), 6);
+      expect(normalQuantile(-0.5), -6);
+    });
+
+    test('严格单调递增', () {
+      var prev = double.negativeInfinity;
+      for (var i = 1; i <= 999; i++) {
+        final z = normalQuantile(i / 1000);
+        expect(z, greaterThan(prev));
+        prev = z;
+      }
+    });
+  });
 }

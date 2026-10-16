@@ -1,0 +1,310 @@
+/// v1.4.0 M2 数据层命令的单元测试。
+///
+/// 语义参考 PSPP 2.1.2 源码（`_ref/pspp-2.1.2/src/language/commands/*.c`）：
+/// - RANK：`rank.c`（秩、N、RFRACTION、PROPORTION、PERCENT、NORMAL、NTILES + 结处理）
+///
+/// 每个命令同时给「直接调用 Transforms」与「走语法动词」两条路径的断言。
+library;
+
+import 'dart:math' as math;
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:stats_flutter/core/models/dataset.dart';
+import 'package:stats_flutter/core/syntax/syntax_engine.dart';
+import 'package:stats_flutter/core/transforms/transforms.dart';
+
+Dataset _ds(List<String> names, List<List<Object?>> cases) {
+  final d = Dataset(name: 'test');
+  for (final n in names) {
+    d.addVariable(Variable(name: n));
+  }
+  for (final row in cases) {
+    d.addCase(List<Object?>.of(row));
+  }
+  return d;
+}
+
+/// 原始列（保留 null，便于逐个案比对）
+List<Object?> _col(Dataset d, String name) => d.rawColumn(name);
+
+List<double?> _numCol(Dataset d, String name) =>
+    [for (final v in _col(d, name)) v == null ? null : (v as num).toDouble()];
+
+void main() {
+  group('RANK 秩', () {
+    test('默认平均秩：结取平均，输出变量为序数尺度', () {
+      final d = _ds(['score'], [
+        [10], [20], [20], [30], [40],
+      ]);
+      final r = Transforms.rank(d, sourceVar: 'score');
+      expect(r.changed, 5);
+      expect(_numCol(d, 'R_score'), [1.0, 2.5, 2.5, 4.0, 5.0]);
+      final v = d.variables[d.indexOf('R_score')];
+      expect(v.measure, MeasureLevel.ordinal);
+      expect(r.message, contains('R_score'));
+    });
+
+    test('降序秩', () {
+      final d = _ds(['score'], [
+        [40], [30], [20], [20], [10],
+      ]);
+      Transforms.rank(d, sourceVar: 'score', descending: true);
+      expect(_numCol(d, 'R_score'), [1.0, 2.0, 3.5, 3.5, 5.0]);
+    });
+
+    test('N / RFRACTION / PERCENT（与 PSPP 定义一致）', () {
+      final d = _ds(['score'], [
+        [10], [20], [20], [30], [40],
+      ]);
+      Transforms.rank(d, sourceVar: 'score', function: RankFunction.n);
+      Transforms.rank(d, sourceVar: 'score', function: RankFunction.rFraction);
+      Transforms.rank(d, sourceVar: 'score', function: RankFunction.percent);
+      // N：同一常数
+      expect(_numCol(d, 'N_score'), [5.0, 5.0, 5.0, 5.0, 5.0]);
+      // RFRACTION = r / N
+      expect(_numCol(d, 'RF_score'), [0.2, 0.5, 0.5, 0.8, 1.0]);
+      // PERCENT = r x 100 / N（不是 (r-0.5)/N x 100）
+      expect(_numCol(d, 'P_score'), [20.0, 50.0, 50.0, 80.0, 100.0]);
+    });
+
+    test('PROPORTION：Blom 绘图位置 (r - 3/8) / (N + 1/4)', () {
+      final d = _ds(['score'], [
+        [10], [20], [20], [30], [40],
+      ]);
+      Transforms.rank(d, sourceVar: 'score', function: RankFunction.proportion);
+      final col = _numCol(d, 'PR_score');
+      // 手算：(1-0.375)/5.25、(2.5-0.375)/5.25、(4-0.375)/5.25、(5-0.375)/5.25
+      expect(col[0], closeTo(0.625 / 5.25, 1e-12));
+      expect(col[1], closeTo(2.125 / 5.25, 1e-12));
+      expect(col[3], closeTo(3.625 / 5.25, 1e-12));
+      expect(col[4], closeTo(4.625 / 5.25, 1e-12));
+    });
+
+    test('NORMAL：Blom 正态得分（与独立实现一致）', () {
+      final d = _ds(['score'], [
+        [10], [20], [20], [30], [40],
+      ]);
+      Transforms.rank(d, sourceVar: 'score', function: RankFunction.normal);
+      final col = _numCol(d, 'Z_score');
+      // 期望值由 Python statistics.NormalDist().inv_cdf 独立计算
+      // z = Φ⁻¹((r - 0.375) / (5 + 0.25))
+      expect(col[0], closeTo(-1.179761, 1e-5));
+      expect(col[1], closeTo(-0.241040, 1e-5));
+      expect(col[2], closeTo(-0.241040, 1e-5));
+      expect(col[3], closeTo(0.497201, 1e-5));
+      expect(col[4], closeTo(1.179761, 1e-5));
+      // 与库内 normalQuantile 一致（同一公式、同一分位数实现）
+      for (var i = 0; i < 5; i++) {
+        final r = [1.0, 2.5, 2.5, 4.0, 5.0][i];
+        expect(col[i], closeTo(_probitCheck((r - 0.375) / 5.25), 1e-6));
+      }
+    });
+
+    test('NTILES：floor(秩 x k / (N + 1)) + 1', () {
+      final d = _ds(['score'], [
+        [10], [20], [20], [30], [40],
+      ]);
+      Transforms.rank(d, sourceVar: 'score',
+          function: RankFunction.ntiles, ntiles: 4);
+      // floor(r*4/6)+1 → [1, 2, 2, 3, 4]
+      expect(_numCol(d, 'NT_score'), [1.0, 2.0, 2.0, 3.0, 4.0]);
+
+      final d2 = _ds(['score'], [
+        [10], [20], [20], [30], [40],
+      ]);
+      Transforms.rank(d2, sourceVar: 'score',
+          function: RankFunction.ntiles, ntiles: 2);
+      // floor(r*2/6)+1 → [1, 1, 1, 2, 2]
+      expect(_numCol(d2, 'NT_score'), [1.0, 1.0, 1.0, 2.0, 2.0]);
+    });
+
+    test('TIES=LOW / HIGH / CONDENSE（PSPP rank_rank）', () {
+      // 结内个案 {20, 20} 占秩 2、3
+      final low = _ds(['score'], [
+        [10], [20], [20], [30], [40],
+      ]);
+      Transforms.rank(low, sourceVar: 'score', ties: RankTies.low);
+      expect(_numCol(low, 'R_score'), [1.0, 2.0, 2.0, 4.0, 5.0]);
+
+      final high = _ds(['score'], [
+        [10], [20], [20], [30], [40],
+      ]);
+      Transforms.rank(high, sourceVar: 'score', ties: RankTies.high);
+      expect(_numCol(high, 'R_score'), [1.0, 3.0, 3.0, 4.0, 5.0]);
+
+      final condense = _ds(['score'], [
+        [10], [20], [20], [30], [40],
+      ]);
+      Transforms.rank(condense, sourceVar: 'score', ties: RankTies.condense);
+      expect(_numCol(condense, 'R_score'), [1.0, 2.0, 2.0, 4.0, 5.0]);
+    });
+
+    test('缺失值（空值与用户缺失值）不参与，且结果为空', () {
+      final d = Dataset(name: 'test');
+      d.addVariable(Variable(name: 'score', missingValues: [99]));
+      d.addCase([1]);
+      d.addCase([99]);
+      d.addCase([3]);
+      d.addCase([null]);
+      Transforms.rank(d, sourceVar: 'score');
+      expect(_numCol(d, 'R_score'), [1.0, null, 2.0, null]);
+      // N = 有效个案数 2
+      final d2 = Dataset(name: 'test');
+      d2.addVariable(Variable(name: 'score', missingValues: [99]));
+      d2.addCase([1]);
+      d2.addCase([99]);
+      d2.addCase([3]);
+      Transforms.rank(d2, sourceVar: 'score', function: RankFunction.n);
+      expect(_numCol(d2, 'N_score'), [2.0, null, 2.0]);
+    });
+
+    test('自定义目标变量名与 N 的三位小数设置', () {
+      final d = _ds(['score'], [
+        [10], [20],
+      ]);
+      final r = Transforms.rank(d,
+          sourceVar: 'score', targetVar: 'myrank',
+          function: RankFunction.percent);
+      expect(d.indexOf('myrank'), greaterThan(0));
+      expect(_numCol(d, 'myrank'), [50.0, 100.0]);
+      expect(r.message, contains('myrank'));
+      // 分位组为整数显示，秩与百分位保留 3 位小数
+      expect(d.variables[d.indexOf('myrank')].decimals, 3);
+    });
+
+    test('重复调用同一目标变量：不新建变量', () {
+      final d = _ds(['score'], [
+        [10], [20], [30],
+      ]);
+      final n0 = d.nVars;
+      Transforms.rank(d, sourceVar: 'score');
+      Transforms.rank(d, sourceVar: 'score');
+      expect(d.nVars, n0 + 1);
+      expect(_numCol(d, 'R_score'), [1.0, 2.0, 3.0]);
+    });
+
+    test('NTILES 参数校验：k >= 1', () {
+      final d = _ds(['score'], [
+        [10], [20],
+      ]);
+      expect(
+        () => Transforms.rank(d,
+            sourceVar: 'score', function: RankFunction.ntiles, ntiles: 0),
+        throwsArgumentError,
+      );
+    });
+
+    test('变量不存在时报错', () {
+      final d = _ds(['score'], [
+        [10],
+      ]);
+      expect(() => Transforms.rank(d, sourceVar: 'nope'), throwsArgumentError);
+    });
+  });
+
+  group('RANK 语法动词', () {
+    test('RANK VARIABLES=v /NTILES(4)：生成 NT_ 变量', () {
+      final d = _ds(['score'], [
+        [10], [20], [20], [30], [40],
+      ]);
+      final rs = SyntaxExecutor.run(
+          'RANK VARIABLES=score /NTILES(4).', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isTrue);
+      expect(rs.single.output, contains('NT_score'));
+      expect(_numCol(d, 'NT_score'), [1.0, 2.0, 2.0, 3.0, 4.0]);
+    });
+
+    test('RANK VARIABLES=v (D) /PERCENT：降序百分位', () {
+      final d = _ds(['score'], [
+        [10], [20], [30],
+      ]);
+      final rs = SyntaxExecutor.run(
+          'RANK VARIABLES=score (D) /PERCENT.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isTrue);
+      // 降序后 10 得秩 3、20 得 2、30 得 1；百分位 = 秩 x 100 / 3
+      expect(_numCol(d, 'P_score'), [100.0, 200.0 / 3, 100.0 / 3]);
+    });
+
+    test('RANK VARIABLES=a b：一次处理多个变量', () {
+      final d = _ds(['a', 'b'], [
+        [3, 30], [1, 10], [2, 20],
+      ]);
+      final rs = SyntaxExecutor.run('RANK VARIABLES=a b /RANK.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isTrue);
+      expect(_numCol(d, 'R_a'), [3.0, 1.0, 2.0]);
+      expect(_numCol(d, 'R_b'), [3.0, 1.0, 2.0]);
+    });
+
+    test('/NORMAL 与 /TIES=HIGH：结取最大秩后换算正态得分', () {
+      final d = _ds(['score'], [
+        [10], [20], [20], [30], [40],
+      ]);
+      final rs = SyntaxExecutor.run(
+          'RANK VARIABLES=score /NORMAL /TIES=HIGH.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isTrue);
+      final col = _numCol(d, 'Z_score');
+      // 结内取秩 3 → p = (3 - 0.375)/5.25 = 0.5 → z = 0
+      expect(col[1], closeTo(0.0, 1e-12));
+      expect(col[2], closeTo(0.0, 1e-12));
+      // 其余与平均秩一致
+      expect(col[0], closeTo(-1.179761, 1e-5));
+      expect(col[3], closeTo(0.497201, 1e-5));
+      expect(col[4], closeTo(1.179761, 1e-5));
+    });
+
+    test('未给出变量：报语法错误', () {
+      final d = _ds(['score'], [
+        [10],
+      ]);
+      final rs = SyntaxExecutor.run('RANK /NTILES(4).', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isFalse);
+      expect(rs.single.output, contains('RANK syntax'));
+    });
+
+    test('TIES=CONDENSE 与 /RFRACTION', () {
+      final d = _ds(['score'], [
+        [10], [20], [20], [30], [40],
+      ]);
+      final rs = SyntaxExecutor.run(
+          'RANK VARIABLES=score /RFRACTION /TIES=CONDENSE.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isTrue);
+      expect(_numCol(d, 'RF_score'), [0.2, 0.4, 0.4, 0.8, 1.0]);
+    });
+  });
+}
+
+/// 测试内独立的 Φ⁻¹（二分求 normCdf 的反函数），用于交叉验证 normalQuantile。
+double _probitCheck(double p) {
+  var lo = -10.0, hi = 10.0;
+  for (var i = 0; i < 200; i++) {
+    final mid = (lo + hi) / 2;
+    if (_phi(mid) < p) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+  return (lo + hi) / 2;
+}
+
+/// 测试内独立的标准正态 CDF（误差函数形式）。
+double _phi(double z) => 0.5 * (1 + _erf(z / math.sqrt2));
+
+double _erf(double x) {
+  // Abramowitz & Stegun 7.1.26
+  final t = 1 / (1 + 0.3275911 * x.abs());
+  final y = 1 -
+      ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t -
+                  0.284496736) *
+              t +
+          0.254829592) *
+          t *
+          math.exp(-x * x);
+  return x >= 0 ? y : -y;
+}

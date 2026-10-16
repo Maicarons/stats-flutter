@@ -1706,6 +1706,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trRankDescending => 'Rank descending';
 
   @override
+  String get trRankFunction => 'Output function';
+
+  @override
+  String get trRankFRank => 'RANK rank';
+
+  @override
+  String get trRankFN => 'N count';
+
+  @override
+  String get trRankFRFraction => 'RFRACTION rank/N';
+
+  @override
+  String get trRankFProportion => 'PROPORTION fraction';
+
+  @override
+  String get trRankFPercent => 'PERCENT percentile';
+
+  @override
+  String get trRankFNormal => 'NORMAL normal score';
+
+  @override
+  String get trRankFNtiles => 'NTILES groups';
+
+  @override
+  String get trRankNtiles => 'Number of groups';
+
+  @override
+  String get trRankTies => 'Ties';
+
+  @override
+  String get trRankTiesMean => 'MEAN average';
+
+  @override
+  String get trRankTiesLow => 'LOW minimum';
+
+  @override
+  String get trRankTiesHigh => 'HIGH maximum';
+
+  @override
+  String get trRankTiesCondense => 'CONDENSE condense';
+
+  @override
+  String get trRankHelp =>
+      'Percentile = rank/N x 100; normal scores use the Blom plotting position (rank-3/8)/(N+1/4) fed to the inverse normal CDF; ntiles = floor(rank x k/(N+1))+1 (same as PSPP).';
+
+  @override
   String get trSortDescending => 'Descending';
 
   @override

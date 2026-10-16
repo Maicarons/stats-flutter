@@ -3308,6 +3308,96 @@ abstract class AppLocalizations {
   /// **'Rank descending'**
   String get trRankDescending;
 
+  /// No description provided for @trRankFunction.
+  ///
+  /// In en, this message translates to:
+  /// **'Output function'**
+  String get trRankFunction;
+
+  /// No description provided for @trRankFRank.
+  ///
+  /// In en, this message translates to:
+  /// **'RANK rank'**
+  String get trRankFRank;
+
+  /// No description provided for @trRankFN.
+  ///
+  /// In en, this message translates to:
+  /// **'N count'**
+  String get trRankFN;
+
+  /// No description provided for @trRankFRFraction.
+  ///
+  /// In en, this message translates to:
+  /// **'RFRACTION rank/N'**
+  String get trRankFRFraction;
+
+  /// No description provided for @trRankFProportion.
+  ///
+  /// In en, this message translates to:
+  /// **'PROPORTION fraction'**
+  String get trRankFProportion;
+
+  /// No description provided for @trRankFPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'PERCENT percentile'**
+  String get trRankFPercent;
+
+  /// No description provided for @trRankFNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'NORMAL normal score'**
+  String get trRankFNormal;
+
+  /// No description provided for @trRankFNtiles.
+  ///
+  /// In en, this message translates to:
+  /// **'NTILES groups'**
+  String get trRankFNtiles;
+
+  /// No description provided for @trRankNtiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of groups'**
+  String get trRankNtiles;
+
+  /// No description provided for @trRankTies.
+  ///
+  /// In en, this message translates to:
+  /// **'Ties'**
+  String get trRankTies;
+
+  /// No description provided for @trRankTiesMean.
+  ///
+  /// In en, this message translates to:
+  /// **'MEAN average'**
+  String get trRankTiesMean;
+
+  /// No description provided for @trRankTiesLow.
+  ///
+  /// In en, this message translates to:
+  /// **'LOW minimum'**
+  String get trRankTiesLow;
+
+  /// No description provided for @trRankTiesHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'HIGH maximum'**
+  String get trRankTiesHigh;
+
+  /// No description provided for @trRankTiesCondense.
+  ///
+  /// In en, this message translates to:
+  /// **'CONDENSE condense'**
+  String get trRankTiesCondense;
+
+  /// No description provided for @trRankHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Percentile = rank/N x 100; normal scores use the Blom plotting position (rank-3/8)/(N+1/4) fed to the inverse normal CDF; ntiles = floor(rank x k/(N+1))+1 (same as PSPP).'**
+  String get trRankHelp;
+
   /// No description provided for @trSortDescending.
   ///
   /// In en, this message translates to:

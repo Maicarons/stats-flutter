@@ -32,6 +32,9 @@ in [README.md](README.md) for what that promises.
   cell counts), covariate slopes on the original scale with t/CI, and adjusted
   means (EMM) with standard errors and 95% CI
 - `LogisticFullResult.iterations` / `LogisticFullResult.converged`
+- `normalQuantile` — inverse standard normal CDF Φ⁻¹(p) (Acklam approximation,
+  |error| < 1.15e-9), the inverse of `normCdf`; used for normal scores and
+  Blom plotting positions (the Q-Q plot now shares it instead of a private copy)
 
 ### Fixed
 - `logisticRegressionFull`: the IRLS step dropped the working weight of the work

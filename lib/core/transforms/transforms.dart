@@ -3,7 +3,13 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:statkit/statkit.dart';
+
 import '../models/dataset.dart';
+
+// 应用是 statkit 的同仓第一消费者（statkit 0.5.0 ↔ app 1.4.0），
+// 因此这里可以有意使用 statkit 标注为 @experimental 的入口。
+// ignore_for_file: experimental_member_use
 
 /// 表达式计算（支持 + - * / ( ) 与常用函数的轻量求值）
 class ComputeEngine {
@@ -123,6 +129,46 @@ class _Val {
   const _Val(this.value, this.pos);
 }
 
+/// RANK 的输出函数（对应 PSPP `RANK` 的 /RANK /N /RFRACTION /PROPORTION
+/// /PERCENT /NORMAL /NTILES）。
+enum RankFunction {
+  /// 秩（默认，结取平均）
+  rank,
+
+  /// 有效个案数（同一常数）
+  n,
+
+  /// 秩 / N（0–1）
+  rFraction,
+
+  /// Blom 分数的正态得分
+  normal,
+
+  /// 秩的比例分数（Blom）
+  proportion,
+
+  /// 百分位秩（0–100）
+  percent,
+
+  /// n 分位组编号（1..n）
+  ntiles,
+}
+
+/// 结的处理（PSPP `RANK` 的 /TIES）。
+enum RankTies {
+  /// 结取平均秩（默认）
+  mean,
+
+  /// 结取最小值
+  low,
+
+  /// 结取最大值
+  high,
+
+  /// 结压缩为同一编号（首个结的位置）
+  condense,
+}
+
 /// 变换结果
 class TransformResult {
   final String message;
@@ -209,54 +255,155 @@ class Transforms {
     );
   }
 
-  /// RANK
+  /// RANK：秩、N、百分位、正态得分或 n 分位组。
+  ///
+  /// 语义对齐 PSPP 2.1.2（`src/language/commands/rank.c`，未加权时 w = 有效个案数）：
+  /// - 秩：`TIES=MEAN` → `cc_1 + (c + 1) / 2`（`c` 为结内个案数，`cc_1` 为结前累计）
+  /// - 百分位：`r * 100 / w`
+  /// - 比例 / 正态得分：Blom `(r - 3/8) / (w + 1/4)`，正态再取 Φ⁻¹；分数 ≤ 0 记为缺失
+  /// - n 分位组：`floor(r * k / (w + 1)) + 1`
+  ///
+  /// 目标变量默认按函数取名（R_ / N_ / RF_ / PR_ / P_ / Z_ / NT_ 前缀），
+  /// 传入 [targetVar] 可覆盖；缺失个案（含用户缺失值）结果为空。
   static TransformResult rank(
     Dataset ds, {
     required String sourceVar,
     String? targetVar,
     bool descending = false,
+    RankFunction function = RankFunction.rank,
+    RankTies ties = RankTies.mean,
+    int ntiles = 4,
   }) {
     final si = ds.indexOf(sourceVar);
     if (si < 0) throw ArgumentError('variable not found');
-    final name = targetVar ?? 'R_$sourceVar';
+    if (function == RankFunction.ntiles && ntiles < 1) {
+      throw ArgumentError('ntiles must be >= 1');
+    }
+    final src = ds.variables[si];
+    final name = targetVar ?? _rankName(function, sourceVar);
     var ti = ds.indexOf(name);
     if (ti < 0) {
-      ds.addVariable(Variable(name: name, measure: MeasureLevel.ordinal));
+      ds.addVariable(Variable(
+        name: name,
+        measure: MeasureLevel.ordinal,
+        decimals: _rankDecimals(function),
+      ));
       ti = ds.nVars - 1;
     }
+    // 有效个案：按该变量自身的缺失规则排除
     final pairs = <(int, double)>[];
     for (var i = 0; i < ds.nCases; i++) {
-      final raw = i < ds.cases[i].length ? ds.cases[i][si] : null;
-      if (raw is num) pairs.add((i, raw.toDouble()));
+      final row = ds.cases[i];
+      final raw = si < row.length ? row[si] : null;
+      if (raw is! num || src.isMissing(raw)) continue;
+      pairs.add((i, raw.toDouble()));
     }
     pairs.sort((a, b) =>
         descending ? b.$2.compareTo(a.$2) : a.$2.compareTo(b.$2));
-    final ranks = List.filled(ds.nCases, 0.0);
+    final w = pairs.length.toDouble();
+    final values = List<double?>.filled(ds.nCases, null);
     var k = 0;
     while (k < pairs.length) {
       var j = k;
       while (j + 1 < pairs.length && pairs[j + 1].$2 == pairs[k].$2) {
         j++;
       }
-      final avg = (k + j) / 2.0 + 1.0;
+      final r = _rankOf(
+        ties,
+        c: (j - k + 1).toDouble(),
+        cc: (j + 1).toDouble(),
+        cc1: k.toDouble(),
+        index: k + 1.0,
+      );
+      final v = _rankFunctionValue(function, r, w, ntiles);
       for (var t = k; t <= j; t++) {
-        ranks[pairs[t].$1] = avg;
+        values[pairs[t].$1] = v;
       }
       k = j + 1;
     }
+    var changed = 0;
     for (var i = 0; i < ds.nCases; i++) {
       final row = ds.cases[i];
       while (row.length <= ti) {
         row.add(null);
       }
-      row[ti] = ranks[i] == 0 ? null : ranks[i];
+      row[ti] = values[i];
+      if (values[i] != null) changed++;
     }
     return TransformResult(
-      message: 'RANK $sourceVar -> $name (${pairs.length} cases)',
+      message: 'RANK $sourceVar -> $name (${_rankLabel(function, ntiles)}, '
+          '$changed cases)',
       dataset: ds,
-      changed: pairs.length,
+      changed: changed,
     );
   }
+
+  /// 秩（PSPP `rank_rank`）：未加权时分结内权重 `c >= 1` 恒成立。
+  static double _rankOf(
+    RankTies ties, {
+    required double c,
+    required double cc,
+    required double cc1,
+    required double index,
+  }) {
+    switch (ties) {
+      case RankTies.low:
+        return cc1 + 1;
+      case RankTies.high:
+        return cc;
+      case RankTies.mean:
+        return cc1 + (c + 1) / 2;
+      case RankTies.condense:
+        return index;
+    }
+  }
+
+  /// 各输出函数取值；分数 ≤ 0（PSPP 的 SYSMIS 情形）返回 null。
+  static double? _rankFunctionValue(
+      RankFunction f, double r, double w, int ntiles) {
+    switch (f) {
+      case RankFunction.rank:
+        return r;
+      case RankFunction.n:
+        return w;
+      case RankFunction.rFraction:
+        return r / w;
+      case RankFunction.percent:
+        return r * 100.0 / w;
+      case RankFunction.proportion:
+      case RankFunction.normal:
+        final p = (r - 3.0 / 8.0) / (w + 0.25);
+        if (p <= 0) return null;
+        return f == RankFunction.proportion ? p : normalQuantile(p);
+      case RankFunction.ntiles:
+        return (r * ntiles / (w + 1)).floorToDouble() + 1;
+    }
+  }
+
+  static String _rankName(RankFunction f, String src) => switch (f) {
+        RankFunction.rank => 'R_$src',
+        RankFunction.n => 'N_$src',
+        RankFunction.rFraction => 'RF_$src',
+        RankFunction.proportion => 'PR_$src',
+        RankFunction.percent => 'P_$src',
+        RankFunction.normal => 'Z_$src',
+        RankFunction.ntiles => 'NT_$src',
+      };
+
+  static int _rankDecimals(RankFunction f) => switch (f) {
+        RankFunction.n || RankFunction.ntiles => 0,
+        _ => 3,
+      };
+
+  static String _rankLabel(RankFunction f, int ntiles) => switch (f) {
+        RankFunction.rank => 'rank',
+        RankFunction.n => 'n',
+        RankFunction.rFraction => 'rfraction',
+        RankFunction.proportion => 'proportion',
+        RankFunction.percent => 'percent',
+        RankFunction.normal => 'normal',
+        RankFunction.ntiles => 'ntiles($ntiles)',
+      };
 
   /// SORT CASES
   static TransformResult sortCases(

@@ -35,6 +35,7 @@ class SyntaxMessages {
   final String computeSyntax;
   final String recodeSyntax;
   final String corrNeedsTwo;
+  final String rankSyntax;
 
   const SyntaxMessages({
     required this.unsupportedCommand,
@@ -43,6 +44,7 @@ class SyntaxMessages {
     required this.computeSyntax,
     required this.recodeSyntax,
     required this.corrNeedsTwo,
+    required this.rankSyntax,
   });
 
   static const zh = SyntaxMessages(
@@ -52,6 +54,8 @@ class SyntaxMessages {
     computeSyntax: 'COMPUTE 语法: COMPUTE target = expression.',
     recodeSyntax: 'RECODE 语法: RECODE v (old=new) INTO t.',
     corrNeedsTwo: 'CORRELATIONS 需要至少 2 个变量',
+    rankSyntax: 'RANK 语法: RANK VARIABLES=v (A|D) /RANK|/N|/PERCENT|/NORMAL|'
+        '/PROPORTION|/RFRACTION|/NTILES(k) /TIES=MEAN|LOW|HIGH|CONDENSE',
   );
 
   static const en = SyntaxMessages(
@@ -61,6 +65,8 @@ class SyntaxMessages {
     computeSyntax: 'COMPUTE syntax: COMPUTE target = expression.',
     recodeSyntax: 'RECODE syntax: RECODE v (old=new) INTO t.',
     corrNeedsTwo: 'CORRELATIONS needs at least 2 variables',
+    rankSyntax: 'RANK syntax: RANK VARIABLES=v (A|D) /RANK|/N|/PERCENT|/NORMAL|'
+        '/PROPORTION|/RFRACTION|/NTILES(k) /TIES=MEAN|LOW|HIGH|CONDENSE',
   );
 }
 
@@ -182,7 +188,7 @@ class SyntaxExecutor {
         case 'RECODE':
           return _recode(cmd, ds, messages);
         case 'RANK':
-          return _rank(cmd, ds);
+          return _rank(cmd, ds, messages);
         case 'SORT':
         case 'SORT CASES':
           return _sort(cmd, ds);
@@ -274,10 +280,74 @@ class SyntaxExecutor {
     return SyntaxResult(command: cmd.raw, ok: true, output: r.message);
   }
 
-  static SyntaxResult _rank(SyntaxCommand cmd, Dataset ds) {
-    final name = cmd.args.isNotEmpty ? cmd.args.first : 'post';
-    final r = Transforms.rank(ds, sourceVar: name);
-    return SyntaxResult(command: cmd.raw, ok: true, output: r.message);
+  /// RANK：`RANK VARIABLES=v1 (A) v2 (D) /NTILES(4) /TIES=MEAN`。
+  ///
+  /// 自变量（VARIABLES=）之后到第一个 `/` 之前是变量表，每个变量可各带
+  /// `(A)` 升序或 `(D)` 降序；随后是输出函数与结处理选项。
+  static SyntaxResult _rank(
+      SyntaxCommand cmd, Dataset ds, SyntaxMessages messages) {
+    final up = cmd.raw.toUpperCase();
+
+    // 变量表：VARIABLES= 之后，或命令动词之后到第一个 '/' 之前
+    final varsM =
+        RegExp(r'VARIABLES\s*=([^/]*)', caseSensitive: false).firstMatch(cmd.raw);
+    final head = varsM?.group(1) ??
+        cmd.raw
+            .split('/')
+            .first
+            .replaceFirst(RegExp(r'^\s*RANK\b', caseSensitive: false), '');
+    final specs = <(String, bool)>[];
+    for (final m
+        in RegExp(r'([A-Za-z_]\w*)\s*(\(\s*([ADad])\s*\))?').allMatches(head)) {
+      specs.add((m.group(1)!, (m.group(3) ?? 'A').toUpperCase() == 'D'));
+    }
+    if (specs.isEmpty) {
+      return SyntaxResult(
+          command: cmd.raw, ok: false, output: messages.rankSyntax);
+    }
+
+    // 输出函数（NTILES 与 NORMAL 都含 /N，先判长名）
+    var function = RankFunction.rank;
+    var ntiles = 4;
+    if (RegExp(r'NTILES\b').hasMatch(up)) {
+      function = RankFunction.ntiles;
+      final m = RegExp(r'NTILES\s*\(\s*(\d+)\s*\)').firstMatch(up);
+      ntiles = int.tryParse(m?.group(1) ?? '') ?? 4;
+    } else if (RegExp(r'/NORMAL\b').hasMatch(up)) {
+      function = RankFunction.normal;
+    } else if (RegExp(r'/PERCENT\b').hasMatch(up)) {
+      function = RankFunction.percent;
+    } else if (RegExp(r'/PROPORTION\b').hasMatch(up)) {
+      function = RankFunction.proportion;
+    } else if (RegExp(r'/RFRACTION\b').hasMatch(up)) {
+      function = RankFunction.rFraction;
+    } else if (RegExp(r'/N\b').hasMatch(up)) {
+      function = RankFunction.n;
+    }
+
+    var ties = RankTies.mean;
+    final tm = RegExp(r'TIES\s*=\s*(\w+)').firstMatch(up);
+    if (tm != null) {
+      ties = switch (tm.group(1)!) {
+        'LOW' => RankTies.low,
+        'HIGH' => RankTies.high,
+        'CONDENSE' => RankTies.condense,
+        _ => RankTies.mean,
+      };
+    }
+
+    final out = <String>[];
+    for (final (name, desc) in specs) {
+      out.add(Transforms.rank(
+        ds,
+        sourceVar: name,
+        descending: desc,
+        function: function,
+        ties: ties,
+        ntiles: ntiles,
+      ).message);
+    }
+    return SyntaxResult(command: cmd.raw, ok: true, output: out.join('\n'));
   }
 
   static SyntaxResult _sort(SyntaxCommand cmd, Dataset ds) {

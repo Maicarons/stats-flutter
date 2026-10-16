@@ -1689,6 +1689,52 @@ class AppLocalizationsZh extends AppLocalizations {
   String get trRankDescending => '降序排名';
 
   @override
+  String get trRankFunction => '输出函数';
+
+  @override
+  String get trRankFRank => 'RANK 秩';
+
+  @override
+  String get trRankFN => 'N 个案数';
+
+  @override
+  String get trRankFRFraction => 'RFRACTION 秩/N';
+
+  @override
+  String get trRankFProportion => 'PROPORTION 比例分数';
+
+  @override
+  String get trRankFPercent => 'PERCENT 百分位';
+
+  @override
+  String get trRankFNormal => 'NORMAL 正态得分';
+
+  @override
+  String get trRankFNtiles => 'NTILES 分位组';
+
+  @override
+  String get trRankNtiles => '分位组数';
+
+  @override
+  String get trRankTies => '结的处理';
+
+  @override
+  String get trRankTiesMean => 'MEAN 平均秩';
+
+  @override
+  String get trRankTiesLow => 'LOW 取最小';
+
+  @override
+  String get trRankTiesHigh => 'HIGH 取最大';
+
+  @override
+  String get trRankTiesCondense => 'CONDENSE 压缩同号';
+
+  @override
+  String get trRankHelp =>
+      '百分位 = 秩/N x 100；正态得分用 Blom 绘图位置 (秩-3/8)/(N+1/4) 再取正态分位数；分位组 = floor(秩xk/(N+1))+1（与 PSPP 一致）。';
+
+  @override
   String get trSortDescending => '降序';
 
   @override
