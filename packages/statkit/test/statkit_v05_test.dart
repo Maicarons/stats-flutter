@@ -358,4 +358,192 @@ void main() {
       expect(r.statisticName, 'D');
     });
   });
+
+  group('多项 logistic', () {
+    test('截距唯一模型：系数、标准误、似然都是闭式', () {
+      // 计数 (8, 5, 7)，参考类别 = 2（默认取最大类别）
+      //   β_k = log(n_k / n_ref)，Var(β_k) = 1/n_k + 1/n_ref（精确，非渐近）
+      final y = <int>[
+        ...List.filled(8, 0),
+        ...List.filled(5, 1),
+        ...List.filled(7, 2),
+      ];
+      final r = multinomialLogistic(const [], y);
+      expect(r.reference, '2');
+      expect(r.levels, [0, 1, 2]);
+      expect(r.converged, isTrue);
+      expect(r.coefficients.length, 2); // 只有非参考类别有方程
+      expect(r.byLevel.length, 2);
+      expect(r.byLevel[0][0].name, '(Constant)');
+      expect(r.byLevel[0][0].beta, closeTo(math.log(8 / 7), 1e-9));
+      expect(r.byLevel[1][0].beta, closeTo(math.log(5 / 7), 1e-9));
+      expect(r.byLevel[0][0].se, closeTo(math.sqrt(1 / 8 + 1 / 7), 1e-6));
+      expect(r.byLevel[1][0].se, closeTo(math.sqrt(1 / 5 + 1 / 7), 1e-6));
+      // 截距唯一模型就是零模型：ll = ll0、伪 R² = 0
+      final ll0 = 8 * math.log(8 / 20) + 5 * math.log(5 / 20) + 7 * math.log(7 / 20);
+      expect(r.logLikelihood, closeTo(ll0, 1e-9));
+      expect(r.logLikelihoodNull, closeTo(ll0, 1e-12));
+      expect(r.pseudoR2, closeTo(0, 1e-9));
+      expect(r.gradientNorm, lessThan(1e-8));
+      // 概率等于样本比例，全部预测到众数类别
+      for (final row in r.probabilities) {
+        expect(row[0], closeTo(0.4, 1e-9));
+        expect(row[1], closeTo(0.25, 1e-9));
+        expect(row[2], closeTo(0.35, 1e-9));
+      }
+      expect(r.accuracy, closeTo(0.4, 1e-12));
+      expect(r.confusion[0][0], 8);
+      expect(r.confusion[1][0], 5);
+      expect(r.confusion[2][0], 7);
+    });
+
+    test('饱和设计（x∈{0,1}）：系数与标准误都是闭式', () {
+      // 组 0 计数 (10,5,5)、组 1 计数 (3,12,5)，参考类别 2
+      //   α_k = log(n_0k/n_02)，γ_k = log(n_1k/n_12) − log(n_0k/n_02)
+      //   Var(α_k) = 1/n_0k + 1/n_02（观测信息与 y 无关，是精确值）
+      //   Var(γ_k) = (1/n_0k + 1/n_02) + (1/n_1k + 1/n_12)，两组信息块对角
+      final x = <double>[], y = <int>[];
+      for (var g = 0; g < 2; g++) {
+        final counts = g == 0 ? const [10, 5, 5] : const [3, 12, 5];
+        for (var k = 0; k < 3; k++) {
+          for (var i = 0; i < counts[k]; i++) {
+            x.add(g.toDouble());
+            y.add(k);
+          }
+        }
+      }
+      final r = multinomialLogistic([x], y, names: ['G']);
+      expect(r.converged, isTrue);
+      expect(r.dfModel, 2); // (k−1)·p = 2·1
+      final alpha = [math.log(10 / 5), math.log(5 / 5)];
+      final gamma = [
+        math.log(3 / 5) - math.log(10 / 5),
+        math.log(12 / 5) - math.log(5 / 5),
+      ];
+      final seAlpha = [math.sqrt(1 / 10 + 1 / 5), math.sqrt(1 / 5 + 1 / 5)];
+      final seGamma = [
+        math.sqrt(1 / 10 + 1 / 5 + 1 / 3 + 1 / 5),
+        math.sqrt(1 / 5 + 1 / 5 + 1 / 12 + 1 / 5),
+      ];
+      for (var q = 0; q < 2; q++) {
+        expect(r.byLevel[q][0].beta, closeTo(alpha[q], 1e-8));
+        expect(r.byLevel[q][1].beta, closeTo(gamma[q], 1e-8));
+        expect(r.byLevel[q][0].se, closeTo(seAlpha[q], 1e-6));
+        expect(r.byLevel[q][1].se, closeTo(seGamma[q], 1e-6));
+      }
+      // 饱和模型的拟合概率 = 各组内的样本比例
+      expect(r.probabilities[0][0], closeTo(0.5, 1e-9));
+      expect(r.probabilities[0][1], closeTo(0.25, 1e-9));
+      expect(r.probabilities[20][1], closeTo(12 / 20, 1e-9));
+    });
+
+    test('二分类时与 logisticRegressionFull 完全一致（含正负号）', () {
+      // 真实的 Bernoulli 抽样（避免完全分离）
+      final rng = math.Random(3);
+      final x1 = <double>[], x2 = <double>[], y = <int>[];
+      for (var i = 0; i < 60; i++) {
+        final a = rng.nextDouble() * 4 - 2;
+        final b = rng.nextDouble() * 4 - 2;
+        x1.add(a);
+        x2.add(b);
+        final p = 1 / (1 + math.exp(-(0.9 * a - 0.6 * b + 0.2)));
+        y.add(rng.nextDouble() < p ? 1 : 0);
+      }
+      final bin = logisticRegressionFull([x1, x2], y, names: ['X1', 'X2']);
+      final mul = multinomialLogistic([x1, x2], y, names: ['X1', 'X2']);
+      expect(mul.converged, isTrue);
+      expect(bin.converged, isTrue);
+      // 参考类别是 1，所以多项式的方程是「0 对 1」，与二分类互为相反数
+      for (var q = 0; q < 3; q++) {
+        expect(mul.byLevel[0][q].beta, closeTo(-bin.coefficients[q].beta, 1e-6));
+        expect(mul.byLevel[0][q].se, closeTo(bin.coefficients[q].se, 1e-6));
+      }
+      // 两条路径的收敛点相差 O(λβ/I) ≈ 5e-8（岭引起的极小偏差）
+      expect(mul.logLikelihood, closeTo(bin.logLikelihood, 1e-6));
+      expect(mul.pseudoR2, closeTo(bin.pseudoR2, 1e-6));
+      expect(mul.accuracy, closeTo(bin.table.accuracy, 1e-12));
+      expect(mul.byLevel[0][0].oddsRatio,
+          closeTo(1 / bin.coefficients[0].oddsRatio, 1e-6));
+    });
+
+    test('换参考类别：系数按理论平移，预测不变', () {
+      // 真实 softmax 生成（避免完全分离）：e = [0, 1.1v−0.4, −0.8v+0.6]
+      final rng = math.Random(5);
+      final x = <double>[], y = <int>[];
+      for (var i = 0; i < 80; i++) {
+        final v = rng.nextDouble() * 3 - 1.5;
+        x.add(v);
+        final eta = [0.0, 1.1 * v - 0.4, -0.8 * v + 0.6];
+        final mx = eta.reduce(math.max);
+        final p = [for (final e in eta) math.exp(e - mx)];
+        final s = p.reduce((a, b) => a + b);
+        final u = rng.nextDouble() * s;
+        y.add(u < p[0] ? 0 : (u < p[0] + p[1] ? 1 : 2));
+      }
+      final r2 = multinomialLogistic([x], y, referenceLevel: 2);
+      final r0 = multinomialLogistic([x], y, referenceLevel: 0);
+      expect(r2.converged, isTrue);
+      expect(r0.converged, isTrue);
+      expect(r2.reference, '2');
+      expect(r0.reference, '0');
+      // r2 的方程是「0 对 2」「1 对 2」；r0 是「1 对 0」「2 对 0」
+      //   β(1|0) = β(1|2) − β(0|2)，β(2|0) = −β(0|2)
+      for (var j = 0; j < 2; j++) {
+        expect(r0.byLevel[0][j].beta,
+            closeTo(r2.byLevel[1][j].beta - r2.byLevel[0][j].beta, 1e-8));
+        expect(r0.byLevel[1][j].beta,
+            closeTo(-r2.byLevel[0][j].beta, 1e-8));
+      }
+      // 概率与命中率与参考类别无关
+      for (var i = 0; i < 80; i++) {
+        for (var c = 0; c < 3; c++) {
+          expect(r0.probabilities[i][c], closeTo(r2.probabilities[i][c], 1e-9));
+        }
+      }
+      expect(r0.accuracy, r2.accuracy);
+      expect(r0.logLikelihood, closeTo(r2.logLikelihood, 1e-9));
+    });
+
+    test('概率归一、类别标签与异常输入', () {
+      final rng = math.Random(9);
+      final x = <double>[], y = <int>[];
+      for (var i = 0; i < 60; i++) {
+        final v = rng.nextDouble() * 4 - 2;
+        x.add(v);
+        final eta = [0.0, 0.6 * v, -0.9 * v + 0.8];
+        final mx = eta.reduce(math.max);
+        final p = [for (final e in eta) math.exp(e - mx)];
+        final s = p.reduce((a, b) => a + b);
+        final u = rng.nextDouble() * s;
+        y.add(u < p[0] ? 0 : (u < p[0] + p[1] ? 1 : 2));
+      }
+      final r = multinomialLogistic(
+        [x],
+        y,
+        names: ['X'],
+        levelLabels: ['低', '中', '高'],
+      );
+      expect(r.converged, isTrue);
+      for (final row in r.probabilities) {
+        expect(row.reduce((a, b) => a + b), closeTo(1, 1e-12));
+        for (final v in row) {
+          expect(v, inInclusiveRange(0, 1));
+        }
+      }
+      expect(r.levelLabels, ['低', '中', '高']);
+      expect(r.reference, '高'); // 默认取最大类别，标签跟着走
+      expect(r.coefficients.map((c) => c.level).toSet(), {'低', '中'});
+      expect(r.names, ['(Constant)', 'X']);
+      expect(r.levels, [0, 1, 2]);
+      expect(r.levelCounts.reduce((a, b) => a + b), 60);
+      expect(() => multinomialLogistic([x], List<int>.filled(60, 7)),
+          throwsArgumentError); // 只有一个类别
+      // 自变量长度与因变量不一致 / 参考类别不存在
+      expect(() => multinomialLogistic([x.sublist(0, 59)], y),
+          throwsArgumentError);
+      expect(() => multinomialLogistic([x], y, referenceLevel: 9),
+          throwsArgumentError);
+      expect(multinomialLogistic([x], y).lrP, inInclusiveRange(0, 1));
+    });
+  });
 }

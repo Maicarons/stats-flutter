@@ -4,6 +4,7 @@ library;
 import 'dart:math' as math;
 
 import 'correlation.dart';
+import 'logistic_full.dart';
 
 class FactorResult {
   final List<double> eigenvalues;
@@ -126,90 +127,27 @@ class LogisticResult {
   });
 }
 
-/// 逻辑回归（批梯度下降，适用于中小样本）
+/// 逻辑回归（二分类）。
+///
+/// 与 [logisticRegressionFull] 共用同一套 IRLS（牛顿–拉夫逊）拟合引擎。
+/// 这里原来是固定步长的批梯度下降，收敛不到极大似然点：同样数据算出的系数与
+/// 对数似然都偏（例如截距唯一模型给出的系数不是 log(n₁/n₀) 这个闭式解）。
+/// [maxIter] 继续生效；[lr] 为兼容旧调用保留，已不再使用。
 LogisticResult logisticRegression(
   List<List<double>> xs,
   List<int> y, {
   List<String>? names,
-  int maxIter = 400,
+  int maxIter = 100,
   double lr = 0.1,
 }) {
-  final p = xs.length;
-  final n = y.length;
-  final labels = names ?? List.generate(p, (i) => 'X${i + 1}');
-  // 标准化
-  final means = List<double>.filled(p, 0);
-  final stds = List.filled(p, 1.0);
-  for (var j = 0; j < p; j++) {
-    final col = xs[j];
-    final m = col.reduce((a, b) => a + b) / n;
-    means[j] = m;
-    final ss = col.fold<double>(0, (a, b) => a + (b - m) * (b - m));
-    final s = math.sqrt(ss / (n > 1 ? n - 1 : 1));
-    stds[j] = s > 1e-12 ? s : 1;
-  }
-
-  var w = List.filled(p + 1, 0.0); // [b0, b1...]
-  var iter = 0;
-  for (; iter < maxIter; iter++) {
-    final grad = List.filled(p + 1, 0.0);
-    for (var i = 0; i < n; i++) {
-      var z = w[0];
-      for (var j = 0; j < p; j++) {
-        z += w[j + 1] * ((xs[j][i] - means[j]) / stds[j]);
-      }
-      final pr = 1 / (1 + math.exp(-z.clamp(-30, 30)));
-      final err = pr - y[i];
-      grad[0] += err;
-      for (var j = 0; j < p; j++) {
-        grad[j + 1] += err * ((xs[j][i] - means[j]) / stds[j]);
-      }
-    }
-    for (var j = 0; j <= p; j++) {
-      w[j] -= lr * grad[j] / n;
-    }
-  }
-
-  // 指标
-  double ll = 0;
-  var correct = 0;
-  final probs = <double>[];
-  for (var i = 0; i < n; i++) {
-    var z = w[0];
-    for (var j = 0; j < p; j++) {
-      z += w[j + 1] * ((xs[j][i] - means[j]) / stds[j]);
-    }
-    final pr = 1 / (1 + math.exp(-z.clamp(-30, 30)));
-    probs.add(pr);
-    final yy = y[i].clamp(0, 1);
-    ll += yy == 1 ? math.log(pr.clamp(1e-12, 1)) : math.log((1 - pr).clamp(1e-12, 1));
-    if ((pr >= 0.5 ? 1 : 0) == yy) correct++;
-  }
-  // 空模型 LL
-  final pi = y.where((e) => e == 1).length / n;
-  double ll0 = 0;
-  for (final yi in y) {
-    ll0 += yi == 1
-        ? math.log(pi.clamp(1e-12, 1))
-        : math.log((1 - pi).clamp(1e-12, 1));
-  }
-  final pseudoR2 = ll0 != 0 ? (1 - ll / ll0).clamp(0.0, 1.0) : 0.0;
-
-  // 还原原始尺度系数
-  final beta = List<double>.filled(p + 1, 0);
-  beta[0] = w[0];
-  for (var j = 0; j < p; j++) {
-    beta[j + 1] = w[j + 1] / stds[j];
-    beta[0] -= w[j + 1] * means[j] / stds[j];
-  }
-
+  final full = logisticRegressionFull(xs, y, names: names, maxIter: maxIter);
   return LogisticResult(
-    coefficients: beta,
-    names: ['(Constant)', ...labels],
-    iterations: iter,
-    logLikelihood: ll,
-    pseudoR2: pseudoR2,
-    accuracy: correct / n,
-    probabilities: probs,
+    coefficients: [for (final c in full.coefficients) c.beta],
+    names: full.names,
+    iterations: full.iterations,
+    logLikelihood: full.logLikelihood,
+    pseudoR2: full.pseudoR2,
+    accuracy: full.table.accuracy,
+    probabilities: full.probabilities,
   );
 }
