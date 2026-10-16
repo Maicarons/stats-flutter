@@ -62,8 +62,9 @@ class ScreePlot extends StatelessWidget {
 
     return LineChart(
       LineChartData(
-        minX: -0.4,
-        maxX: n - 0.6,
+        // x 轴严格取整数刻度（0..n-1），与各主成分点位一一对齐
+        minX: 0,
+        maxX: (n - 1).toDouble(),
         minY: 0,
         maxY: maxY <= 0 ? 1 : maxY * 1.12,
         extraLinesData: ExtraLinesData(

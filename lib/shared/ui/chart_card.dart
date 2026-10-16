@@ -164,7 +164,11 @@ abstract final class ChartStyle {
                 reservedSize: 34,
                 interval: 1,
                 getTitlesWidget: (v, meta) {
-                  final i = v.round();
+                  // 分类轴只在整数刻度出标签：fl_chart 有时会把刻度铺在半格
+                  // （0.5 步长）上，取整会让同一个标签重复出现（PC1 PC1 …）。
+                  final r = v.roundToDouble();
+                  if ((v - r).abs() > 1e-6) return const SizedBox.shrink();
+                  final i = r.toInt();
                   if (i < 0 || i >= bottomLabels.length) {
                     return const SizedBox.shrink();
                   }

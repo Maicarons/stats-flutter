@@ -8,6 +8,7 @@ import 'package:stats_flutter/l10n/app_localizations.dart';
 import '../../core/models/dataset.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../shared/dataset_store.dart';
+import '../../shared/ui/responsive.dart';
 
 class EditableDataGrid extends StatefulWidget {
   final bool showValueLabels;
@@ -26,6 +27,10 @@ class EditableDataGrid extends StatefulWidget {
 class _EditableDataGridState extends State<EditableDataGrid> {
   final ScrollController _hCtrl = ScrollController();
   final ScrollController _vCtrl = ScrollController();
+
+  /// 冻结区（行号 + 首个变量列）的纵向滚动，与 [_vCtrl] 逐像素同步。
+  final ScrollController _vCtrlFrozen = ScrollController();
+  bool _syncingV = false;
 
   /// 正在编辑 (row, col)；null 表示未编辑
   (int, int)? _editing;
@@ -52,7 +57,22 @@ class _EditableDataGridState extends State<EditableDataGrid> {
     super.initState();
     datasetStore.addListener(_onStore);
     _editFocus.addListener(_onEditFocus);
+    // 两区行高与行数一致，偏移量一一对应，直接镜像即可
+    _vCtrl.addListener(() => _mirrorV(_vCtrl, _vCtrlFrozen));
+    _vCtrlFrozen.addListener(() => _mirrorV(_vCtrlFrozen, _vCtrl));
   }
+
+  /// 把 [from] 的纵向偏移镜像到 [to]（重入保护，避免互相触发）。
+  void _mirrorV(ScrollController from, ScrollController to) {
+    if (_syncingV || !from.hasClients || !to.hasClients) return;
+    _syncingV = true;
+    to.jumpTo(from.offset.clamp(0.0, to.position.maxScrollExtent));
+    _syncingV = false;
+  }
+
+  /// 冻结的变量列数：宽屏冻结首个变量列，窄屏只冻结行号列。
+  int _frozenVarCount(double available) =>
+      available >= AppBreakpoints.compact && ds.nVars > 0 ? 1 : 0;
 
   void _onStore() {
     if (!mounted) return;
@@ -81,6 +101,7 @@ class _EditableDataGridState extends State<EditableDataGrid> {
     datasetStore.removeListener(_onStore);
     _hCtrl.dispose();
     _vCtrl.dispose();
+    _vCtrlFrozen.dispose();
     _editCtrl.dispose();
     _editFocus.dispose();
     _gridFocus.dispose();
@@ -237,63 +258,136 @@ class _EditableDataGridState extends State<EditableDataGrid> {
       child: LayoutBuilder(
         builder: (context, box) {
           final colW = _colWidths(box.maxWidth);
-          final contentW = _rowNumW + colW.fold<double>(0, (a, b) => a + b);
+          final frozen = _frozenVarCount(box.maxWidth);
+          final frozenW =
+              _rowNumW + colW.take(frozen).fold<double>(0, (a, b) => a + b);
+          final restW = colW.skip(frozen).fold<double>(0, (a, b) => a + b);
 
           return Column(
             children: [
               _toolbar(l10n, scheme, rows.length),
               Expanded(
-                child: Scrollbar(
-                  controller: _hCtrl,
-                  thumbVisibility: true,
-                  notificationPredicate: (n) => n.depth == 1,
-                  child: SingleChildScrollView(
-                    controller: _hCtrl,
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      width: contentW,
-                      child: Column(
-                        children: [
-                          // 吸顶表头
-                          SizedBox(
-                            height: _headH,
-                            child: Row(
-                              children: [
-                                _headCell(
-                                  '#',
-                                  _rowNumW,
-                                  scheme,
-                                  pinned: true,
-                                  align: TextAlign.center,
+                child: Stack(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // 冻结区：行号列（宽屏再加首个变量列），不参与横向滚动
+                        SizedBox(
+                          width: frozenW,
+                          child: Column(
+                            children: [
+                              SizedBox(
+                                height: _headH,
+                                child: Row(
+                                  children: [
+                                    _headCell(
+                                      '#',
+                                      _rowNumW,
+                                      scheme,
+                                      pinned: true,
+                                      align: TextAlign.center,
+                                      frozenEdge: frozen == 0,
+                                    ),
+                                    for (var c = 0; c < frozen; c++)
+                                      _headCell(
+                                        ds.variables[c].name,
+                                        colW[c],
+                                        scheme,
+                                        pinned: true,
+                                        frozenEdge: c == frozen - 1,
+                                        sub: _varSub(ds.variables[c]),
+                                      ),
+                                  ],
                                 ),
-                                for (var c = 0; c < ds.nVars; c++)
-                                  _headCell(
-                                    ds.variables[c].name,
-                                    colW[c],
-                                    scheme,
-                                    sub: _varSub(ds.variables[c]),
-                                  ),
-                              ],
-                            ),
+                              ),
+                              Expanded(
+                                child: ListView.builder(
+                                  controller: _vCtrlFrozen,
+                                  itemExtent: _rowH,
+                                  itemCount: rows.length,
+                                  itemBuilder: (context, i) => _rowFrozen(
+                                      rows[i], i, colW, scheme, frozen),
+                                ),
+                              ),
+                            ],
                           ),
-                          // 数据区
-                          Expanded(
-                            child: Scrollbar(
-                              controller: _vCtrl,
-                              thumbVisibility: true,
-                              child: ListView.builder(
-                                controller: _vCtrl,
-                                itemExtent: _rowH,
-                                itemCount: rows.length,
-                                itemBuilder: (context, i) =>
-                                    _row(rows[i], i, colW, scheme),
+                        ),
+                        // 可横向滚动区：其余变量列
+                        Expanded(
+                          child: Scrollbar(
+                            controller: _hCtrl,
+                            thumbVisibility: true,
+                            notificationPredicate: (n) =>
+                                n.metrics.axis == Axis.horizontal,
+                            child: SingleChildScrollView(
+                              controller: _hCtrl,
+                              scrollDirection: Axis.horizontal,
+                              child: SizedBox(
+                                width: restW,
+                                child: Column(
+                                  children: [
+                                    SizedBox(
+                                      height: _headH,
+                                      child: Row(
+                                        children: [
+                                          for (var c = frozen;
+                                              c < ds.nVars;
+                                              c++)
+                                            _headCell(
+                                              ds.variables[c].name,
+                                              colW[c],
+                                              scheme,
+                                              sub: _varSub(ds.variables[c]),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Scrollbar(
+                                        controller: _vCtrl,
+                                        thumbVisibility: true,
+                                        notificationPredicate: (n) =>
+                                            n.metrics.axis == Axis.vertical,
+                                        child: ListView.builder(
+                                          controller: _vCtrl,
+                                          itemExtent: _rowH,
+                                          itemCount: rows.length,
+                                          itemBuilder: (context, i) =>
+                                              _rowScroll(rows[i], i, colW,
+                                                  scheme, frozen),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ),
+                    // 冻结边界阴影（覆盖在右区之上，不占布局宽度）
+                    if (frozen > 0)
+                      Positioned(
+                        left: frozenW,
+                        top: 0,
+                        bottom: 0,
+                        width: 10,
+                        child: IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  scheme.shadow.withValues(alpha: 0.16),
+                                  scheme.shadow.withValues(alpha: 0),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
@@ -379,6 +473,7 @@ class _EditableDataGridState extends State<EditableDataGrid> {
     double w,
     ColorScheme scheme, {
     bool pinned = false,
+    bool frozenEdge = false,
     String? sub,
     TextAlign align = TextAlign.left,
   }) {
@@ -393,7 +488,11 @@ class _EditableDataGridState extends State<EditableDataGrid> {
               ? scheme.surfaceContainerHighest
               : scheme.surfaceContainerHigh,
           border: Border(
-            right: BorderSide(color: scheme.outlineVariant),
+            // 冻结区右边界加粗，作为「已冻结」的视觉提示
+            right: BorderSide(
+              color: frozenEdge ? scheme.outline : scheme.outlineVariant,
+              width: frozenEdge ? 1.2 : 1,
+            ),
             bottom: BorderSide(color: scheme.outlineVariant, width: 1.2),
           ),
         ),
@@ -430,61 +529,75 @@ class _EditableDataGridState extends State<EditableDataGrid> {
     );
   }
 
-  Widget _row(int ri, int displayIndex, List<double> colW, ColorScheme scheme) {
-    final row = ds.cases[ri];
-    final isEditingRow = _editing?.$1 == ri;
-    final zebra = displayIndex.isOdd;
-
-    Color? bg;
-    if (isEditingRow) {
-      bg = scheme.primaryContainer.withValues(alpha: 0.30);
-    } else if (_hoverRow == ri) {
-      bg = scheme.surfaceContainerHigh.withValues(alpha: 0.7);
-    } else if (zebra) {
-      bg = scheme.surfaceContainerLow.withValues(alpha: 0.55);
+  /// 行背景：编辑中 > 悬停 > 斑马纹（两侧共用，避免冻结区与滚动区出现色差）。
+  Color? _rowBg(int ri, int displayIndex, ColorScheme scheme) {
+    if (_editing?.$1 == ri) {
+      return scheme.primaryContainer.withValues(alpha: 0.30);
     }
+    if (_hoverRow == ri) {
+      return scheme.surfaceContainerHigh.withValues(alpha: 0.7);
+    }
+    if (displayIndex.isOdd) {
+      return scheme.surfaceContainerLow.withValues(alpha: 0.55);
+    }
+    return null;
+  }
 
-    return MouseRegion(
-      onEnter: (_) {
-        if (_hoverRow != ri) setState(() => _hoverRow = ri);
-      },
-      onExit: (_) {
-        if (_hoverRow == ri) setState(() => _hoverRow = null);
-      },
-      child: Material(
-        color: bg ?? Colors.transparent,
+  Widget _rowMouse(int ri, Widget child) => MouseRegion(
+        onEnter: (_) {
+          if (_hoverRow != ri) setState(() => _hoverRow = ri);
+        },
+        onExit: (_) {
+          if (_hoverRow == ri) setState(() => _hoverRow = null);
+        },
+        child: child,
+      );
+
+  /// 冻结区行：行号列 + 冻结变量列（不参与横向滚动）。
+  Widget _rowFrozen(
+    int ri,
+    int displayIndex,
+    List<double> colW,
+    ColorScheme scheme,
+    int frozen,
+  ) {
+    final row = ds.cases[ri];
+    return _rowMouse(
+      ri,
+      Material(
+        color: _rowBg(ri, displayIndex, scheme) ?? Colors.transparent,
         child: SizedBox(
           height: _rowH,
           child: Row(
             children: [
-              // 行号
-              GestureDetector(
-                onDoubleTap: () => _startEdit(ri, 0),
-                child: Container(
-                  width: _rowNumW,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest.withValues(
-                      alpha: isEditingRow ? 0.6 : 0.95,
-                    ),
-                    border: Border(
-                      right: BorderSide(color: scheme.outlineVariant),
-                      bottom: BorderSide(
-                        color: scheme.outlineVariant.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ),
-                  child: Text(
-                    '${ri + 1}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: scheme.onSurfaceVariant,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                ),
-              ),
-              for (var c = 0; c < ds.nVars; c++)
+              _rowHeader(ri, scheme, frozenEdge: frozen == 0),
+              for (var c = 0; c < frozen; c++)
+                _cell(ri, c, row, colW[c], scheme, frozenEdge: c == frozen - 1),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 滚动区行：其余变量列。
+  Widget _rowScroll(
+    int ri,
+    int displayIndex,
+    List<double> colW,
+    ColorScheme scheme,
+    int frozen,
+  ) {
+    final row = ds.cases[ri];
+    return _rowMouse(
+      ri,
+      Material(
+        color: _rowBg(ri, displayIndex, scheme) ?? Colors.transparent,
+        child: SizedBox(
+          height: _rowH,
+          child: Row(
+            children: [
+              for (var c = frozen; c < ds.nVars; c++)
                 _cell(ri, c, row, colW[c], scheme),
             ],
           ),
@@ -493,7 +606,42 @@ class _EditableDataGridState extends State<EditableDataGrid> {
     );
   }
 
-  Widget _cell(int ri, int c, List<Object?> row, double w, ColorScheme scheme) {
+  /// 行号单元格
+  Widget _rowHeader(int ri, ColorScheme scheme, {bool frozenEdge = false}) {
+    final isEditingRow = _editing?.$1 == ri;
+    return GestureDetector(
+      onDoubleTap: () => _startEdit(ri, 0),
+      child: Container(
+        width: _rowNumW,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest.withValues(
+            alpha: isEditingRow ? 0.6 : 0.95,
+          ),
+          border: Border(
+            right: BorderSide(
+              color: frozenEdge ? scheme.outline : scheme.outlineVariant,
+              width: frozenEdge ? 1.2 : 1,
+            ),
+            bottom: BorderSide(
+              color: scheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+          ),
+        ),
+        child: Text(
+          '${ri + 1}',
+          style: TextStyle(
+            fontSize: 11,
+            color: scheme.onSurfaceVariant,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _cell(int ri, int c, List<Object?> row, double w, ColorScheme scheme,
+      {bool frozenEdge = false}) {
     final v = ds.variables[c];
     final isEdit = _editing != null && _editing!.$1 == ri && _editing!.$2 == c;
     final raw = c < row.length ? row[c] : null;
@@ -506,7 +654,10 @@ class _EditableDataGridState extends State<EditableDataGrid> {
       width: w,
       decoration: BoxDecoration(
         border: Border(
-          right: BorderSide(color: scheme.outlineVariant),
+          right: BorderSide(
+            color: frozenEdge ? scheme.outline : scheme.outlineVariant,
+            width: frozenEdge ? 1.2 : 1,
+          ),
           bottom: BorderSide(
             color: scheme.outlineVariant.withValues(alpha: 0.5),
           ),

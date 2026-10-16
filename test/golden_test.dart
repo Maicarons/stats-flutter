@@ -4,12 +4,17 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stats_flutter/core/models/dataset.dart';
 import 'package:stats_flutter/core/theme/app_theme.dart';
+import 'package:stats_flutter/features/analysis/analysis_runner.dart';
+import 'package:stats_flutter/features/data_editor/data_editor_page.dart';
 import 'package:stats_flutter/features/learn/learn_content.dart';
 import 'package:stats_flutter/features/learn/learn_page.dart';
 import 'package:stats_flutter/features/learn/lesson_detail_page.dart';
 import 'package:stats_flutter/features/quiz/quiz_page.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
+import 'package:stats_flutter/shared/dataset_store.dart';
+import 'package:stats_flutter/shared/ui/charts/charts.dart';
 import 'package:stats_flutter/shared/ui/ui.dart';
 
 const _seed = Color(0xFF2F6FED);
@@ -56,6 +61,8 @@ void main() {
     required Size size,
     required bool dark,
     required String name,
+    Future<void> Function(WidgetTester tester)? before,
+    Finder? target,
   }) async {
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = size;
@@ -63,8 +70,9 @@ void main() {
 
     await tester.pumpWidget(_app(page, dark: dark));
     await tester.pumpAndSettle();
+    if (before != null) await before(tester);
     await expectLater(
-      find.byType(MaterialApp),
+      target ?? find.byType(MaterialApp),
       matchesGoldenFile('golden/$name.png'),
     );
   }
@@ -137,4 +145,113 @@ void main() {
       name: 'nav_phone_light',
     );
   });
+
+  /// 数据表格冻结首列（宽屏）：行号 + 首个变量列不随横向滚动。
+  testWidgets('数据表格 · 冻结首列 · 宽屏 · 浅色', (t) async {
+    datasetStore.replace(_gridDataset());
+    await snap(
+      t,
+      page: const DataEditorPage(),
+      size: wide,
+      dark: false,
+      name: 'data_grid_wide_light',
+      // 让数据集替换触发的自动保存防抖计时器走完，避免测试结束时报「仍有计时器」
+      before: (tester) async {
+        await tester.pump(const Duration(seconds: 3));
+      },
+    );
+  });
+
+  /// 箱线图：真实绘制须 / 四分位箱 / 中位数 / 均值 / 离群点。
+  testWidgets('箱线图 · 手机 · 浅色', (t) async {
+    datasetStore.replace(Dataset.demoScores(zh: false));
+    await snap(
+      t,
+      page: const AnalysisRunner(analysisId: 'boxplot', title: 'Box plot'),
+      size: const Size(390, 2400),
+      dark: false,
+      name: 'boxplot_phone_light',
+      target: find.byType(ChartCard).first,
+      before: (tester) async {
+        await tester.pump(const Duration(seconds: 3));
+        await tester.tap(find.text('post'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Run analysis'));
+        await tester.pumpAndSettle();
+      },
+    );
+  });
+
+  /// 误差条图：均值 ± 95% CI，含总体均值参考线与图例。
+  testWidgets('误差条图 · 手机 · 深色', (t) async {
+    datasetStore.replace(Dataset.demoScores(zh: false));
+    await snap(
+      t,
+      page: const AnalysisRunner(analysisId: 'errorbar', title: 'Error bar'),
+      size: const Size(390, 2400),
+      dark: true,
+      name: 'errorbar_phone_dark',
+      target: find.byType(ChartCard).first,
+      before: (tester) async {
+        await tester.pump(const Duration(seconds: 3));
+        await tester.tap(find.text('post'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Run analysis'));
+        await tester.pumpAndSettle();
+      },
+    );
+  });
+
+  /// Q-Q 图：45° 参考线 + 理论/样本分位轴标题 + 偏离最大的点。
+  testWidgets('Q-Q 图 · 手机 · 浅色', (t) async {
+    datasetStore.replace(Dataset.demoScores(zh: false));
+    await snap(
+      t,
+      page: const AnalysisRunner(analysisId: 'qqplot', title: 'Q-Q plot'),
+      size: const Size(390, 2400),
+      dark: false,
+      name: 'qq_phone_light',
+      target: find.byType(ChartCard).first,
+      before: (tester) async {
+        await tester.pump(const Duration(seconds: 3));
+        await tester.tap(find.text('post'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Run analysis'));
+        await tester.pumpAndSettle();
+      },
+    );
+  });
+
+  /// 碎石图：特征值折线 + 肘部虚线标记。
+  testWidgets('碎石图 · 手机 · 浅色', (t) async {
+    await snap(
+      t,
+      page: const Scaffold(
+        body: Padding(
+          padding: EdgeInsets.all(12),
+          child: ChartCard(
+            title: 'Scree plot',
+            height: 300,
+            child: ScreePlot(eigenvalues: [4.2, 1.6, 0.9, 0.6, 0.4]),
+          ),
+        ),
+      ),
+      size: const Size(390, 420),
+      dark: false,
+      name: 'scree_phone_light',
+    );
+  });
 }
+
+/// 宽屏下必然横向溢出的表格（16 列 × 40 行）。
+Dataset _gridDataset() => Dataset(
+      name: 'wide',
+      variables: [
+        for (var c = 0; c < 16; c++)
+          Variable(name: 'v${(c + 1).toString().padLeft(2, '0')}', decimals: 1),
+      ],
+      cases: [
+        for (var r = 0; r < 40; r++)
+          [for (var c = 0; c < 16; c++) r * 10 + c],
+      ],
+    );

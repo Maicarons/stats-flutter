@@ -101,7 +101,6 @@ class ClusterScatterChart extends StatelessWidget {
     if (points.isEmpty) return ChartEmpty(message: emptyLabel);
 
     final app = context.appColors;
-    final scheme = Theme.of(context).colorScheme;
     final all = [...points, ...centers];
     var minX = double.infinity;
     var maxX = double.negativeInfinity;
@@ -129,15 +128,15 @@ class ClusterScatterChart extends StatelessWidget {
                 strokeWidth: 0,
               ),
             ),
+          // 簇中心：加粗十字，与数据点区分
           for (var c = 0; c < centers.length; c++)
             ScatterSpot(
               centers[c].dx,
               centers[c].dy,
-              dotPainter: FlDotCirclePainter(
-                radius: 6,
+              dotPainter: FlDotCrossPainter(
+                size: 12,
                 color: app.chartAt(c),
-                strokeWidth: 2.2,
-                strokeColor: scheme.surface,
+                width: 2.6,
               ),
             ),
         ],

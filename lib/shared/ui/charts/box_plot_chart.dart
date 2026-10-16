@@ -238,5 +238,6 @@ class _BoxPlotPainter extends CustomPainter {
       old.boxes != boxes ||
       old.frame.plot != frame.plot ||
       old.colors != colors ||
+      old.surface != surface ||
       old.showMean != showMean;
 }

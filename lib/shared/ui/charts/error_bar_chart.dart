@@ -93,6 +93,7 @@ class ErrorBarChart extends StatelessWidget {
                   bars: bars,
                   frame: frame,
                   color: app.chartAt(0),
+                  ciColor: app.ci,
                   surface: scheme.surface,
                   referenceLine: ref,
                   referenceColor: app.ci,
@@ -122,6 +123,9 @@ class _ErrorBarPainter extends CustomPainter {
   final List<ErrorBarData> bars;
   final ChartFrame frame;
   final Color color;
+
+  /// 置信区间须颜色（与均值柱区分，便于图例对应）。
+  final Color ciColor;
   final Color surface;
   final double? referenceLine;
   final Color referenceColor;
@@ -130,6 +134,7 @@ class _ErrorBarPainter extends CustomPainter {
     required this.bars,
     required this.frame,
     required this.color,
+    required this.ciColor,
     required this.surface,
     required this.referenceLine,
     required this.referenceColor,
@@ -166,7 +171,7 @@ class _ErrorBarPainter extends CustomPainter {
 
       // 置信区间须
       final stroke = Paint()
-        ..color = color
+        ..color = ciColor
         ..strokeWidth = 1.6
         ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke;
@@ -200,5 +205,9 @@ class _ErrorBarPainter extends CustomPainter {
   bool shouldRepaint(covariant _ErrorBarPainter old) =>
       old.bars != bars ||
       old.frame.plot != frame.plot ||
-      old.referenceLine != referenceLine;
+      old.referenceLine != referenceLine ||
+      old.color != color ||
+      old.ciColor != ciColor ||
+      old.surface != surface ||
+      old.referenceColor != referenceColor;
 }

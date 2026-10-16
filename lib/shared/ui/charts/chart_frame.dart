@@ -225,12 +225,20 @@ class ChartEmpty extends StatelessWidget {
 }
 
 /// 图表内统一标签样式（11px、等宽数字、弱化色）。
+///
+/// 必须从主题的 [TextTheme] 派生：`CustomPaint` 里的 [TextPainter] 不会
+/// 继承 `DefaultTextStyle`，若就地新建 `TextStyle` 会丢掉主题字体族
+/// （golden 环境下退化成 Ahem，刻度文字会渲染成实心方块）。
 TextStyle chartLabelStyle(BuildContext context) {
-  final scheme = Theme.of(context).colorScheme;
-  return TextStyle(
+  final theme = Theme.of(context);
+  final base = theme.textTheme.labelSmall ??
+      theme.textTheme.bodySmall ??
+      const TextStyle();
+  return base.copyWith(
     fontSize: AppFontSize.caption,
-    color: scheme.onSurfaceVariant,
+    color: theme.colorScheme.onSurfaceVariant,
     fontFeatures: const [FontFeature.tabularFigures()],
+    height: 1.1,
   );
 }
 
