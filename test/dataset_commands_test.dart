@@ -277,6 +277,184 @@ void main() {
       expect(_numCol(d, 'RF_score'), [0.2, 0.4, 0.4, 0.8, 1.0]);
     });
   });
+
+  group('AUTORECODE 自动编码', () {
+    test('字符串取值 → 1..k 数值码 + 自动值标签', () {
+      final d = Dataset(name: 'test');
+      d.addVariable(Variable(name: 'method', type: VarType.string));
+      for (final v in ['B', 'A', 'C', 'A']) {
+        d.addCase([v]);
+      }
+      final r = Transforms.autorecode(d, sourceVars: ['method']);
+      expect(r.changed, 4);
+      // 按字典序 A < B < C 编号
+      expect(_numCol(d, 'method_n'), [2.0, 1.0, 3.0, 1.0]);
+      final dst = d.variables[d.indexOf('method_n')];
+      expect(dst.type, VarType.numeric);
+      expect(dst.decimals, 0);
+      expect(dst.measure, MeasureLevel.nominal);
+      expect(dst.valueLabels, {1: 'A', 2: 'B', 3: 'C'});
+      expect(r.message, contains('method_n'));
+    });
+
+    test('数值变量沿用已有的值标签作为新变量的值标签', () {
+      final d = Dataset(name: 'test');
+      d.addVariable(Variable(
+        name: 'method',
+        measure: MeasureLevel.nominal,
+        valueLabels: {1: 'Lecture', 2: 'Inquiry', 3: 'Blended'},
+      ));
+      for (final v in [3, 1, 2]) {
+        d.addCase([v]);
+      }
+      Transforms.autorecode(d, sourceVars: ['method']);
+      expect(_numCol(d, 'method_n'), [3.0, 1.0, 2.0]);
+      final dst = d.variables[d.indexOf('method_n')];
+      expect(dst.valueLabels, {1: 'Lecture', 2: 'Inquiry', 3: 'Blended'});
+    });
+
+    test('降序：大值得小码', () {
+      final d = _ds(['score'], [
+        [10], [30], [20],
+      ]);
+      Transforms.autorecode(d, sourceVars: ['score'], descending: true);
+      expect(_numCol(d, 'score_n'), [3.0, 1.0, 2.0]);
+    });
+
+    test('用户缺失值排最后并被标为缺失', () {
+      final d = Dataset(name: 'test');
+      d.addVariable(
+          Variable(name: 'score', decimals: 0, missingValues: [99]));
+      for (final v in [1, 99, 3, null]) {
+        d.addCase([v]);
+      }
+      Transforms.autorecode(d, sourceVars: ['score']);
+      // 空值仍为空；99 得到最大码 3
+      expect(_numCol(d, 'score_n'), [1.0, 3.0, 2.0, null]);
+      final dst = d.variables[d.indexOf('score_n')];
+      expect(dst.missingValues, [3.0]);
+      expect(dst.valueLabels[3], '99');
+    });
+
+    test('用户缺失值超过 3 个时改用缺失范围', () {
+      final d = Dataset(name: 'test');
+      d.addVariable(Variable(name: 'score', missingValues: [96, 97, 98, 99]));
+      for (final v in [1, 96, 97, 98, 99]) {
+        d.addCase([v]);
+      }
+      Transforms.autorecode(d, sourceVars: ['score']);
+      final dst = d.variables[d.indexOf('score_n')];
+      expect(_numCol(d, 'score_n'), [1.0, 2.0, 3.0, 4.0, 5.0]);
+      expect(dst.missingValues, isEmpty);
+      expect(dst.missingRangeLow, 2);
+      expect(dst.missingRangeHigh, 5);
+      // 编码后的缺失值确实被判为缺失
+      expect(dst.isMissing(2.0), isTrue);
+      expect(dst.isMissing(1.0), isFalse);
+    });
+
+    test('多个源变量与自定义目标名', () {
+      final d = _ds(['a', 'b'], [
+        [3, 30], [1, 10], [2, 20],
+      ]);
+      final r = Transforms.autorecode(d,
+          sourceVars: ['a', 'b'], targetVars: ['an', 'bn']);
+      expect(_numCol(d, 'an'), [3.0, 1.0, 2.0]);
+      expect(_numCol(d, 'bn'), [3.0, 1.0, 2.0]);
+      expect(r.changed, 6);
+      expect(r.message, contains('an'));
+    });
+
+    test('GROUP：所有源变量共用一张编码表', () {
+      final d = Dataset(name: 'test');
+      d.addVariable(Variable(name: 'a', type: VarType.string));
+      d.addVariable(Variable(name: 'b', type: VarType.string));
+      d.addCase(['A', 'B']);
+      d.addCase(['B', 'C']);
+      Transforms.autorecode(d, sourceVars: ['a', 'b'], group: true);
+      expect(_numCol(d, 'a_n'), [1.0, 2.0]);
+      expect(_numCol(d, 'b_n'), [2.0, 3.0]);
+    });
+
+    test('参数与命名校验', () {
+      final d = _ds(['a', 'b'], [
+        [1, 2],
+      ]);
+      expect(
+          () => Transforms.autorecode(d, sourceVars: []), throwsArgumentError);
+      expect(
+        () => Transforms.autorecode(d,
+            sourceVars: ['a', 'b'], targetVars: ['only']),
+        throwsArgumentError,
+      );
+      expect(() => Transforms.autorecode(d, sourceVars: ['nope']),
+          throwsArgumentError);
+      // 目标名与源名相同时原地编码
+      Transforms.autorecode(d, sourceVars: ['a'], targetVars: ['a']);
+      expect(_numCol(d, 'a'), [1.0]);
+      expect(d.variables[d.indexOf('a')].decimals, 0);
+    });
+  });
+
+  group('AUTORECODE 语法动词', () {
+    test('VARIABLES + INTO', () {
+      final d = Dataset(name: 'test');
+      d.addVariable(Variable(name: 'method', type: VarType.string));
+      for (final v in ['B', 'A', 'C']) {
+        d.addCase([v]);
+      }
+      final rs = SyntaxExecutor.run(
+          'AUTORECODE VARIABLES=method /INTO=code.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isTrue);
+      expect(rs.single.output, contains('code'));
+      expect(_numCol(d, 'code'), [2.0, 1.0, 3.0]);
+    });
+
+    test('省略 INTO 时按 源名_n 命名', () {
+      final d = _ds(['score'], [
+        [20], [10],
+      ]);
+      final rs = SyntaxExecutor.run('AUTORECODE VARIABLES=score.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isTrue);
+      expect(_numCol(d, 'score_n'), [2.0, 1.0]);
+    });
+
+    test('/DESCENDING 与 /BLANK=VALID', () {
+      final d = Dataset(name: 'test');
+      d.addVariable(Variable(name: 'a', type: VarType.string));
+      d.addCase(['A']);
+      d.addCase([null]);
+      d.addCase([' ']);
+      final rs = SyntaxExecutor.run(
+          'AUTORECODE VARIABLES=a /DESCENDING /BLANK=VALID.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isTrue);
+      // BLANK=VALID 下空白串成为有效取值（空格 < 'A'，降序后 'A' 得 1）
+      expect(_numCol(d, 'a_n'), [1.0, null, 2.0]);
+    });
+
+    test('源变量与目标变量数量不一致时报错', () {
+      final d = _ds(['a', 'b'], [
+        [1, 2],
+      ]);
+      final rs = SyntaxExecutor.run('AUTORECODE VARIABLES=a b /INTO=x.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isFalse);
+      expect(rs.single.output, contains('does not match'));
+    });
+
+    test('未给出变量时报语法提示', () {
+      final d = _ds(['a'], [
+        [1],
+      ]);
+      final rs = SyntaxExecutor.run('AUTORECODE /INTO=x.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isFalse);
+      expect(rs.single.output, contains('AUTORECODE syntax'));
+    });
+  });
 }
 
 /// 测试内独立的 Φ⁻¹（二分求 normCdf 的反函数），用于交叉验证 normalQuantile。

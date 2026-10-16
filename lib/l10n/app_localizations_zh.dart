@@ -1622,6 +1622,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get trOpRecode => 'RECODE 重编码';
 
   @override
+  String get trOpAutorecode => 'AUTORECODE 自动编码';
+
+  @override
+  String get trAutorecodeVars => '要编码的变量';
+
+  @override
+  String get trAutorecodeTargets => '目标变量名';
+
+  @override
+  String get trAutorecodeTargetHint => '逗号分隔，留空则用 源名_n';
+
+  @override
+  String get trAutorecodeDescending => '降序编码（大值得小码）';
+
+  @override
+  String get trAutorecodeCountMismatch => '目标变量名数量需与所选变量一致';
+
+  @override
+  String get trAutorecodeHelp =>
+      '按取值升序（字符串按字典序）编号 1,2,3…，并把旧取值写成新变量的值标签；用户缺失值排在最末尾的码上并标为缺失。';
+
+  @override
   String get trOpCount => 'COUNT 计数';
 
   @override

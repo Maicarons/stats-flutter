@@ -36,6 +36,10 @@ class SyntaxMessages {
   final String recodeSyntax;
   final String corrNeedsTwo;
   final String rankSyntax;
+  final String autorecodeSyntax;
+
+  /// 源变量数与目标变量数不一致
+  final String Function(int, int) autorecodeCountMismatch;
 
   const SyntaxMessages({
     required this.unsupportedCommand,
@@ -45,6 +49,8 @@ class SyntaxMessages {
     required this.recodeSyntax,
     required this.corrNeedsTwo,
     required this.rankSyntax,
+    required this.autorecodeSyntax,
+    required this.autorecodeCountMismatch,
   });
 
   static const zh = SyntaxMessages(
@@ -56,6 +62,9 @@ class SyntaxMessages {
     corrNeedsTwo: 'CORRELATIONS 需要至少 2 个变量',
     rankSyntax: 'RANK 语法: RANK VARIABLES=v (A|D) /RANK|/N|/PERCENT|/NORMAL|'
         '/PROPORTION|/RFRACTION|/NTILES(k) /TIES=MEAN|LOW|HIGH|CONDENSE',
+    autorecodeSyntax: 'AUTORECODE 语法: AUTORECODE VARIABLES=a b [/INTO=an bn]'
+        ' [/DESCENDING] [/GROUP] [/BLANK=VALID|MISSING]',
+    autorecodeCountMismatch: _zhArcCountMismatch,
   );
 
   static const en = SyntaxMessages(
@@ -67,6 +76,9 @@ class SyntaxMessages {
     corrNeedsTwo: 'CORRELATIONS needs at least 2 variables',
     rankSyntax: 'RANK syntax: RANK VARIABLES=v (A|D) /RANK|/N|/PERCENT|/NORMAL|'
         '/PROPORTION|/RFRACTION|/NTILES(k) /TIES=MEAN|LOW|HIGH|CONDENSE',
+    autorecodeSyntax: 'AUTORECODE syntax: AUTORECODE VARIABLES=a b [/INTO=an bn]'
+        ' [/DESCENDING] [/GROUP] [/BLANK=VALID|MISSING]',
+    autorecodeCountMismatch: _enArcCountMismatch,
   );
 }
 
@@ -75,12 +87,16 @@ String _enUnsupported(String verb) =>
     'Unsupported command: $verb\nType HELP for the supported list';
 String _zhError(String e) => '错误: $e';
 String _enError(String e) => 'Error: $e';
+String _zhArcCountMismatch(int a, int b) => '源变量数（$a）与目标变量数（$b）不一致';
+String _enArcCountMismatch(int a, int b) =>
+    'Source variable count ($a) does not match target variable count ($b)';
 
 const _zhHelp = '''
 支持的命令（子集）:
   COMPUTE newvar = expression.
   RECODE var (old=new) ...
-  RANK var.
+  AUTORECODE VARIABLES=a b [/INTO=an bn] [/DESCENDING] [/GROUP].
+  RANK VARIABLES=v (A|D) /RANK|/N|/PERCENT|/NORMAL|/NTILES(4) /TIES=MEAN.
   SORT CASES BY var1 var2.
   SELECT IF condition.
   DESCRIPTIVES var1 var2.
@@ -96,7 +112,8 @@ const _enHelp = '''
 Supported commands (subset):
   COMPUTE newvar = expression.
   RECODE var (old=new) ...
-  RANK var.
+  AUTORECODE VARIABLES=a b [/INTO=an bn] [/DESCENDING] [/GROUP].
+  RANK VARIABLES=v (A|D) /RANK|/N|/PERCENT|/NORMAL|/NTILES(4) /TIES=MEAN.
   SORT CASES BY var1 var2.
   SELECT IF condition.
   DESCRIPTIVES var1 var2.
@@ -189,6 +206,8 @@ class SyntaxExecutor {
           return _recode(cmd, ds, messages);
         case 'RANK':
           return _rank(cmd, ds, messages);
+        case 'AUTORECODE':
+          return _autorecode(cmd, ds, messages);
         case 'SORT':
         case 'SORT CASES':
           return _sort(cmd, ds);
@@ -279,6 +298,53 @@ class SyntaxExecutor {
     );
     return SyntaxResult(command: cmd.raw, ok: true, output: r.message);
   }
+
+  /// AUTORECODE：`AUTORECODE VARIABLES=a b /INTO=an bn /DESCENDING /GROUP
+  /// /BLANK=VALID`。
+  ///
+  /// `/INTO` 可省略，此时按「源名_n」命名；数量不一致时报错。
+  static SyntaxResult _autorecode(
+      SyntaxCommand cmd, Dataset ds, SyntaxMessages messages) {
+    final up = cmd.raw.toUpperCase();
+    final varsM =
+        RegExp(r'VARIABLES\s*=([^/]*)', caseSensitive: false).firstMatch(cmd.raw);
+    final head = varsM?.group(1) ??
+        cmd.raw
+            .split('/')
+            .first
+            .replaceFirst(RegExp(r'^\s*AUTORECODE\b', caseSensitive: false), '');
+    final srcs = _names(head);
+    if (srcs.isEmpty) {
+      return SyntaxResult(
+          command: cmd.raw, ok: false, output: messages.autorecodeSyntax);
+    }
+    final intoM =
+        RegExp(r'INTO\s*=?\s*([^/]*)', caseSensitive: false).firstMatch(cmd.raw);
+    final dsts = intoM == null ? null : _names(intoM.group(1)!);
+    if (dsts != null && dsts.length != srcs.length) {
+      return SyntaxResult(
+        command: cmd.raw,
+        ok: false,
+        output: messages.autorecodeCountMismatch(srcs.length, dsts.length),
+      );
+    }
+    final r = Transforms.autorecode(
+      ds,
+      sourceVars: srcs,
+      targetVars: dsts,
+      descending: RegExp(r'DESCENDING\b').hasMatch(up),
+      group: RegExp(r'/GROUP\b').hasMatch(up),
+      blankValid: RegExp(r'BLANK\s*=\s*VALID\b').hasMatch(up),
+    );
+    return SyntaxResult(command: cmd.raw, ok: true, output: r.message);
+  }
+
+  /// 从变量表文本里取变量名：忽略括号内容，按空白 / 逗号分列。
+  static List<String> _names(String s) => s
+      .replaceAll(RegExp(r'\([^)]*\)'), ' ')
+      .split(RegExp(r'[\s,]+'))
+      .where((e) => RegExp(r'^[A-Za-z_]\w*$').hasMatch(e))
+      .toList();
 
   /// RANK：`RANK VARIABLES=v1 (A) v2 (D) /NTILES(4) /TIES=MEAN`。
   ///

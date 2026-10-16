@@ -26,6 +26,7 @@ class _TransformPageState extends State<TransformPage> {
   final _condCtrl = TextEditingController();
   final _matchCtrl = TextEditingController(text: '1');
   final _ntilesCtrl = TextEditingController(text: '4');
+  final _arcTargetCtrl = TextEditingController();
   String? _sourceVar;
   String? _groupVar;
   List<String> _selected = [];
@@ -48,6 +49,7 @@ class _TransformPageState extends State<TransformPage> {
     _condCtrl.dispose();
     _matchCtrl.dispose();
     _ntilesCtrl.dispose();
+    _arcTargetCtrl.dispose();
     super.dispose();
   }
 
@@ -200,6 +202,7 @@ class _TransformPageState extends State<TransformPage> {
   List<_Op> _ops(AppLocalizations l10n) => [
         _Op('compute', l10n.trOpCompute, Icons.calculate_outlined),
         _Op('recode', l10n.trOpRecode, Icons.swap_calls),
+        _Op('autorecode', l10n.trOpAutorecode, Icons.tag),
         _Op('count', l10n.trOpCount, Icons.numbers),
         _Op('rank', l10n.trOpRank, Icons.format_list_numbered),
         _Op('sort', l10n.trOpSort, Icons.sort),
@@ -279,6 +282,27 @@ class _TransformPageState extends State<TransformPage> {
             controller: _matchCtrl,
             decoration: InputDecoration(labelText: l10n.trMatchValue),
           ),
+        ];
+      case 'autorecode':
+        return [
+          _multiSelect(l10n.trAutorecodeVars),
+          gap,
+          TextField(
+            controller: _arcTargetCtrl,
+            decoration: InputDecoration(
+              labelText: l10n.trAutorecodeTargets,
+              hintText: l10n.trAutorecodeTargetHint,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.x1),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(l10n.trAutorecodeDescending),
+            value: _desc,
+            onChanged: (v) => setState(() => _desc = v),
+          ),
+          const SizedBox(height: AppSpacing.x2),
+          _hint(l10n.trAutorecodeHelp, scheme),
         ];
       case 'rank':
         return [
@@ -453,6 +477,23 @@ class _TransformPageState extends State<TransformPage> {
                 : _targetCtrl.text.trim(),
             sourceVars: _selected,
             matchValue: _matchCtrl.text.trim(),
+          );
+          break;
+        case 'autorecode':
+          if (_selected.isEmpty) throw l10n.trNeedVars;
+          final targets = _arcTargetCtrl.text
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+          if (targets.isNotEmpty && targets.length != _selected.length) {
+            throw l10n.trAutorecodeCountMismatch;
+          }
+          r = Transforms.autorecode(
+            ds,
+            sourceVars: List.of(_selected),
+            targetVars: targets.isEmpty ? null : targets,
+            descending: _desc,
           );
           break;
         case 'rank':

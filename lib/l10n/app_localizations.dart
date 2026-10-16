@@ -3176,6 +3176,48 @@ abstract class AppLocalizations {
   /// **'RECODE'**
   String get trOpRecode;
 
+  /// No description provided for @trOpAutorecode.
+  ///
+  /// In en, this message translates to:
+  /// **'AUTORECODE'**
+  String get trOpAutorecode;
+
+  /// No description provided for @trAutorecodeVars.
+  ///
+  /// In en, this message translates to:
+  /// **'Variables to recode'**
+  String get trAutorecodeVars;
+
+  /// No description provided for @trAutorecodeTargets.
+  ///
+  /// In en, this message translates to:
+  /// **'Target names'**
+  String get trAutorecodeTargets;
+
+  /// No description provided for @trAutorecodeTargetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'comma separated; default <source>_n'**
+  String get trAutorecodeTargetHint;
+
+  /// No description provided for @trAutorecodeDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Descending (largest value gets code 1)'**
+  String get trAutorecodeDescending;
+
+  /// No description provided for @trAutorecodeCountMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of target names must match the selected variables'**
+  String get trAutorecodeCountMismatch;
+
+  /// No description provided for @trAutorecodeHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Codes values 1,2,3… in ascending order (text: alphabetical) and writes each old value as a value label on the new variable; user-missing values get the highest codes and are marked missing.'**
+  String get trAutorecodeHelp;
+
   /// No description provided for @trOpCount.
   ///
   /// In en, this message translates to:

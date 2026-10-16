@@ -1639,6 +1639,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trOpRecode => 'RECODE';
 
   @override
+  String get trOpAutorecode => 'AUTORECODE';
+
+  @override
+  String get trAutorecodeVars => 'Variables to recode';
+
+  @override
+  String get trAutorecodeTargets => 'Target names';
+
+  @override
+  String get trAutorecodeTargetHint => 'comma separated; default <source>_n';
+
+  @override
+  String get trAutorecodeDescending => 'Descending (largest value gets code 1)';
+
+  @override
+  String get trAutorecodeCountMismatch =>
+      'Number of target names must match the selected variables';
+
+  @override
+  String get trAutorecodeHelp =>
+      'Codes values 1,2,3… in ascending order (text: alphabetical) and writes each old value as a value label on the new variable; user-missing values get the highest codes and are marked missing.';
+
+  @override
   String get trOpCount => 'COUNT';
 
   @override

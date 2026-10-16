@@ -129,6 +129,18 @@ class _Val {
   const _Val(this.value, this.pos);
 }
 
+/// AUTORECODE 的编码表条目
+class _ArcItem {
+  final Object value;
+  final bool missing;
+  final String label;
+
+  /// 目标码（1..k），建表排序后回填
+  double code = 0;
+
+  _ArcItem({required this.value, required this.missing, required this.label});
+}
+
 /// RANK 的输出函数（对应 PSPP `RANK` 的 /RANK /N /RFRACTION /PROPORTION
 /// /PERCENT /NORMAL /NTILES）。
 enum RankFunction {
@@ -254,6 +266,197 @@ class Transforms {
       changed: changed,
     );
   }
+
+  /// AUTORECODE：把取值编码为 1..k 的数值码，并自动加值标签。
+  ///
+  /// 语义对齐 PSPP 2.1.2（`src/language/commands/autorecode.c`）：
+  /// - 逐个源变量建表，只收录非缺失取值；空值 / 空白仍译为系统缺失；
+  /// - 用户缺失值也参与编码，但**恒排在其后**（取最大若干码，与升 / 降序无关），
+  ///   并在目标变量上标为缺失（超过 3 个时改用缺失范围）；
+  /// - 其余取值按升序编号 1..k，[descending] 时改为降序；
+  /// - [group] 时所有源变量共用一张表（要求类型一致，缺失规则取第一个有
+  ///   用户缺失值的变量）；
+  /// - 目标变量为整数（decimals 0）、名义尺度，沿用源变量的变量标签，
+  ///   值标签取「源取值自身已有的值标签，其次取值的显示文本」。
+  ///
+  /// 目标变量名默认 `源名_n`，可用 [targetVars] 指定；源变量为空、目标名数量
+  /// 不匹配或源变量不存在时报错。
+  static TransformResult autorecode(
+    Dataset ds, {
+    required List<String> sourceVars,
+    List<String>? targetVars,
+    bool descending = false,
+    bool group = false,
+    bool blankValid = false,
+  }) {
+    if (sourceVars.isEmpty) throw ArgumentError('no source variables');
+    if (targetVars != null && targetVars.length != sourceVars.length) {
+      throw ArgumentError('source count (${sourceVars.length}) does not match '
+          'target count (${targetVars.length})');
+    }
+    final srcs = <int>[];
+    for (final n in sourceVars) {
+      final i = ds.indexOf(n);
+      if (i < 0) throw ArgumentError('variable not found: $n');
+      srcs.add(i);
+    }
+    final names = <String>[
+      for (var i = 0; i < srcs.length; i++)
+        targetVars?[i] ?? '${ds.variables[srcs[i]].name}_n',
+    ];
+    if (group) {
+      final t = ds.variables[srcs.first].type;
+      for (final i in srcs) {
+        if (ds.variables[i].type != t) {
+          throw ArgumentError('GROUP requires variables of the same type');
+        }
+      }
+    }
+    // 建表：GROUP 时全部源变量共用第一张
+    final tables = <List<_ArcItem>>[];
+    if (group) {
+      final mvIdx = srcs.firstWhere(
+        (i) =>
+            ds.variables[i].missingValues.isNotEmpty ||
+            ds.variables[i].missingRangeLow != null,
+        orElse: () => srcs.first,
+      );
+      final shared = _arcTable(ds, srcs, descending, blankValid, mvIdx);
+      for (var i = 0; i < srcs.length; i++) {
+        tables.add(shared);
+      }
+    } else {
+      for (final i in srcs) {
+        tables.add(_arcTable(ds, [i], descending, blankValid, i));
+      }
+    }
+    // 先算好每列结果再统一写入：即使目标名与源名相同也不会读到自己写的码
+    final outs = <List<double?>>[];
+    for (var i = 0; i < srcs.length; i++) {
+      final si = srcs[i];
+      final lookup = <String, double>{
+        for (final it in tables[i]) _arcKey(it.value): it.code,
+      };
+      final col = <double?>[];
+      for (final row in ds.cases) {
+        final raw = si < row.length ? row[si] : null;
+        col.add(_arcSkip(raw, blankValid) ? null : lookup[_arcKey(raw!)]);
+      }
+      outs.add(col);
+    }
+    var changed = 0;
+    final lines = <String>[
+      'AUTORECODE ${sourceVars.join(" ")} -> ${names.join(" ")}'
+          '${descending ? " DESCENDING" : ""}',
+    ];
+    for (var i = 0; i < srcs.length; i++) {
+      final si = srcs[i];
+      var ti = ds.indexOf(names[i]);
+      if (ti < 0) {
+        ds.addVariable(Variable(name: names[i]));
+        ti = ds.nVars - 1;
+      }
+      final src = ds.variables[si];
+      final dst = ds.variables[ti];
+      dst
+        ..type = VarType.numeric
+        ..decimals = 0
+        ..measure = MeasureLevel.nominal
+        ..label = src.label
+        ..valueLabels = <num, String>{
+          for (final it in tables[i])
+            if (it.label.isNotEmpty) it.code: it.label,
+        }
+        ..missingValues = <num>[]
+        ..missingRangeLow = null
+        ..missingRangeHigh = null;
+      // 用户缺失值对应最大的若干码：> 3 个时用缺失范围（PSPP 的做法）
+      final missingCodes = [
+        for (final it in tables[i])
+          if (it.missing) it.code,
+      ];
+      if (missingCodes.length > 3) {
+        dst.missingRangeLow = missingCodes.first;
+        dst.missingRangeHigh = missingCodes.last;
+      } else {
+        dst.missingValues = missingCodes;
+      }
+      for (var r = 0; r < ds.nCases; r++) {
+        final row = ds.cases[r];
+        while (row.length <= ti) {
+          row.add(null);
+        }
+        row[ti] = outs[i][r];
+        if (outs[i][r] != null) changed++;
+      }
+      lines.add(
+          '  ${sourceVars[i]} -> ${names[i]} (${tables[i].length} codes)');
+      for (final it in tables[i]) {
+        final text = _arcText(it.value);
+        lines.add('    $text -> ${it.code.toInt()}'
+            '${it.missing ? " [user-missing]" : ""}'
+            '${it.label.isNotEmpty && it.label != text ? " ($it.label)" : ""}');
+      }
+    }
+    return TransformResult(
+      message: lines.join('\n'),
+      dataset: ds,
+      changed: changed,
+    );
+  }
+
+  /// 建立 AUTORECODE 的编码表：收录非缺失取值，按 [descending] 排序后编号，
+  /// 用户缺失值恒排最后。[mvIdx] 决定缺失规则取自哪个源变量。
+  static List<_ArcItem> _arcTable(
+    Dataset ds,
+    List<int> srcs,
+    bool descending,
+    bool blankValid,
+    int mvIdx,
+  ) {
+    final mvVar = ds.variables[mvIdx];
+    final seen = <String, _ArcItem>{};
+    for (final si in srcs) {
+      final v = ds.variables[si];
+      for (final row in ds.cases) {
+        final raw = si < row.length ? row[si] : null;
+        if (_arcSkip(raw, blankValid)) continue;
+        final key = _arcKey(raw!);
+        if (seen.containsKey(key)) continue;
+        seen[key] = _ArcItem(
+          value: raw,
+          missing: v.isMissing(raw) || mvVar.isMissing(raw),
+          label: v.displayValue(raw),
+        );
+      }
+    }
+    final items = seen.values.toList()
+      ..sort((a, b) {
+        if (a.missing != b.missing) return a.missing ? 1 : -1;
+        final cmp = _compareVal(a.value, b.value);
+        return descending ? -cmp : cmp;
+      });
+    for (var i = 0; i < items.length; i++) {
+      items[i].code = i + 1.0;
+    }
+    return items;
+  }
+
+  /// 不进入编码表的值：系统缺失（空值 / NaN）与（默认的）空字符串。
+  static bool _arcSkip(Object? raw, bool blankValid) {
+    if (raw == null) return true;
+    if (raw is num) return raw.isNaN;
+    if (raw is String) return raw.trim().isEmpty && !blankValid;
+    return false;
+  }
+
+  /// 编码表的键：数值与字符串分别成键，数值按 double 规范化（1 与 1.0 同键）。
+  static String _arcKey(Object v) => v is num ? 'n:${v.toDouble()}' : 's:$v';
+
+  /// 编码表里旧取值的显示文本。
+  static String _arcText(Object v) => v is num
+      ? (v == v.roundToDouble() ? v.toInt().toString() : '$v')
+      : '$v';
 
   /// RANK：秩、N、百分位、正态得分或 n 分位组。
   ///
