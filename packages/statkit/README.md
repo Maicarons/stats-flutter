@@ -1,10 +1,11 @@
 # statkit
 
 Pure Dart statistics kernel: descriptives, hypothesis tests, correlation,
-regression, nonparametric tests, reliability, clustering, ROC, PCA and
-logistic regression.
+regression, ANOVA / ANCOVA, nonparametric tests, reliability, clustering,
+ROC, PCA and logistic regression (binary and multinomial).
 
-- **Zero Flutter dependency** — works in Dart VM, Flutter, and web.
+- **Zero Flutter dependency** — works in Dart VM, Flutter, and web. The only
+  runtime dependency is `package:meta` (for the `@experimental` marker).
 - Numerically robust (Lanczos gamma, incomplete beta/gamma, Welch t-test).
 - Used by [Stats-flutter](https://github.com/Maicarons/stats-flutter).
 
@@ -12,7 +13,7 @@ logistic regression.
 
 ```yaml
 dependencies:
-  statkit: ^0.1.0
+  statkit: ^0.5.0
 ```
 
 ## Quick start
@@ -41,17 +42,45 @@ void main() {
 | Descriptives | `Descriptives.compute`, `percentile`, `modes` |
 | Frequencies | `Frequencies.compute`, `Frequencies.histogramBins` |
 | t-tests | `TTest.oneSample` / `independentSamples` / `paired` |
-| ANOVA | `OnewayAnova.compute`, `leveneTest`, `tukeyHsd` |
+| ANOVA / ANCOVA | `OnewayAnova.compute`, `leveneTest`, `tukeyHsd`, `glmOneWay`, `glmTwoWay`, `ancova` |
 | Correlation | `Correlation.pearson` / `spearman` / `matrix` |
-| Regression | `Regression.simple` / `multiple` |
+| Regression | `Regression.simple` / `multiple`, `logisticRegression`, `logisticRegressionFull`, `multinomialLogistic` |
 | Chi-square | `ChiSquareTest.goodnessOfFit` / `independence` |
-| Nonparametric | `Nonparametric.mannWhitney` / `wilcoxon` / `kruskalWallis` / … |
+| Nonparametric | `Nonparametric.mannWhitney` / `wilcoxon` / `kruskalWallis` / `lillieforsP` / … |
+| Permutation | `Permutation.random` / `exact` / `twoSampleMeanDifference` / `pairedDifference` |
+| Trend tests | `NparExtended.jonckheereTerpstra` |
 | Reliability | `Reliability.cronbachAlpha` |
 | Clustering | `KMeans.cluster` |
 | ROC / Normality | `rocCurve`, `normalityTest` |
-| PCA / Logistic | `factorPca`, `logisticRegression` |
+| Factor analysis | `factorPca`, `factorAnalyze`, `kmo`, `bartlettSphericity`, `varimax` |
 | Distributions | `normCdf`, `tTwoTail`, `chiSquareSf`, `fSf`, `lnGamma`, … |
 | Format | `formatNum`, `formatP`, `significanceStars` |
+
+## Versioning
+
+statkit follows [semantic versioning](https://semver.org), with the usual
+pre-1.0 caveat that the **minor** version may contain breaking changes:
+
+- **patch** (`0.5.0` → `0.5.1`): bug fixes only. Correcting a wrong number is a
+  patch — the fix to `logisticRegressionFull` in `0.5.0` changes coefficients,
+  odds ratios and p-values and is still a bug-fix release — but no public
+  signature is removed or renamed.
+- **minor** (`0.5.0` → `0.6.0`): new entry points and, while the version stays
+  below `1.0.0`, possibly breaking changes to signatures, field names and
+  defaults. Every such change is listed under `### Changed` / `### Removed` in
+  [CHANGELOG.md](CHANGELOG.md).
+- **major** (`1.0.0`): the public API freezes; breaking changes move to the
+  next major.
+
+Entries annotated `@experimental` (from `package:meta`) are the part of the
+surface most likely to move: their *numbers* are covered by tests, but their
+names, signatures and the shape of their result types may change in any
+**minor** release. Dropping the annotation later is the signal that the entry
+has stabilised.
+
+This repository's app depends on statkit by path, so an app release and the
+statkit version it shipped are listed together in the app's release notes
+(currently statkit `0.5.0` ↔ app `1.4.0`).
 
 ## Testing
 

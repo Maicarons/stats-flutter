@@ -3,6 +3,8 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:meta/meta.dart';
+
 import 'correlation.dart';
 import 'descriptives.dart';
 import 'distributions.dart';
@@ -303,6 +305,7 @@ class Nonparametric {
   /// n > 100 时按 (n/100)^0.49 缩放 D 后退化为 n = 100 的形式
   /// （statsmodels 与 R nortest 同处理）。该近似在 p < 0.1 时可靠，
   /// p 较大区间的数值只作参考，不影响「是否拒绝」的读数。
+  @experimental
   static double lillieforsP(double d, int n) {
     if (n <= 0 || !d.isFinite || d <= 0) return 1;
     var dd = d;

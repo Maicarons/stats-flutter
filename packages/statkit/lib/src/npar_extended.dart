@@ -4,6 +4,8 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:meta/meta.dart';
+
 import 'correlation.dart';
 import 'descriptives.dart';
 import 'distributions.dart';
@@ -208,6 +210,7 @@ class NparExtended {
   ///
   /// [weights] 与 [groups] 逐组、逐例对应，按频数解释：组内权重均为整数时，
   /// 结果与「把该例重复相应次数」完全一致。
+  @experimental
   static NonparametricResult jonckheereTerpstra(
     List<List<double>> groups, {
     List<List<double>>? weights,

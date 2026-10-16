@@ -1,5 +1,77 @@
 # Changelog
 
+## 0.5.0
+
+Statistical capability upgrade: ordered-alternative and permutation tests,
+Lilliefors normality, multinomial logistic regression, and ANCOVA. Two
+correctness defects in binary logistic regression are fixed (see *Fixed*).
+
+Entries added in this release are annotated `@experimental`; see "Versioning"
+in [README.md](README.md) for what that promises.
+
+### Added
+- `NparExtended.jonckheereTerpstra` — Jonckheere-Terpstra ordered-alternative
+  trend test: pair counting in O(n log n), tie-corrected variance, frequency
+  weights, one-tailed p in `extra['pOneTail']`
+- `Permutation.random` / `Permutation.exact`, `twoSampleMeanDifference`,
+  `pairedDifference` — permutation framework with `(1 + #{|s| ≥ |obs|}) / (1 + B)`
+  p-values (Phipson & Smyth 2010), a fixed default seed, and an exact enumeration
+  mode for small sample sizes
+- `Nonparametric.lillieforsP` — Lilliefors correction for the one-sample KS test
+  with parameters estimated from the sample (Dallal & Wilkinson 1986; same
+  approximation as R `nortest::lillie.test` and statsmodels
+  `pvalmethod='approx'`)
+- `multinomialLogistic` + `MultinomialResult` / `MultinomialWald` — softmax
+  regression by Newton-Raphson on the analytic multinomial information;
+  selectable reference category (default: the highest level, as SPSS NOMREG);
+  per-equation Wald χ², odds ratios with 95% CI, likelihood-ratio χ²,
+  McFadden pseudo-R², classification table, raw-scale covariance matrix
+- `ancova` + `AncovaResult` / `AnovaTerm` / `AncovaSlope` / `AncovaMean` —
+  analysis of covariance, `y ~ A [* B] + covariates`, with **type III** sums of
+  squares (model-comparison definition: SAS-compatible, invariant to unequal
+  cell counts), covariate slopes on the original scale with t/CI, and adjusted
+  means (EMM) with standard errors and 95% CI
+- `LogisticFullResult.iterations` / `LogisticFullResult.converged`
+
+### Fixed
+- `logisticRegressionFull`: the IRLS step dropped the working weight of the work
+  response (`z + residual / w` instead of `w * z + residual`), so the iteration
+  oscillated between two points instead of reaching the maximum-likelihood
+  estimate. Coefficients, odds ratios, standard errors and p-values came from a
+  non-converged point — the intercept-only model with 12 ones and 9 zeros
+  returned 0.5053020 instead of `log(12/9) = 0.2876821`, at a worse
+  log-likelihood (−14.4614 vs −14.3411).
+- `logisticRegressionFull`: the intercept standard error was read off the
+  standardized scale instead of being transformed back with `A·cov·Aᵀ`.
+- `logisticRegression` (`factor_logistic.dart`): was a fixed-step batch gradient
+  descent that never reached the MLE. It now delegates to the corrected IRLS;
+  returned fields and their meaning are unchanged.
+- `Nonparametric.kolmogorovSmirnovNormal`: reported the plain Kolmogorov
+  asymptotic p under a "Lilliefors" label even though mean and SD were
+  estimated, which made the test almost never reject. `D` is now computed with
+  signed `D+`/`D−` and the Lilliefors p is the primary p; the plain asymptotic
+  value is kept in `extra['pKolmogorovAsymptotic']`.
+
+### Changed
+- `normalityTest` now decides on the Lilliefors p, i.e. a strictly more
+  conservative criterion for the same data (estimating the parameters makes the
+  p smaller). The skewness/kurtosis guard (`|skewness| < 1.5`, `|kurtosis| < 3`)
+  is unchanged. The previous Kolmogorov asymptotic p remains available as
+  `NormalityResult.pKolmogorovAsymptotic`.
+- `logisticRegressionFull` also adds `iterations` / `converged`; on complete
+  separation it now returns the last finite iterate with `converged == false`
+  instead of failing.
+
+### Tests
+- `statkit_v05_test.dart` (new): Jonckheere-Terpstra (hand-verified trends,
+  frequency weights, ties), permutation (exact enumeration vs random, monotone
+  statistic), Lilliefors (closed-form and Monte-Carlo cross-checks),
+  multinomial logistic (intercept-only and saturated closed forms, binary
+  degeneracy, reference-category shift), ANCOVA (FWL residualization,
+  `glmTwoWay` agreement in balanced designs, hand-computed type III SS,
+  adjusted-mean identity, confounding)
+- `statkit_v04_test.dart`: closed-form checks for the corrected binary IRLS
+
 ## 0.4.0
 
 Modeling enhancements.
@@ -18,11 +90,14 @@ Modeling enhancements.
 Exploratory analysis: EXAMINE suite, chart data, enhanced normality and factor analysis.
 
 ### Added
-- examine()\ — descriptives, percentiles, extremes, box plot, stem-and-leaf, Q-Q, D'Agostino-Pearson
-- \percentiles\, \extremes\, \oxPlot\, \oxPlotGroups\, \stemAndLeaf- ormalQQPoints\ / ormalQQPointsStandardized- \errorBarsFromGroups- \dagostinoPearson\ normality test
-- Factor: \arimax\, \kmo\, \artlettSphericity\, \actorAnalyze
+- `examine()` — descriptives, percentiles, extremes, box plot, stem-and-leaf, Q-Q, D'Agostino-Pearson
+- `percentiles`, `extremes`, `boxPlot`, `boxPlotGroups`, `stemAndLeaf`,
+  `normalQQPoints` / `normalQQPointsStandardized`, `errorBarsFromGroups`,
+  `dagostinoPearson` normality test
+- Factor: `varimax`, `kmo`, `bartlettSphericity`, `factorAnalyze`
+
 ### Tests
-- \statkit_v03_test.dart\ (examine, charts, KMO/Bartlett, varimax)
+- `statkit_v03_test.dart` (examine, charts, KMO/Bartlett, varimax)
 
 ## 0.2.0
 

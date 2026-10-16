@@ -3,6 +3,8 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:meta/meta.dart';
+
 import 'distributions.dart';
 
 class LogisticWald {
@@ -139,8 +141,8 @@ LogisticFullResult logisticRegressionFull(
   for (var iter = 1; iter <= maxIter; iter++) {
     iterations = iter;
     // Hessian and score
-    final XtWX = List.generate(p + 1, (_) => List<double>.filled(p + 1, 0));
-    final XtWz = List<double>.filled(p + 1, 0);
+    final xtWX = List.generate(p + 1, (_) => List<double>.filled(p + 1, 0));
+    final xtWz = List<double>.filled(p + 1, 0);
     for (var i = 0; i < n; i++) {
       var z = 0.0;
       for (var j = 0; j <= p; j++) {
@@ -154,17 +156,17 @@ LogisticFullResult logisticRegressionFull(
         // 而 z_work = η + W⁻¹(y−μ)，左乘 W 后即 w·η + (y−μ)。
         // 原实现写成 z + residual/w（漏了左乘的 w），迭代步长被放大成
         // w⁻¹ 倍，在 μ 靠边（w 小）的样本上会来回震荡、收敛不到极大似然点。
-        XtWz[a] += Z[i][a] * (w * z + residual);
+        xtWz[a] += Z[i][a] * (w * z + residual);
         for (var b = 0; b <= p; b++) {
-          XtWX[a][b] += w * Z[i][a] * Z[i][b];
+          xtWX[a][b] += w * Z[i][a] * Z[i][b];
         }
         // ridge for separation
       }
     }
     for (var d = 0; d <= p; d++) {
-      XtWX[d][d] += 1e-6;
+      xtWX[d][d] += 1e-6;
     }
-    final newBeta = _solve(XtWX, XtWz);
+    final newBeta = _solve(xtWX, xtWz);
     var diverged = false;
     for (final v in newBeta) {
       if (!v.isFinite || v.abs() > 20) diverged = true;
@@ -185,8 +187,8 @@ LogisticFullResult logisticRegressionFull(
   }
 
   // Covariance = (X'WX)^-1
-  // recompute XtWX at solution
-  final XtWX = List.generate(p + 1, (_) => List<double>.filled(p + 1, 0));
+  // recompute xtWX at solution
+  final xtWX = List.generate(p + 1, (_) => List<double>.filled(p + 1, 0));
   for (var i = 0; i < n; i++) {
     var z = 0.0;
     for (var j = 0; j <= p; j++) {
@@ -196,11 +198,11 @@ LogisticFullResult logisticRegressionFull(
     final w = math.max(mu * (1 - mu), 1e-10);
     for (var a = 0; a <= p; a++) {
       for (var b = 0; b <= p; b++) {
-        XtWX[a][b] += w * Z[i][a] * Z[i][b];
+        xtWX[a][b] += w * Z[i][a] * Z[i][b];
       }
     }
   }
-  final cov = _invert(XtWX);
+  final cov = _invert(xtWX);
 
   // Metrics
   double ll = 0;
@@ -345,6 +347,7 @@ HosmerLemeshow hosmerLemeshow(
 }
 
 /// 多项 logistic 回归的一个系数（某条 logit 方程中的某一项）
+@experimental
 class MultinomialWald {
   /// 该方程对应的响应类别（与 [MultinomialResult.reference] 对比）
   final String level;
@@ -376,6 +379,7 @@ class MultinomialWald {
 }
 
 /// 多项 logistic 回归结果（softmax / 参考类别参数化）
+@experimental
 class MultinomialResult {
   /// 全部响应类别（升序，即原始响应取值）
   final List<int> levels;
@@ -471,6 +475,7 @@ class MultinomialResult {
 /// [xs] 按「自变量优先」组织（xs[j] 是第 j 个自变量的 n 个观测），与
 /// [logisticRegressionFull] 一致；[names] 给变量名，[levelLabels] 给类别显示名
 /// （按升序类别一一对应）。
+@experimental
 MultinomialResult multinomialLogistic(
   List<List<double>> xs,
   List<int> y, {
