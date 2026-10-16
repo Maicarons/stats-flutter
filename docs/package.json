@@ -10,5 +10,10 @@
   },
   "devDependencies": {
     "vitepress": "^1.6.3"
+  },
+  "overrides": {
+    "vite": "^6.4.3",
+    "esbuild": "^0.25.0",
+    "source-map-js": "^1.2.2"
   }
 }
