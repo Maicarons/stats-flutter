@@ -1,4 +1,5 @@
 /// 非参数检验扩展：Binomial / Kendall / McNemar / Friedman / Cochran / Median（v0.2）
+/// 以及 Jonckheere-Terpstra 有序备择趋势检验（v0.5）
 library;
 
 import 'dart:math' as math;
@@ -196,4 +197,161 @@ class NparExtended {
   /// Friedman（别名，便于 NPAR 语义）
   static NonparametricResult friedman(List<List<double>> treatments) =>
       Nonparametric.friedman(treatments);
+
+  /// Jonckheere-Terpstra 有序备择趋势检验。
+  ///
+  /// [groups] 必须按备择假设的方向给出：组序号越大、取值越大 → J 偏大 →
+  /// 支持「随组序号单调上升」的趋势（而非仅仅「某组不同」）。
+  /// 跨组相等的取值（结）每对计 0.5；方差取 Hollander-Wolfe 结校正，
+  /// 与 PSPP `NPAR TESTS /J-T` 用的是同一组公式。返回的 p 为双侧渐近值，
+  /// `extra['pOneTail']` 为「上升」方向的单侧 p。
+  ///
+  /// [weights] 与 [groups] 逐组、逐例对应，按频数解释：组内权重均为整数时，
+  /// 结果与「把该例重复相应次数」完全一致。
+  static NonparametricResult jonckheereTerpstra(
+    List<List<double>> groups, {
+    List<List<double>>? weights,
+  }) {
+    final data = <List<(double, double)>>[];
+    for (var g = 0; g < groups.length; g++) {
+      final values = groups[g];
+      final ws = weights != null && g < weights.length ? weights[g] : null;
+      final rows = <(double, double)>[];
+      for (var i = 0; i < values.length; i++) {
+        final v = values[i];
+        if (!v.isFinite) continue;
+        final w = ws != null && i < ws.length ? ws[i] : 1.0;
+        if (!w.isFinite || w <= 0) continue;
+        rows.add((v, w));
+      }
+      if (rows.isNotEmpty) {
+        rows.sort((a, b) => a.$1.compareTo(b.$1));
+        data.add(rows);
+      }
+    }
+    final levels = data.length;
+    final counts =
+        data.map((g) => g.fold<double>(0, (a, e) => a + e.$2)).toList();
+    final n = counts.fold<double>(0, (a, b) => a + b);
+    if (levels < 2 || n <= 0) {
+      return const NonparametricResult(
+        testName: 'Jonckheere-Terpstra Test',
+        statistic: double.nan,
+        statisticName: 'J',
+        p: double.nan,
+        n1: 0,
+        extra: {'levels': 0},
+      );
+    }
+
+    // J = Σ_{i<j} U_ij：组对之间「前者小于后者」的对数（结计 0.5）
+    var j = 0.0;
+    for (var i = 0; i < levels; i++) {
+      for (var q = i + 1; q < levels; q++) {
+        j += _jtPairU(data[i], data[q]);
+      }
+    }
+
+    // 结组：全样本每个不同取值的权重合计
+    final tieWeights = <double, double>{};
+    for (final g in data) {
+      for (final (v, w) in g) {
+        tieWeights[v] = (tieWeights[v] ?? 0) + w;
+      }
+    }
+    var groupF1 = 0.0, groupF2 = 0.0, groupF3 = 0.0, groupSq = 0.0;
+    for (final c in counts) {
+      groupF1 += _jtF1(c);
+      groupF2 += _jtF2(c);
+      groupF3 += _jtF3(c);
+      groupSq += c * c;
+    }
+    var tieF1 = 0.0, tieF2 = 0.0, tieF3 = 0.0;
+    for (final t in tieWeights.values) {
+      tieF1 += _jtF1(t);
+      tieF2 += _jtF2(t);
+      tieF3 += _jtF3(t);
+    }
+
+    final mean = (n * n - groupSq) / 4.0;
+    final f2n = _jtF2(n), f3n = _jtF3(n);
+    var variance = (_jtF1(n) - groupF1 - tieF1) / 72.0;
+    if (f2n > 0) variance += groupF2 * tieF2 / (36.0 * f2n);
+    if (f3n > 0) variance += groupF3 * tieF3 / (8.0 * f3n);
+    if (variance < 0) variance = 0;
+    final sd = math.sqrt(variance);
+    final z = sd > 0 ? (j - mean) / sd : 0.0;
+    final pTwo = normTwoTail(z);
+
+    return NonparametricResult(
+      testName: 'Jonckheere-Terpstra Test',
+      statistic: j,
+      statisticName: 'J',
+      z: z,
+      p: pTwo,
+      n1: n.round(),
+      n2: levels,
+      extra: {
+        'levels': levels,
+        'meanJ': mean,
+        'sdJ': sd,
+        'variance': variance,
+        'pOneTail': z >= 0 ? pTwo / 2 : 1 - pTwo / 2,
+      },
+    );
+  }
+
+  /// 组对 U 值：A 中每例按权重计「小于 B 的部分 + 相等部分的 0.5」。
+  /// B 已按取值升序，用前缀和 + 二分，复杂度 O(|A| log |B|)。
+  static double _jtPairU(List<(double, double)> a, List<(double, double)> b) {
+    final prefix = List<double>.filled(b.length + 1, 0);
+    for (var i = 0; i < b.length; i++) {
+      prefix[i + 1] = prefix[i] + b[i].$2;
+    }
+    final total = prefix[b.length];
+    var u = 0.0;
+    for (final (v, w) in a) {
+      final firstGe = _jtLowerBound(b, v);
+      final firstGt = _jtUpperBound(b, v);
+      final le = prefix[firstGt];
+      final eq = le - prefix[firstGe];
+      u += w * ((total - le) + 0.5 * eq);
+    }
+    return u;
+  }
+
+  static int _jtLowerBound(List<(double, double)> rows, double v) {
+    var lo = 0, hi = rows.length;
+    while (lo < hi) {
+      final mid = (lo + hi) >> 1;
+      if (rows[mid].$1 < v) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    return lo;
+  }
+
+  static int _jtUpperBound(List<(double, double)> rows, double v) {
+    var lo = 0, hi = rows.length;
+    while (lo < hi) {
+      final mid = (lo + hi) >> 1;
+      if (rows[mid].$1 <= v) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    return lo;
+  }
 }
+
+// —— Jonckheere-Terpstra 方差用到的三个辅助函数（与 PSPP 的 mff[] 一一对应） ——
+
+double _jtF1(double e) => e * (e - 1) * (2 * e + 5);
+
+double _jtF2(double e) => e * (e - 1) * (e - 2);
+
+double _jtF3(double e) => e * (e - 1);
+
