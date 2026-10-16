@@ -48,11 +48,19 @@ class ReportSection {
   final String? body;
   final List<ReportTable> tables;
   final String? notes;
+
+  /// 文件名安全标题（ASCII，如 `descriptives`）。
+  ///
+  /// 仅在分区单独导出时用于文件名；缺省时回退到 [heading]，纯中文标题
+  /// 再回退到分区序号（见 `sectionFileBase`）。
+  final String? slug;
+
   const ReportSection({
     required this.heading,
     this.body,
     this.tables = const [],
     this.notes,
+    this.slug,
   });
 }
 

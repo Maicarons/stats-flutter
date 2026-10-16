@@ -16,6 +16,7 @@ import '../../shared/ui/charts/charts.dart';
 import '../../shared/ui/ui.dart';
 import '../output/report_builder.dart';
 import '../output/report_export.dart';
+import '../output/section_export_menu.dart';
 
 class AnalysisRunner extends StatefulWidget {
   final String analysisId;
@@ -1321,16 +1322,22 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
             ),
           ],
-          notes: l10n.boxPlotNote,
+          notes: [
+            l10n.boxPlotNote,
+            if (boxes.length > BoxPlotChart.maxGroups)
+              l10n.moreGroupsHidden(boxes.length - BoxPlotChart.maxGroups),
+          ].join(' '),
         ),
       ],
     );
     final scheme = Theme.of(context).colorScheme;
     final accent = context.appColors.chartAt(0);
+    final hidden = boxes.length - BoxPlotChart.maxGroups;
     _chart = BoxPlotChart(
       boxes: boxes,
       labels: labels,
       emptyLabel: l10n.chartNoData,
+      overflowLabel: hidden > 0 ? l10n.moreGroupsHidden(hidden) : null,
       tooltips: [
         for (var i = 0; i < boxes.length; i++)
           _boxTooltip(l10n, labels[i], boxes[i]),
@@ -1884,7 +1891,12 @@ class _ReportView extends StatelessWidget {
               ],
             ),
             const Divider(height: AppSpacing.x5),
-            for (final s in report.sections) _SectionBlock(section: s),
+            for (final (i, s) in report.sections.indexed)
+              _SectionBlock(
+                section: s,
+                reportTitle: report.title,
+                index: i,
+              ),
             Text(
               l10n.generatedAt(report.createdAt.toLocal().toIso8601String()),
               style: TextStyle(
@@ -1902,32 +1914,21 @@ class _ReportView extends StatelessWidget {
 /// 报告分区：标题 + 可选复制 + 正文 + 表格 + 注释。
 class _SectionBlock extends StatelessWidget {
   final ReportSection section;
-  const _SectionBlock({required this.section});
 
-  /// 本节纯文本（与报告导出格式一致）。
-  String _plainText() {
-    final b = StringBuffer('## ${section.heading}');
-    if (section.body != null) {
-      b
-        ..writeln()
-        ..writeln(section.body);
-    }
-    for (final t in section.tables) {
-      b
-        ..writeln()
-        ..writeln(t.toText());
-    }
-    if (section.notes != null) {
-      b
-        ..writeln()
-        ..write(section.notes);
-    }
-    return b.toString().trimRight();
-  }
+  /// 所属报告标题（分区导出时作为一级标题与文件名的一部分）。
+  final String reportTitle;
+
+  /// 分区序号（纯中文标题回退为 `section-N`）。
+  final int index;
+
+  const _SectionBlock({
+    required this.section,
+    required this.reportTitle,
+    required this.index,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
 
@@ -1951,22 +1952,10 @@ class _SectionBlock extends StatelessWidget {
                 style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
-            IconButton(
-              tooltip: l10n.copySection,
-              visualDensity: VisualDensity.compact,
-              iconSize: 16,
-              color: scheme.onSurfaceVariant,
-              icon: const Icon(Icons.copy_outlined),
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: _plainText()));
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.copiedToClipboard),
-                    duration: const Duration(milliseconds: 1200),
-                  ),
-                );
-              },
+            SectionExportMenu(
+              section: section,
+              reportTitle: reportTitle,
+              index: index,
             ),
           ],
         ),

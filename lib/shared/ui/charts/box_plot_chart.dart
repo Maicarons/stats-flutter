@@ -13,6 +13,10 @@ import '../../../core/theme/design_tokens.dart';
 import 'chart_frame.dart';
 
 class BoxPlotChart extends StatelessWidget {
+  /// 最多并列显示的分组数：超出后折叠为「前 N 组 + 提示」，
+  /// 避免窄屏下箱体被压成细条。
+  static const int maxGroups = 6;
+
   /// 每个分组一个箱体（单变量时长度为 1）。
   final List<BoxPlotData> boxes;
 
@@ -28,6 +32,9 @@ class BoxPlotChart extends StatelessWidget {
   /// 是否绘制均值标记（菱形）。
   final bool showMean;
 
+  /// 分组被折叠时的提示文案（如「其余 3 组未显示」）；为空则只折叠不提示。
+  final String? overflowLabel;
+
   const BoxPlotChart({
     super.key,
     required this.boxes,
@@ -35,6 +42,7 @@ class BoxPlotChart extends StatelessWidget {
     this.tooltips,
     this.emptyLabel = '',
     this.showMean = true,
+    this.overflowLabel,
   });
 
   /// 全部分组的值域（含离群点与均值）。
@@ -63,24 +71,29 @@ class BoxPlotChart extends StatelessWidget {
   Widget build(BuildContext context) {
     if (boxes.isEmpty) return ChartEmpty(message: emptyLabel);
 
+    // 分组过多时折叠为前 [maxGroups] 组，避免箱体被压成细条。
+    final hidden = boxes.length - maxGroups;
+    final shown = hidden > 0 ? boxes.take(maxGroups).toList() : boxes;
+    final shownLabels = hidden > 0 ? labels.take(maxGroups).toList() : labels;
+
     final scheme = Theme.of(context).colorScheme;
-    final (lo, hi) = BoxPlotChart.valueRange(boxes);
+    final (lo, hi) = BoxPlotChart.valueRange(shown);
     final scale = ChartScale.padded(lo, hi);
     final ticks = niceTicks(scale.min, scale.max);
     final colors = <Color>[
-      for (var i = 0; i < boxes.length; i++) context.appColors.chartAt(i),
+      for (var i = 0; i < shown.length; i++) context.appColors.chartAt(i),
     ];
     final scaler = chartTextScaler(context);
     final labelStyle = chartLabelStyle(context);
 
-    return LayoutBuilder(
+    final chart = LayoutBuilder(
       builder: (context, c) {
         final plot = ChartInsets.plotRect(Size(c.maxWidth, c.maxHeight));
         final frame = ChartFrame(
           plot: plot,
           scale: scale,
           ticks: ticks,
-          categories: labels,
+          categories: shownLabels,
           labelStyle: labelStyle,
           gridColor: scheme.outlineVariant.withValues(alpha: 0.6),
           textScaler: scaler,
@@ -92,7 +105,7 @@ class BoxPlotChart extends StatelessWidget {
             Positioned.fill(
               child: CustomPaint(
                 painter: _BoxPlotPainter(
-                  boxes: boxes,
+                  boxes: shown,
                   frame: frame,
                   colors: colors,
                   surface: scheme.surface,
@@ -101,7 +114,7 @@ class BoxPlotChart extends StatelessWidget {
               ),
             ),
             if (tooltips != null)
-              for (var i = 0; i < boxes.length; i++)
+              for (var i = 0; i < shown.length; i++)
                 Positioned(
                   left: plot.left + i * band,
                   top: plot.top,
@@ -115,6 +128,24 @@ class BoxPlotChart extends StatelessWidget {
           ],
         );
       },
+    );
+
+    final note = overflowLabel;
+    if (hidden <= 0 || note == null) return chart;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: chart),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(
+            note,
+            style: chartLabelStyle(context).copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

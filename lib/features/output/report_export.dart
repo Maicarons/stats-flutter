@@ -64,56 +64,87 @@ String reportToHtml(AnalysisReport report, {String title = 'StatLab Report'}) {
   b.writeln('</header>');
 
   for (final s in report.sections) {
-    b.writeln('<section>');
-    b.writeln('<h2><span class="rule"></span>${_esc(s.heading)}</h2>');
-    if (s.body != null) {
-      b.writeln('<pre class="body">${_esc(s.body!)}</pre>');
-    }
-    for (final t in s.tables) {
-      if (t.caption != null) {
-        b.writeln('<div class="cap">${_esc(t.caption!)}</div>');
-      }
-      final numeric = [
-        for (var c = 0; c < t.headers.length; c++) _numericColumn(t, c),
-      ];
-      final isP = [
-        for (final h in t.headers) _pHeaderRe.hasMatch(h.trim()),
-      ];
-      b.writeln('<div class="scroll"><table><thead><tr>');
-      for (final h in t.headers) {
-        b.writeln('<th>${_esc(h)}</th>');
-      }
-      b.writeln('</tr></thead><tbody>');
-      for (final r in t.rows) {
-        b.writeln('<tr>');
-        for (var i = 0; i < t.headers.length; i++) {
-          var html = _esc(i < r.length ? r[i] : '');
-          var cls = numeric[i] ? 'num' : '';
-          if (isP[i]) {
-            final p = _parseP(i < r.length ? r[i] : '');
-            if (p != null) {
-              final st = _stars(p);
-              if (st.isNotEmpty) {
-                html = '$html<span class="stars">$st</span>';
-                cls = cls.isEmpty ? 'sig' : '$cls sig';
-              }
-            }
-          }
-          b.writeln('<td${cls.isEmpty ? '' : ' class="$cls"'}>$html</td>');
-        }
-        b.writeln('</tr>');
-      }
-      b.writeln('</tbody></table></div>');
-    }
-    if (s.notes != null) {
-      b.writeln('<div class="note">${_esc(s.notes!)}</div>');
-    }
-    b.writeln('</section>');
+    _writeSectionHtml(b, s);
   }
   b.writeln(
       '<footer>${_esc(report.title)} · ${report.createdAt.toLocal()} · Stats-flutter</footer>');
   b.writeln('</div></body></html>');
   return b.toString();
+}
+
+/// 单个分区的独立 HTML：完整 `<head>` 与整份导出同一套 CSS
+/// （配色 / 表格 / 显著性加星 / 暗色 / 打印），可直接打开或分享。
+String sectionToHtml(ReportSection section, {required String reportTitle}) {
+  final b = StringBuffer();
+  b.writeln('<!DOCTYPE html>');
+  b.writeln('<html lang="zh-CN">');
+  b.writeln('<head>');
+  b.writeln('<meta charset="utf-8">');
+  b.writeln(
+      '<meta name="viewport" content="width=device-width, initial-scale=1">');
+  b.writeln(
+      '<title>${_esc(reportTitle)} — ${_esc(section.heading)}</title>');
+  b.writeln('<style>');
+  b.writeln(_css);
+  b.writeln('</style></head><body><div class="wrap">');
+  b.writeln('<header>');
+  b.writeln('<div class="bar"></div>');
+  b.writeln('<h1>${_esc(reportTitle)}</h1>');
+  b.writeln('<div class="sub">${_esc(section.heading)}</div>');
+  b.writeln('</header>');
+  _writeSectionHtml(b, section);
+  b.writeln('<footer>${_esc(reportTitle)} · Stats-flutter</footer>');
+  b.writeln('</div></body></html>');
+  return b.toString();
+}
+
+/// 把一个分区写进 HTML 缓冲区（整份导出与分区导出共用）。
+void _writeSectionHtml(StringBuffer b, ReportSection s) {
+  b.writeln('<section>');
+  b.writeln('<h2><span class="rule"></span>${_esc(s.heading)}</h2>');
+  if (s.body != null) {
+    b.writeln('<pre class="body">${_esc(s.body!)}</pre>');
+  }
+  for (final t in s.tables) {
+    if (t.caption != null) {
+      b.writeln('<div class="cap">${_esc(t.caption!)}</div>');
+    }
+    final numeric = [
+      for (var c = 0; c < t.headers.length; c++) _numericColumn(t, c),
+    ];
+    final isP = [
+      for (final h in t.headers) _pHeaderRe.hasMatch(h.trim()),
+    ];
+    b.writeln('<div class="scroll"><table><thead><tr>');
+    for (final h in t.headers) {
+      b.writeln('<th>${_esc(h)}</th>');
+    }
+    b.writeln('</tr></thead><tbody>');
+    for (final r in t.rows) {
+      b.writeln('<tr>');
+      for (var i = 0; i < t.headers.length; i++) {
+        var html = _esc(i < r.length ? r[i] : '');
+        var cls = numeric[i] ? 'num' : '';
+        if (isP[i]) {
+          final p = _parseP(i < r.length ? r[i] : '');
+          if (p != null) {
+            final st = _stars(p);
+            if (st.isNotEmpty) {
+              html = '$html<span class="stars">$st</span>';
+              cls = cls.isEmpty ? 'sig' : '$cls sig';
+            }
+          }
+        }
+        b.writeln('<td${cls.isEmpty ? '' : ' class="$cls"'}>$html</td>');
+      }
+      b.writeln('</tr>');
+    }
+    b.writeln('</tbody></table></div>');
+  }
+  if (s.notes != null) {
+    b.writeln('<div class="note">${_esc(s.notes!)}</div>');
+  }
+  b.writeln('</section>');
 }
 
 const String _css = '''
@@ -168,35 +199,85 @@ String reportToMarkdown(AnalysisReport report) {
   b.writeln('**${report.subtitle}**');
   b.writeln();
   for (final s in report.sections) {
-    b.writeln('## ${s.heading}');
-    b.writeln();
-    if (s.body != null) {
-      b.writeln('```');
-      b.writeln(s.body);
-      b.writeln('```');
-    }
-    for (final t in s.tables) {
-      if (t.caption != null) {
-        b.writeln('**${t.caption}**');
-      }
-      b.writeln();
-      b.writeln('| ${t.headers.join(' | ')} |');
-      b.writeln('| ${t.headers.map((_) => '---').join(' | ')} |');
-      for (final r in t.rows) {
-        final cells = [
-          for (var i = 0; i < t.headers.length; i++)
-            i < r.length ? r[i] : ''
-        ];
-        b.writeln('| ${cells.join(' | ')} |');
-      }
-      b.writeln();
-    }
-    if (s.notes != null) {
-      b.writeln('> ${s.notes}');
-      b.writeln();
-    }
+    _writeSectionMarkdown(b, s);
   }
   return b.toString();
+}
+
+/// 单个分区的 Markdown（含报告标题作为一级标题，单独分享时仍知道出处）。
+String sectionToMarkdown(
+  ReportSection section, {
+  required String reportTitle,
+}) {
+  final b = StringBuffer();
+  b.writeln('# $reportTitle');
+  b.writeln();
+  _writeSectionMarkdown(b, section);
+  return b.toString();
+}
+
+/// 把一个分区写进 Markdown 缓冲区（整份导出与分区导出共用）。
+void _writeSectionMarkdown(StringBuffer b, ReportSection s) {
+  b.writeln('## ${s.heading}');
+  b.writeln();
+  if (s.body != null) {
+    b.writeln('```');
+    b.writeln(s.body);
+    b.writeln('```');
+  }
+  for (final t in s.tables) {
+    if (t.caption != null) {
+      b.writeln('**${t.caption}**');
+    }
+    b.writeln();
+    b.writeln('| ${t.headers.join(' | ')} |');
+    b.writeln('| ${t.headers.map((_) => '---').join(' | ')} |');
+    for (final r in t.rows) {
+      final cells = [
+        for (var i = 0; i < t.headers.length; i++) i < r.length ? r[i] : ''
+      ];
+      b.writeln('| ${cells.join(' | ')} |');
+    }
+    b.writeln();
+  }
+  if (s.notes != null) {
+    b.writeln('> ${s.notes}');
+    b.writeln();
+  }
+}
+
+/// 文件名安全 slug：只保留 ASCII 字母数字与 `-`。
+///
+/// 中文等非 ASCII 标题会被清空（返回空串），交由调用方回退到分区序号，
+/// 避免出现 `????.md` 或跨平台非法字符。
+String fileSafeSlug(String s) {
+  final cleaned = s
+      .replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-')
+      .replaceAll(RegExp(r'^-+|-+$'), '');
+  return cleaned.length > 48 ? cleaned.substring(0, 48) : cleaned;
+}
+
+/// 分区导出文件名（不含扩展名）：`stats-报告名-分区标题-20261015`。
+///
+/// [index] 用于纯中文标题的回退（`section-2`）。
+String sectionFileBase({
+  required String reportTitle,
+  required ReportSection section,
+  required int index,
+  DateTime? at,
+}) {
+  final d = at ?? DateTime.now();
+  String two(int v) => v.toString().padLeft(2, '0');
+  final reportPart = fileSafeSlug(reportTitle);
+  final slug = section.slug ?? section.heading;
+  final safeSlug = fileSafeSlug(slug);
+  final sectionPart = safeSlug.isEmpty ? 'section-${index + 1}' : safeSlug;
+  return [
+    'stats',
+    if (reportPart.isNotEmpty) reportPart,
+    sectionPart,
+    '${d.year}${two(d.month)}${two(d.day)}',
+  ].join('-');
 }
 
 String _esc(String s) => s
