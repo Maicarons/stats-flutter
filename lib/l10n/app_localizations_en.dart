@@ -1674,6 +1674,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trOpSelect => 'SELECT IF';
 
   @override
+  String get trOpSample => 'SAMPLE';
+
+  @override
+  String get trSampleFraction => 'Fraction';
+
+  @override
+  String get trSampleNFromN => 'n FROM N';
+
+  @override
+  String get trSampleFractionLabel => 'Fraction p (open interval 0–1)';
+
+  @override
+  String get trSampleN => 'Cases to draw (n)';
+
+  @override
+  String get trSampleFrom => 'From N';
+
+  @override
+  String get trSampleSeed => 'Seed';
+
+  @override
+  String get trSampleNeedInput => 'Enter valid sampling parameters';
+
+  @override
+  String get trSampleHelp =>
+      'Fraction keeps each case with probability p (Bernoulli, not exactly pN cases); n FROM N draws exactly n of the first N cases with equal probability (same as PSPP). The same seed and run give the same result.';
+
+  @override
   String get trOpAggregate => 'AGGREGATE';
 
   @override

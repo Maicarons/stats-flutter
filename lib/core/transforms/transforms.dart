@@ -656,6 +656,61 @@ class Transforms {
     );
   }
 
+  /// SAMPLE：按比例或按 n FROM N 抽样，带种子便于复现。
+  ///
+  /// 语义对齐 PSPP 2.1.2（`src/language/commands/sample.c`）：
+  /// - [fraction]（0–1 开区间）：逐个案以该概率保留（Bernoulli，不保证正好 p·N 个）；
+  /// - [n] / [from]：在当前至多前 from 个个案里等概率地恰好留下 n 个，
+  ///   逐个案的保留概率为 `(n - m) / (from - t)`（`m` / `t` 为已留 / 已过个案数），
+  ///   当已留满 n 个之后的个案一律丢弃；序列算法保证第 from 个时正好留满 n 个。
+  ///
+  /// 两者互斥；随机数取自 `math.Random(seed)`（同一种子同一次数结果一致）。
+  static TransformResult sample(
+    Dataset ds, {
+    double? fraction,
+    int? n,
+    int? from,
+    int seed = 20261016,
+  }) {
+    final useFraction = fraction != null;
+    if (useFraction) {
+      if (fraction <= 0 || fraction >= 1) {
+        throw ArgumentError('fraction must be in (0, 1)');
+      }
+    } else if (n == null || from == null || n < 1 || from < n + 1) {
+      throw ArgumentError('requires n FROM N with 1 <= n < N');
+    }
+    final rng = math.Random(seed);
+    final before = ds.nCases;
+    var message = '';
+    if (useFraction) {
+      ds.cases.removeWhere((_) => rng.nextDouble() > fraction);
+      message = 'SAMPLE ${_num(fraction)} (seed $seed) - '
+          'keep ${ds.nCases}, remove ${before - ds.nCases}';
+    } else {
+      var m = 0, t = 0;
+      ds.cases.retainWhere((_) {
+        final keep = m < n! && (from! - t) * rng.nextDouble() < n - m;
+        t++;
+        if (keep) {
+          m++;
+        }
+        return keep;
+      });
+      message = 'SAMPLE $n FROM $from (seed $seed) - '
+          'keep ${ds.nCases}, remove ${before - ds.nCases}';
+    }
+    return TransformResult(
+      message: message,
+      dataset: ds,
+      changed: before - ds.nCases,
+    );
+  }
+
+  /// 紧凑数字文本（去尾零），用于提示信息。
+  static String _num(double v) =>
+      v == v.roundToDouble() ? v.toInt().toString() : '$v';
+
   static bool _evalCondition(String cond, Map<String, double> vars) {
     final orParts = cond.split('||');
     for (final part in orParts) {

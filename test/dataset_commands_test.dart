@@ -30,6 +30,16 @@ List<Object?> _col(Dataset d, String name) => d.rawColumn(name);
 List<double?> _numCol(Dataset d, String name) =>
     [for (final v in _col(d, name)) v == null ? null : (v as num).toDouble()];
 
+/// 造一个 id 从 1 到 [n] 的数据集（SAMPLE 用）
+Dataset _ids(int n) {
+  final d = Dataset(name: 'test');
+  d.addVariable(Variable(name: 'id', decimals: 0));
+  for (var i = 1; i <= n; i++) {
+    d.addCase([i]);
+  }
+  return d;
+}
+
 void main() {
   group('RANK 秩', () {
     test('默认平均秩：结取平均，输出变量为序数尺度', () {
@@ -453,6 +463,128 @@ void main() {
           messages: SyntaxMessages.en);
       expect(rs.single.ok, isFalse);
       expect(rs.single.output, contains('AUTORECODE syntax'));
+    });
+  });
+
+  group('SAMPLE 抽样', () {
+    test('n FROM N：恰好留 n 个，且只来自前 N 个', () {
+      final d = _ids(20);
+      final r = Transforms.sample(d, n: 5, from: 10, seed: 42);
+      expect(d.nCases, 5);
+      expect(r.changed, 15);
+      final ids = d.numericColumn('id');
+      expect(ids.every((v) => v <= 10), isTrue);
+      // 同种子同结果
+      final d2 = _ids(20);
+      Transforms.sample(d2, n: 5, from: 10, seed: 42);
+      expect(d2.numericColumn('id'), ids);
+      // 不同种子会得到不同的组合（取 5 个种子，至少两种结果）
+      final sets = <String>{};
+      for (var seed = 42; seed < 47; seed++) {
+        final dd = _ids(20);
+        Transforms.sample(dd, n: 5, from: 10, seed: seed);
+        sets.add(dd.numericColumn('id').join(','));
+      }
+      expect(sets.length, greaterThan(1));
+    });
+
+    test('n FROM N：前 N 个个案被等概率抽中（200 次重复）', () {
+      final counts = List<int>.filled(20, 0);
+      for (var seed = 0; seed < 200; seed++) {
+        final d = _ids(20);
+        Transforms.sample(d, n: 5, from: 10, seed: seed);
+        for (final v in d.numericColumn('id')) {
+          counts[v.toInt() - 1]++;
+        }
+      }
+      // 前 10 个每个约 200 x 5/10 = 100 次（5σ 约 ±35）
+      for (var i = 0; i < 10; i++) {
+        expect(counts[i], inInclusiveRange(65, 135));
+      }
+      // 第 10 个之后一律不抽
+      for (var i = 10; i < 20; i++) {
+        expect(counts[i], 0);
+      }
+    });
+
+    test('按比例：逐个案 Bernoulli，同种子可复现', () {
+      final d = _ids(200);
+      Transforms.sample(d, fraction: 0.5, seed: 7);
+      expect(d.nCases, inInclusiveRange(80, 120));
+      final d2 = _ids(200);
+      Transforms.sample(d2, fraction: 0.5, seed: 7);
+      expect(d2.numericColumn('id'), d.numericColumn('id'));
+      // 200 个种子的平均保留比例接近 0.5
+      var total = 0;
+      for (var seed = 0; seed < 200; seed++) {
+        final dd = _ids(200);
+        Transforms.sample(dd, fraction: 0.5, seed: seed);
+        total += dd.nCases;
+      }
+      expect(total / (200 * 200), closeTo(0.5, 0.02));
+    });
+
+    test('参数校验', () {
+      final d = _ids(10);
+      expect(() => Transforms.sample(d, fraction: 0), throwsArgumentError);
+      expect(() => Transforms.sample(d, fraction: 1), throwsArgumentError);
+      expect(() => Transforms.sample(d), throwsArgumentError);
+      expect(() => Transforms.sample(d, n: 5), throwsArgumentError);
+      expect(() => Transforms.sample(d, n: 0, from: 10), throwsArgumentError);
+      expect(() => Transforms.sample(d, n: 10, from: 10), throwsArgumentError);
+    });
+  });
+
+  group('SAMPLE 语法动词', () {
+    test('SAMPLE n FROM N', () {
+      final d = _ids(20);
+      final rs = SyntaxExecutor.run('SAMPLE 5 FROM 10.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isTrue);
+      expect(rs.single.output, contains('keep 5'));
+      expect(d.nCases, 5);
+      expect(d.numericColumn('id').every((v) => v <= 10), isTrue);
+    });
+
+    test('SAMPLE p 与 /SEED：同种子可复现，默认种子等于显式写入', () {
+      final d = _ids(50);
+      final rs = SyntaxExecutor.run('SAMPLE 0.4 /SEED=99.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isTrue);
+      final ids = d.numericColumn('id');
+      final d2 = _ids(50);
+      SyntaxExecutor.run('SAMPLE 0.4 /SEED=99.', d2,
+          messages: SyntaxMessages.en);
+      expect(d2.numericColumn('id'), ids);
+      final d3 = _ids(50);
+      SyntaxExecutor.run('SAMPLE 0.4.', d3, messages: SyntaxMessages.en);
+      final d4 = _ids(50);
+      SyntaxExecutor.run('SAMPLE 0.4 /SEED=20261016.', d4,
+          messages: SyntaxMessages.en);
+      expect(d3.numericColumn('id'), d4.numericColumn('id'));
+    });
+
+    test('语法错误时给出提示', () {
+      final d = _ids(10);
+      final rs = SyntaxExecutor.run('SAMPLE abc.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isFalse);
+      expect(rs.single.output, contains('SAMPLE syntax'));
+    });
+
+    test('命令分割不拆开小数（SAMPLE 0.4. 与 COMPUTE x = 1.5.）', () {
+      expect(SyntaxParser.splitCommands('SAMPLE 0.4.'), ['SAMPLE 0.4']);
+      expect(SyntaxParser.splitCommands('COMPUTE x = 1.5.'), ['COMPUTE x = 1.5']);
+      // 多条命令仍在句点处分开
+      expect(SyntaxParser.splitCommands('LIST. SAMPLE 2 FROM 4.'),
+          ['LIST', 'SAMPLE 2 FROM 4']);
+      final d = _ds(['score'], [
+        [1], [2],
+      ]);
+      final rs = SyntaxExecutor.run('COMPUTE x = 1.5. LIST.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.length, 2);
+      expect(_numCol(d, 'x'), [1.5, 1.5]);
     });
   });
 }

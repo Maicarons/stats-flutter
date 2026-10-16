@@ -27,6 +27,11 @@ class _TransformPageState extends State<TransformPage> {
   final _matchCtrl = TextEditingController(text: '1');
   final _ntilesCtrl = TextEditingController(text: '4');
   final _arcTargetCtrl = TextEditingController();
+  final _fracCtrl = TextEditingController(text: '0.5');
+  final _nCtrl = TextEditingController(text: '5');
+  final _fromCtrl = TextEditingController(text: '10');
+  final _seedCtrl = TextEditingController(text: '20261016');
+  bool _sampleByFraction = true;
   String? _sourceVar;
   String? _groupVar;
   List<String> _selected = [];
@@ -50,6 +55,10 @@ class _TransformPageState extends State<TransformPage> {
     _matchCtrl.dispose();
     _ntilesCtrl.dispose();
     _arcTargetCtrl.dispose();
+    _fracCtrl.dispose();
+    _nCtrl.dispose();
+    _fromCtrl.dispose();
+    _seedCtrl.dispose();
     super.dispose();
   }
 
@@ -206,6 +215,7 @@ class _TransformPageState extends State<TransformPage> {
         _Op('count', l10n.trOpCount, Icons.numbers),
         _Op('rank', l10n.trOpRank, Icons.format_list_numbered),
         _Op('sort', l10n.trOpSort, Icons.sort),
+        _Op('sample', l10n.trOpSample, Icons.percent),
         _Op('select', l10n.trOpSelect, Icons.filter_alt_outlined),
         _Op('aggregate', l10n.trOpAggregate, Icons.functions),
         _Op('flip', l10n.trOpFlip, Icons.swap_horiz),
@@ -372,6 +382,74 @@ class _TransformPageState extends State<TransformPage> {
           const SizedBox(height: AppSpacing.x2),
           _hint(l10n.trConditionHelp, scheme),
         ];
+      case 'sample':
+        return [
+          SegmentedButton<bool>(
+            segments: [
+              ButtonSegment(
+                value: true,
+                label: Text(l10n.trSampleFraction),
+                icon: const Icon(Icons.percent),
+              ),
+              ButtonSegment(
+                value: false,
+                label: Text(l10n.trSampleNFromN),
+                icon: const Icon(Icons.format_list_numbered),
+              ),
+            ],
+            selected: {_sampleByFraction},
+            onSelectionChanged: (s) =>
+                setState(() => _sampleByFraction = s.first),
+          ),
+          gap,
+          if (_sampleByFraction)
+            TextField(
+              controller: _fracCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: l10n.trSampleFractionLabel,
+                hintText: '0.5',
+              ),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _nCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: l10n.trSampleN,
+                      hintText: '5',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.x3),
+                Expanded(
+                  child: TextField(
+                    controller: _fromCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: l10n.trSampleFrom,
+                      hintText: '10',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          gap,
+          TextField(
+            controller: _seedCtrl,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: l10n.trSampleSeed,
+              hintText: '20261016',
+            ),
+          ),
+          const SizedBox(height: AppSpacing.x2),
+          _hint(l10n.trSampleHelp, scheme),
+        ];
       case 'aggregate':
         return [
           _dropdown(l10n.trGroupVar, _groupVar, _varNames,
@@ -515,6 +593,23 @@ class _TransformPageState extends State<TransformPage> {
         case 'select':
           if (_condCtrl.text.trim().isEmpty) throw l10n.trNeedCondition;
           r = Transforms.selectIf(ds, condition: _condCtrl.text.trim());
+          break;
+        case 'sample':
+          final seed = int.tryParse(_seedCtrl.text.trim()) ?? 20261016;
+          if (_sampleByFraction) {
+            final p = double.tryParse(_fracCtrl.text.trim());
+            if (p == null || p <= 0 || p >= 1) {
+              throw l10n.trSampleNeedInput;
+            }
+            r = Transforms.sample(ds, fraction: p, seed: seed);
+          } else {
+            final n = int.tryParse(_nCtrl.text.trim());
+            final from = int.tryParse(_fromCtrl.text.trim());
+            if (n == null || from == null || n < 1 || from < n + 1) {
+              throw l10n.trSampleNeedInput;
+            }
+            r = Transforms.sample(ds, n: n, from: from, seed: seed);
+          }
           break;
         case 'aggregate':
           if (_groupVar == null || _selected.isEmpty) {

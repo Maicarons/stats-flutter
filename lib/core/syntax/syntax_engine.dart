@@ -37,6 +37,7 @@ class SyntaxMessages {
   final String corrNeedsTwo;
   final String rankSyntax;
   final String autorecodeSyntax;
+  final String sampleSyntax;
 
   /// 源变量数与目标变量数不一致
   final String Function(int, int) autorecodeCountMismatch;
@@ -50,6 +51,7 @@ class SyntaxMessages {
     required this.corrNeedsTwo,
     required this.rankSyntax,
     required this.autorecodeSyntax,
+    required this.sampleSyntax,
     required this.autorecodeCountMismatch,
   });
 
@@ -64,6 +66,7 @@ class SyntaxMessages {
         '/PROPORTION|/RFRACTION|/NTILES(k) /TIES=MEAN|LOW|HIGH|CONDENSE',
     autorecodeSyntax: 'AUTORECODE 语法: AUTORECODE VARIABLES=a b [/INTO=an bn]'
         ' [/DESCENDING] [/GROUP] [/BLANK=VALID|MISSING]',
+    sampleSyntax: 'SAMPLE 语法: SAMPLE p 或 SAMPLE n FROM N [/SEED=123]',
     autorecodeCountMismatch: _zhArcCountMismatch,
   );
 
@@ -78,6 +81,7 @@ class SyntaxMessages {
         '/PROPORTION|/RFRACTION|/NTILES(k) /TIES=MEAN|LOW|HIGH|CONDENSE',
     autorecodeSyntax: 'AUTORECODE syntax: AUTORECODE VARIABLES=a b [/INTO=an bn]'
         ' [/DESCENDING] [/GROUP] [/BLANK=VALID|MISSING]',
+    sampleSyntax: 'SAMPLE syntax: SAMPLE p or SAMPLE n FROM N [/SEED=123]',
     autorecodeCountMismatch: _enArcCountMismatch,
   );
 }
@@ -127,14 +131,20 @@ Expressions support + - * / ( ) and abs sqrt ln exp log10 sin cos tan round trun
 
 class SyntaxParser {
   static List<String> splitCommands(String source) {
-    // 以句点结尾分割（SPSS 风格），忽略字符串内句点
+    // 以句点结尾分割（SPSS 风格），忽略字符串内句点与数字里的小数点
+    // （否则 `SAMPLE 0.4.` 或 `COMPUTE x = 1.5.` 会被拆开）。
     final out = <String>[];
     final buf = StringBuffer();
     var inStr = false;
     for (var i = 0; i < source.length; i++) {
       final ch = source[i];
       if (ch == '"' || ch == "'") inStr = !inStr;
-      if (ch == '.' && !inStr) {
+      final decimal = ch == '.' &&
+          i > 0 &&
+          i + 1 < source.length &&
+          _digit(source[i - 1]) &&
+          _digit(source[i + 1]);
+      if (ch == '.' && !inStr && !decimal) {
         final s = buf.toString().trim();
         if (s.isNotEmpty) out.add(s);
         buf.clear();
@@ -147,6 +157,11 @@ class SyntaxParser {
     return out;
   }
 
+  static bool _digit(String c) {
+    final u = c.codeUnitAt(0) - 48;
+    return u >= 0 && u <= 9;
+  }
+
   static SyntaxCommand? parse(String cmd) {
     final lines = cmd
         .split('\n')
@@ -156,7 +171,9 @@ class SyntaxParser {
     if (lines.isEmpty) return null;
     final first = lines.first.toUpperCase();
     final verb = first.split(RegExp(r'\s+')).first;
-    final rest = cmd.substring(cmd.indexOf(RegExp(r'\s+'))).trim();
+    // 只有动词、没有参数时（如 `LIST`）不允许 substring(-1)
+    final ws = cmd.indexOf(RegExp(r'\s+'));
+    final rest = ws < 0 ? '' : cmd.substring(ws).trim();
     final args = _splitArgs(rest);
     return SyntaxCommand(verb, args, cmd);
   }
@@ -208,6 +225,8 @@ class SyntaxExecutor {
           return _rank(cmd, ds, messages);
         case 'AUTORECODE':
           return _autorecode(cmd, ds, messages);
+        case 'SAMPLE':
+          return _sample(cmd, ds, messages);
         case 'SORT':
         case 'SORT CASES':
           return _sort(cmd, ds);
@@ -336,6 +355,39 @@ class SyntaxExecutor {
       group: RegExp(r'/GROUP\b').hasMatch(up),
       blankValid: RegExp(r'BLANK\s*=\s*VALID\b').hasMatch(up),
     );
+    return SyntaxResult(command: cmd.raw, ok: true, output: r.message);
+  }
+
+  /// SAMPLE：`SAMPLE 0.5`（按比例）或 `SAMPLE 5 FROM 10`（n FROM N），
+  /// 可加 `/SEED=123` 指定种子（默认固定种子，便于复现）。
+  static SyntaxResult _sample(
+      SyntaxCommand cmd, Dataset ds, SyntaxMessages messages) {
+    final raw = cmd.raw
+        .replaceFirst(RegExp(r'^\s*SAMPLE\b', caseSensitive: false), '')
+        .trim();
+    final seedM =
+        RegExp(r'SEED\s*=\s*(\d+)', caseSensitive: false).firstMatch(raw);
+    final seed = int.tryParse(seedM?.group(1) ?? '') ?? 20261016;
+    final body =
+        raw.replaceAll(RegExp(r'SEED\s*=\s*\d+', caseSensitive: false), ' ');
+    final fromM =
+        RegExp(r'^(\d+)\s+FROM\s+(\d+)', caseSensitive: false).firstMatch(body.trim());
+    if (fromM != null) {
+      final r = Transforms.sample(
+        ds,
+        n: int.parse(fromM.group(1)!),
+        from: int.parse(fromM.group(2)!),
+        seed: seed,
+      );
+      return SyntaxResult(command: cmd.raw, ok: true, output: r.message);
+    }
+    final fracM = RegExp(r'^(\d*\.?\d+)').firstMatch(body.trim());
+    final frac = fracM == null ? null : double.tryParse(fracM.group(1)!);
+    if (frac == null) {
+      return SyntaxResult(
+          command: cmd.raw, ok: false, output: messages.sampleSyntax);
+    }
+    final r = Transforms.sample(ds, fraction: frac, seed: seed);
     return SyntaxResult(command: cmd.raw, ok: true, output: r.message);
   }
 

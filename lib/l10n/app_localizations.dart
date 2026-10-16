@@ -3242,6 +3242,60 @@ abstract class AppLocalizations {
   /// **'SELECT IF'**
   String get trOpSelect;
 
+  /// No description provided for @trOpSample.
+  ///
+  /// In en, this message translates to:
+  /// **'SAMPLE'**
+  String get trOpSample;
+
+  /// No description provided for @trSampleFraction.
+  ///
+  /// In en, this message translates to:
+  /// **'Fraction'**
+  String get trSampleFraction;
+
+  /// No description provided for @trSampleNFromN.
+  ///
+  /// In en, this message translates to:
+  /// **'n FROM N'**
+  String get trSampleNFromN;
+
+  /// No description provided for @trSampleFractionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Fraction p (open interval 0–1)'**
+  String get trSampleFractionLabel;
+
+  /// No description provided for @trSampleN.
+  ///
+  /// In en, this message translates to:
+  /// **'Cases to draw (n)'**
+  String get trSampleN;
+
+  /// No description provided for @trSampleFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'From N'**
+  String get trSampleFrom;
+
+  /// No description provided for @trSampleSeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Seed'**
+  String get trSampleSeed;
+
+  /// No description provided for @trSampleNeedInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter valid sampling parameters'**
+  String get trSampleNeedInput;
+
+  /// No description provided for @trSampleHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Fraction keeps each case with probability p (Bernoulli, not exactly pN cases); n FROM N draws exactly n of the first N cases with equal probability (same as PSPP). The same seed and run give the same result.'**
+  String get trSampleHelp;
+
   /// No description provided for @trOpAggregate.
   ///
   /// In en, this message translates to:

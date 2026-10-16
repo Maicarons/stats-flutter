@@ -1656,6 +1656,34 @@ class AppLocalizationsZh extends AppLocalizations {
   String get trOpSelect => 'SELECT IF 筛选';
 
   @override
+  String get trOpSample => 'SAMPLE 抽样';
+
+  @override
+  String get trSampleFraction => '按比例';
+
+  @override
+  String get trSampleNFromN => 'n FROM N';
+
+  @override
+  String get trSampleFractionLabel => '比例 p（0–1 开区间）';
+
+  @override
+  String get trSampleN => '抽取个数 n';
+
+  @override
+  String get trSampleFrom => '总个数 N';
+
+  @override
+  String get trSampleSeed => '随机种子';
+
+  @override
+  String get trSampleNeedInput => '请填写有效的抽样参数';
+
+  @override
+  String get trSampleHelp =>
+      '按比例时逐个案以 p 保留（Bernoulli，不保证正好 pN 个）；n FROM N 在前 N 个个案里等概率地恰好留 n 个（与 PSPP 一致）。同一种子同一次数结果一致。';
+
+  @override
   String get trOpAggregate => 'AGGREGATE 汇总';
 
   @override
