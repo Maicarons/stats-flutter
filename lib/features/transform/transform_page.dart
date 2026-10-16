@@ -8,9 +8,11 @@ import 'package:stats_flutter/l10n/app_localizations.dart';
 import '../../core/models/dataset.dart';
 import '../../core/models/mrset.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/transforms/combine_files.dart';
 import '../../core/transforms/transforms.dart';
 import '../../shared/dataset_store.dart';
 import '../../shared/ui/ui.dart';
+import '../data_editor/pick_dataset.dart';
 
 class TransformPage extends StatefulWidget {
   final dynamic project;
@@ -42,6 +44,10 @@ class _TransformPageState extends State<TransformPage> {
   final _mrValueCtrl = TextEditingController(text: '1');
   String? _mrSetName;
   String? _mrBy;
+  bool _combineMatch = false;
+  Dataset? _otherDs;
+  String? _otherName;
+  final _combineInCtrl = TextEditingController();
   String? _sourceVar;
   String? _groupVar;
   List<String> _selected = [];
@@ -72,6 +78,7 @@ class _TransformPageState extends State<TransformPage> {
     _mrNameCtrl.dispose();
     _mrLabelCtrl.dispose();
     _mrValueCtrl.dispose();
+    _combineInCtrl.dispose();
     super.dispose();
   }
 
@@ -230,6 +237,7 @@ class _TransformPageState extends State<TransformPage> {
         _Op('sort', l10n.trOpSort, Icons.sort),
         _Op('sample', l10n.trOpSample, Icons.percent),
         _Op('mrsets', l10n.trOpMrsets, Icons.checklist),
+        _Op('combine', l10n.trOpCombine, Icons.merge_type),
         _Op('select', l10n.trOpSelect, Icons.filter_alt_outlined),
         _Op('aggregate', l10n.trOpAggregate, Icons.functions),
         _Op('flip', l10n.trOpFlip, Icons.swap_horiz),
@@ -551,6 +559,61 @@ class _TransformPageState extends State<TransformPage> {
           const SizedBox(height: AppSpacing.x2),
           _hint(l10n.trMrHelp, scheme),
         ];
+      case 'combine':
+        return [
+          SegmentedButton<bool>(
+            segments: [
+              ButtonSegment(
+                  value: false, label: Text(l10n.trCombineAdd)),
+              ButtonSegment(
+                  value: true, label: Text(l10n.trCombineMatch)),
+            ],
+            selected: {_combineMatch},
+            onSelectionChanged: (s) =>
+                setState(() => _combineMatch = s.first),
+          ),
+          gap,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _otherName ?? l10n.trCombineNoFile,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: _pickOther,
+                icon: const Icon(Icons.folder_open, size: 18),
+                label: Text(l10n.trCombinePick),
+              ),
+              if (_otherDs != null)
+                IconButton(
+                  tooltip: l10n.trCombineClear,
+                  icon: const Icon(Icons.close, size: 18),
+                  onPressed: () => setState(() {
+                    _otherDs = null;
+                    _otherName = null;
+                  }),
+                ),
+            ],
+          ),
+          gap,
+          TextField(
+            controller: _combineInCtrl,
+            decoration: InputDecoration(
+              labelText: l10n.trCombineIn,
+              hintText: 'src',
+            ),
+          ),
+          gap,
+          _multiSelect(_combineMatch ? l10n.trCombineBy : l10n.trCombineAddBy),
+          const SizedBox(height: AppSpacing.x2),
+          _hint(l10n.trCombineHelp, scheme),
+        ];
       case 'flip':
         return [
           Text(
@@ -560,6 +623,45 @@ class _TransformPageState extends State<TransformPage> {
         ];
     }
     return const [];
+  }
+
+  /// COMBINE FILES：ADD FILES（纵向追加）/ MATCH FILES（按键匹配查表文件）
+  TransformResult _runCombine(AppLocalizations l10n) {
+    final other = _otherDs;
+    if (other == null) throw l10n.trCombineNeedFile;
+    final inVar = _combineInCtrl.text.trim();
+    final input = CombineInput(
+      other,
+      inVar: inVar.isEmpty ? null : inVar,
+    );
+    final by = _selected.isEmpty ? null : List<String>.of(_selected);
+    final r = _combineMatch
+        ? CombineFiles.matchFiles(CombineInput(ds), [input], by: by)
+        : CombineFiles.addFiles([CombineInput(ds), input], by: by);
+    return TransformResult(
+      message: r.message,
+      dataset: r.dataset,
+      changed: r.dataset.nCases,
+    );
+  }
+
+  /// 选择「另一个文件」并读成数据集
+  Future<void> _pickOther() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final picked = await pickDatasetFile();
+      if (picked == null) return;
+      setState(() {
+        _otherDs = picked.dataset;
+        _otherName = '${picked.fileName}  '
+            '(${picked.dataset.nCases} x ${picked.dataset.nVars})';
+      });
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.trCombineReadFailed('$e'))),
+      );
+    }
   }
 
   /// MRSETS：定义 / 删除 / 显示定义 / 频数表 / 交叉表
@@ -804,6 +906,9 @@ class _TransformPageState extends State<TransformPage> {
           break;
         case 'mrsets':
           r = _runMrsets(l10n);
+          break;
+        case 'combine':
+          r = _runCombine(l10n);
           break;
         default:
           throw l10n.trUnknownOp;

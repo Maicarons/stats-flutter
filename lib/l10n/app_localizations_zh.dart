@@ -1729,6 +1729,63 @@ class AppLocalizationsZh extends AppLocalizations {
       '二分法组（MDGROUP）每个成员变量算一个类别，取值为选中值的个案视为选中；分类法组（MCGROUP）是同一个分类问题的多个响应，按取值合并类别、标签取值标签。频数表同时给出响应数与有响应的个案数，交叉表按列给出两者。';
 
   @override
+  String get trOpCombine => '合并文件';
+
+  @override
+  String get trCombineAdd => '追加（ADD FILES）';
+
+  @override
+  String get trCombineMatch => '按键匹配（MATCH FILES）';
+
+  @override
+  String get trCombineNoFile => '尚未选择要合并的文件';
+
+  @override
+  String get trCombinePick => '选择文件';
+
+  @override
+  String get trCombineClear => '清除';
+
+  @override
+  String get trCombineIn => '来源指示变量（/IN=，可空）';
+
+  @override
+  String get trCombineBy => '匹配键（/BY，可空则按个案序号对齐）';
+
+  @override
+  String get trCombineAddBy => '按 BY 交错（/BY，可空；给出时要求两表都已按它升序）';
+
+  @override
+  String get trCombineNeedFile => '请先选择要合并的文件';
+
+  @override
+  String trCombinePicked(String name) {
+    return '已选择：$name';
+  }
+
+  @override
+  String trCombineReadFailed(String error) {
+    return '读取文件失败：$error';
+  }
+
+  @override
+  String get trCombineHelp =>
+      '追加：把两个表按变量名上下拼起来，缺的变量补缺失值；匹配：以当前数据集为主文件，按键把所选文件的值并进来（同键重复取第一个，只在所选文件里出现的键会以主变量缺失追加到末尾）。合并后变量标签与值标签不丢（取第一个给出该变量的文件）。支持 .sav/.csv/.tsv/.txt/.xlsx。';
+
+  @override
+  String get syntaxAttach => '附加数据集（供 ADD FILES / MATCH FILES 引用）';
+
+  @override
+  String syntaxAttached(String name) {
+    return '已附加：$name';
+  }
+
+  @override
+  String syntaxAttachedList(Object names) {
+    return '已附加数据集：$names';
+  }
+
+  @override
   String get trSampleFraction => '按比例';
 
   @override

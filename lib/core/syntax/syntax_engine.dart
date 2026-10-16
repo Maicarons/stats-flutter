@@ -4,6 +4,7 @@ library;
 
 import '../models/dataset.dart';
 import '../models/mrset.dart';
+import '../transforms/combine_files.dart';
 import '../transforms/transforms.dart';
 import 'package:statkit/statkit.dart';
 
@@ -40,6 +41,7 @@ class SyntaxMessages {
   final String autorecodeSyntax;
   final String sampleSyntax;
   final String mrsetsSyntax;
+  final String combineSyntax;
 
   /// 源变量数与目标变量数不一致
   final String Function(int, int) autorecodeCountMismatch;
@@ -55,6 +57,7 @@ class SyntaxMessages {
     required this.autorecodeSyntax,
     required this.sampleSyntax,
     required this.mrsetsSyntax,
+    required this.combineSyntax,
     required this.autorecodeCountMismatch,
   });
 
@@ -74,6 +77,9 @@ class SyntaxMessages {
         '[/MCGROUP NAME=\$c VARIABLES=x y] [/DELETE NAME=\$m|ALL] '
         '[/DISPLAY NAME=\$m|ALL] [/FREQUENCIES NAME=\$m] '
         '[/CROSSTABS NAME=\$m BY=变量]',
+    combineSyntax: 'COMBINE FILES 语法: ADD FILES /FILE=* /FILE=文件名 '
+        '[/RENAME=(旧=新)] [/IN=指示变量] [/BY 变量] [/KEEP=变量] [/DROP=变量]；'
+        'MATCH FILES /FILE=* /TABLE=文件名 /BY 变量（文件名需先在语法编辑器里附加）',
     autorecodeCountMismatch: _zhArcCountMismatch,
   );
 
@@ -93,6 +99,9 @@ class SyntaxMessages {
         '[/MCGROUP NAME=\$c VARIABLES=x y] [/DELETE NAME=\$m|ALL] '
         '[/DISPLAY NAME=\$m|ALL] [/FREQUENCIES NAME=\$m] '
         '[/CROSSTABS NAME=\$m BY=var]',
+    combineSyntax: 'COMBINE FILES syntax: ADD FILES /FILE=* /FILE=name '
+        '[/RENAME=(old=new)] [/IN=indicator] [/BY vars] [/KEEP=vars] [/DROP=vars]; '
+        'MATCH FILES /FILE=* /TABLE=name /BY vars (attach the file in the syntax editor first)',
     autorecodeCountMismatch: _enArcCountMismatch,
   );
 }
@@ -114,6 +123,8 @@ const _zhHelp = '''
   SAMPLE p  或  SAMPLE n FROM N  [/SEED=123].
   MRSETS /MDGROUP NAME=\$m VARIABLES=a b VALUE=1.
          /DISPLAY NAME=ALL   /FREQUENCIES NAME=\$m   /CROSSTABS NAME=\$m BY=g.
+  ADD FILES /FILE=* /FILE=其它文件 [/IN=来源] [/BY 变量].
+  MATCH FILES /FILE=* /TABLE=查表文件 /BY 键变量.
   RANK VARIABLES=v (A|D) /RANK|/N|/PERCENT|/NORMAL|/NTILES(4) /TIES=MEAN.
   SORT CASES BY var1 var2.
   SELECT IF condition.
@@ -134,6 +145,8 @@ Supported commands (subset):
   SAMPLE p  or  SAMPLE n FROM N  [/SEED=123].
   MRSETS /MDGROUP NAME=\$m VARIABLES=a b VALUE=1.
          /DISPLAY NAME=ALL   /FREQUENCIES NAME=\$m   /CROSSTABS NAME=\$m BY=g.
+  ADD FILES /FILE=* /FILE=name [/IN=source] [/BY vars].
+  MATCH FILES /FILE=* /TABLE=name /BY key_vars.
   RANK VARIABLES=v (A|D) /RANK|/N|/PERCENT|/NORMAL|/NTILES(4) /TIES=MEAN.
   SORT CASES BY var1 var2.
   SELECT IF condition.
@@ -186,13 +199,15 @@ class SyntaxParser {
         .where((e) => e.isNotEmpty && !e.startsWith('*'))
         .toList();
     if (lines.isEmpty) return null;
+    // 丢掉注释行后再取动词与参数，否则前面有 `* 注释` 时参数会带上注释文字
+    final body = lines.join('\n');
     final first = lines.first.toUpperCase();
     final verb = first.split(RegExp(r'\s+')).first;
     // 只有动词、没有参数时（如 `LIST`）不允许 substring(-1)
-    final ws = cmd.indexOf(RegExp(r'\s+'));
-    final rest = ws < 0 ? '' : cmd.substring(ws).trim();
+    final ws = body.indexOf(RegExp(r'\s+'));
+    final rest = ws < 0 ? '' : body.substring(ws).trim();
     final args = _splitArgs(rest);
-    return SyntaxCommand(verb, args, cmd);
+    return SyntaxCommand(verb, args, body);
   }
 
   static List<String> _splitArgs(String s) {
@@ -220,20 +235,34 @@ class SyntaxExecutor {
     String source,
     Dataset ds, {
     SyntaxMessages messages = SyntaxMessages.zh,
+    Map<String, Dataset> files = const {},
   }) {
     final results = <SyntaxResult>[];
     for (final raw in SyntaxParser.splitCommands(source)) {
       final cmd = SyntaxParser.parse(raw);
       if (cmd == null) continue;
-      results.add(_execute(cmd, ds, messages));
+      results.add(_execute(cmd, ds, messages, files));
     }
     return results;
   }
 
-  static SyntaxResult _execute(
-      SyntaxCommand cmd, Dataset ds, SyntaxMessages messages) {
+  static SyntaxResult _execute(SyntaxCommand cmd, Dataset ds,
+      SyntaxMessages messages, Map<String, Dataset> files) {
     try {
       switch (cmd.verb) {
+        case 'ADD':
+        case 'MATCH':
+          // `ADD FILES` / `MATCH FILES`：第二个记号必须是 FILES
+          if (RegExp(r'^\s*(ADD|MATCH)\s+FILES\b',
+                  caseSensitive: false)
+              .hasMatch(cmd.raw)) {
+            return _combine(cmd, ds, messages, files);
+          }
+          return SyntaxResult(
+            command: cmd.raw,
+            ok: false,
+            output: messages.combineSyntax,
+          );
         case 'COMPUTE':
           return _compute(cmd, ds, messages);
         case 'RECODE':
@@ -505,6 +534,135 @@ class SyntaxExecutor {
           command: cmd.raw, ok: false, output: messages.mrsetsSyntax);
     }
     return SyntaxResult(command: cmd.raw, ok: true, output: outs.join('\n'));
+  }
+
+  /// `ADD FILES` / `MATCH FILES`（COMBINE FILES）。
+  ///
+  /// `ADD FILES /FILE=* /FILE='其它文件' [/RENAME=(旧=新)] [/IN=指示变量]`
+  /// `MATCH FILES /FILE=* /TABLE='查表文件' /BY 键变量 [/IN=…]`
+  ///
+  /// `/FILE=*` 是当前数据集；其它文件用 [files] 注册表里的名字（键可以是文件
+  /// 路径或文件名，大小写不敏感）。命令行里引用的每个文件必须先由调用方读入，
+  /// 语法执行器本身不做文件 I/O。
+  static SyntaxResult _combine(SyntaxCommand cmd, Dataset ds,
+      SyntaxMessages messages, Map<String, Dataset> files) {
+    final isMatch = cmd.raw.trimLeft().toUpperCase().startsWith('MATCH');
+    final groups = cmd.raw.split(RegExp(r'\s*/\s*'));
+    // 每组：FILE=/TABLE= 开一个输入，其后 RENAME=/IN= 属于该输入
+    final refs = <String>[];
+    final isTable = <bool>[];
+    final renames = <Map<String, String>>[];
+    final inVars = <String?>[];
+    List<String>? by;
+    List<String>? keep;
+    List<String>? drop;
+    var current = -1;
+    for (final group in groups.skip(1)) {
+      final g = group.trim();
+      if (g.isEmpty) continue;
+      final up = g.toUpperCase();
+      if (up.startsWith('FILE=') || up.startsWith('TABLE=')) {
+        final isTbl = up.startsWith('TABLE=');
+        final rest = g.substring(isTbl ? 6 : 5).trim();
+        refs.add(_bare(rest.split(RegExp(r'\s+')).first));
+        isTable.add(isTbl);
+        renames.add({});
+        inVars.add(null);
+        current++;
+        continue;
+      }
+      if (current < 0) {
+        return SyntaxResult(
+            command: cmd.raw, ok: false, output: messages.combineSyntax);
+      }
+      if (up.startsWith('RENAME=')) {
+        final m = RegExp(r'\((.*)\)', dotAll: true).firstMatch(g);
+        if (m != null) {
+          for (final pair in m.group(1)!.split(RegExp(r'[\s,]+'))) {
+            final eq = pair.indexOf('=');
+            if (eq <= 0) continue;
+            renames[current][pair.substring(0, eq).trim()] =
+                pair.substring(eq + 1).trim();
+          }
+        }
+        continue;
+      }
+      if (up.startsWith('IN=')) {
+        inVars[current] = _bare(g.substring(3).trim());
+        continue;
+      }
+      if (up.startsWith('BY')) {
+        by = _names(g.substring(2).replaceFirst('=', ' '));
+        continue;
+      }
+      if (up.startsWith('KEEP=')) {
+        keep = _names(g.substring(5));
+        continue;
+      }
+      if (up.startsWith('DROP=')) {
+        drop = _names(g.substring(5));
+        continue;
+      }
+      // SORT / FIRST / LAST / MAP 等本应用未实现
+      return SyntaxResult(
+          command: cmd.raw, ok: false, output: messages.combineSyntax);
+    }
+    if (refs.isEmpty) {
+      return SyntaxResult(
+          command: cmd.raw, ok: false, output: messages.combineSyntax);
+    }
+    final inputs = <CombineInput>[];
+    for (var k = 0; k < refs.length; k++) {
+      final d = _fileByName(refs[k], ds, files);
+      if (d == null) {
+        throw ArgumentError('file not found: ${refs[k]}');
+      }
+      if (isTable[k] && !isMatch) {
+        throw ArgumentError('TABLE= is only valid with MATCH FILES');
+      }
+      inputs.add(CombineInput(d, rename: renames[k], inVar: inVars[k]));
+    }
+    final CombineResult result;
+    if (isMatch) {
+      final mainAt = isTable.indexOf(false);
+      if (mainAt < 0) {
+        throw ArgumentError('MATCH FILES requires a FILE= input');
+      }
+      final main = inputs.removeAt(mainAt);
+      isTable.removeAt(mainAt);
+      refs.removeAt(mainAt);
+      result = CombineFiles.matchFiles(main, inputs,
+          by: by, keep: keep, drop: drop);
+    } else {
+      result = CombineFiles.addFiles(inputs, by: by, keep: keep, drop: drop);
+    }
+    ds.replaceWith(result.dataset);
+    return SyntaxResult(command: cmd.raw, ok: true, output: result.message);
+  }
+
+  /// `'名字'` / `"名字"` / `名字` 都取裸文本
+  static String _bare(String token) {
+    if (token.length >= 2 &&
+        (token.startsWith("'") && token.endsWith("'") ||
+            token.startsWith('"') && token.endsWith('"'))) {
+      return token.substring(1, token.length - 1);
+    }
+    return token;
+  }
+
+  /// 文件引用：`*` 是活动数据集；否则在 [files] 里按全名或文件名查找
+  static Dataset? _fileByName(
+      String ref, Dataset ds, Map<String, Dataset> files) {
+    if (ref == '*') return ds;
+    final key = ref.toLowerCase();
+    for (final e in files.entries) {
+      if (e.key.toLowerCase() == key) return e.value;
+    }
+    for (final e in files.entries) {
+      final base = e.key.split(RegExp(r'[\\/]')).last.toLowerCase();
+      if (base == key) return e.value;
+    }
+    return null;
   }
 
   static MrSet _lookupOrThrow(Dataset ds, String name) {

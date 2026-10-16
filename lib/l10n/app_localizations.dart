@@ -3386,6 +3386,102 @@ abstract class AppLocalizations {
   /// **'A dichotomy group (MDGROUP) counts one category per member variable, with cases whose value equals the counted value marked as selected; a category group (MCGROUP) treats the members as multiple responses of one categorical question, merging categories by value and labelling them from value labels. Frequencies report both responses and cases with responses; the crosstab reports both per column.'**
   String get trMrHelp;
 
+  /// No description provided for @trOpCombine.
+  ///
+  /// In en, this message translates to:
+  /// **'Combine files'**
+  String get trOpCombine;
+
+  /// No description provided for @trCombineAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Append (ADD FILES)'**
+  String get trCombineAdd;
+
+  /// No description provided for @trCombineMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Match by key (MATCH FILES)'**
+  String get trCombineMatch;
+
+  /// No description provided for @trCombineNoFile.
+  ///
+  /// In en, this message translates to:
+  /// **'No file selected yet'**
+  String get trCombineNoFile;
+
+  /// No description provided for @trCombinePick.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose file'**
+  String get trCombinePick;
+
+  /// No description provided for @trCombineClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get trCombineClear;
+
+  /// No description provided for @trCombineIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Source indicator (/IN=, optional)'**
+  String get trCombineIn;
+
+  /// No description provided for @trCombineBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Match keys (/BY, empty aligns by case number)'**
+  String get trCombineBy;
+
+  /// No description provided for @trCombineAddBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Interleave by (/BY, optional; both files must be sorted on it)'**
+  String get trCombineAddBy;
+
+  /// No description provided for @trCombineNeedFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the file to combine first'**
+  String get trCombineNeedFile;
+
+  /// No description provided for @trCombinePicked.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected: {name}'**
+  String trCombinePicked(String name);
+
+  /// No description provided for @trCombineReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read the file: {error}'**
+  String trCombineReadFailed(String error);
+
+  /// No description provided for @trCombineHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Append stacks two tables by variable name, filling variables a file lacks with missing values; match takes the current dataset as the main file and joins the chosen file\'s values by key (the first case wins on duplicate keys, and keys only in the chosen file are appended with the main variables missing). Variable and value labels survive the merge (the first file that defines a variable wins). Supports .sav/.csv/.tsv/.txt/.xlsx.'**
+  String get trCombineHelp;
+
+  /// No description provided for @syntaxAttach.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach a dataset for ADD FILES / MATCH FILES'**
+  String get syntaxAttach;
+
+  /// No description provided for @syntaxAttached.
+  ///
+  /// In en, this message translates to:
+  /// **'Attached: {name}'**
+  String syntaxAttached(String name);
+
+  /// No description provided for @syntaxAttachedList.
+  ///
+  /// In en, this message translates to:
+  /// **'Attached datasets: {names}'**
+  String syntaxAttachedList(Object names);
+
   /// No description provided for @trSampleFraction.
   ///
   /// In en, this message translates to:

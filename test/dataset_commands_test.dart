@@ -16,6 +16,7 @@ import 'package:stats_flutter/core/models/dataset.dart';
 import 'package:stats_flutter/core/models/mrset.dart';
 import 'package:stats_flutter/core/models/project.dart';
 import 'package:stats_flutter/core/syntax/syntax_engine.dart';
+import 'package:stats_flutter/core/transforms/combine_files.dart';
 import 'package:stats_flutter/core/transforms/transforms.dart';
 
 Dataset _ds(List<String> names, List<List<Object?>> cases) {
@@ -1008,6 +1009,361 @@ void main() {
           messages: SyntaxMessages.en);
       expect(rs.single.ok, isFalse);
       expect(rs.single.output, contains('MRSETS syntax'));
+    });
+  });
+
+  group('COMBINE FILES 追加（ADD FILES）', () {
+    /// 两张同结构的成绩表：a 的 score 带标签与缺失值，b 多一个带值标签的 group
+    (Dataset, Dataset) twoTables() {
+      final a = _ds(['id', 'score'], [
+        [1, 80],
+        [2, 90],
+      ]);
+      a.variables[0].label = '学号';
+      a.variables[1].label = '成绩';
+      a.variables[1].missingValues.add(99);
+      final b = _ds(['id', 'score', 'group'], [
+        [3, 70, 1],
+        [4, 85, 2],
+      ]);
+      b.variables[2].label = '班级';
+      b.variables[2].valueLabels.addAll({1: 'A班', 2: 'B班'});
+      b.variables[0].valueLabels.addAll({3: '三号'});
+      return (a, b);
+    }
+
+    test('按变量名拼行，缺的变量补缺失值', () {
+      final (a, b) = twoTables();
+      final r = CombineFiles.addFiles([CombineInput(a), CombineInput(b)]);
+      final d = r.dataset;
+      expect([for (final v in d.variables) v.name], ['id', 'score', 'group']);
+      expect(d.nCases, 4);
+      expect(_numCol(d, 'id'), [1, 2, 3, 4]);
+      expect(_numCol(d, 'score'), [80, 90, 70, 85]);
+      expect(_col(d, 'group'), [null, null, 1, 2]);
+      expect(r.message, contains('4 cases x 3 variables'));
+    });
+
+    test('变量标签 / 值标签 / 缺失值不丢（先定义的文件为准，后续补缺口）', () {
+      final (a, b) = twoTables();
+      final d =
+          CombineFiles.addFiles([CombineInput(a), CombineInput(b)]).dataset;
+      expect(d.variables[0].label, '学号'); // 来自 a
+      expect(d.variables[1].label, '成绩'); // a 有、b 无
+      expect(d.variables[1].missingValues, [99]); // a 的缺失值保留
+      expect(d.variables[2].label, '班级'); // 只有 b 有
+      expect(d.variables[2].valueLabels[1], 'A班'); // b 的值标签保留
+      expect(d.variables[0].valueLabels[3], '三号'); // 后续文件补缺口
+    });
+
+    test('同名变量类型不一致报错', () {
+      final a = _ds(['id', 'score'], [
+        [1, 80],
+      ]);
+      final bad = Dataset(name: 'bad')
+        ..addVariable(Variable(name: 'id'))
+        ..addVariable(Variable(name: 'score', type: VarType.string));
+      bad.addCase([2, 'x']);
+      expect(
+        () => CombineFiles.addFiles([CombineInput(a), CombineInput(bad)]),
+        throwsArgumentError,
+      );
+    });
+
+    test('/BY：各文件按 BY 升序，等值组按文件顺序输出', () {
+      final x = _ds(['id', 'v'], [
+        [1, 10],
+        [1, 11],
+        [3, 30],
+      ]);
+      final y = _ds(['id', 'w'], [
+        [1, 100],
+        [2, 200],
+      ]);
+      final d = CombineFiles
+          .addFiles([CombineInput(x), CombineInput(y)], by: ['id']).dataset;
+      expect([for (final v in d.variables) v.name], ['id', 'v', 'w']);
+      expect(_numCol(d, 'id'), [1, 1, 1, 2, 3]);
+      expect(_col(d, 'v'), [10, 11, null, null, 30]);
+      expect(_col(d, 'w'), [null, null, 100, 200, null]);
+    });
+
+    test('/BY 要求文件已排序、变量必须存在', () {
+      final x = _ds(['id', 'v'], [
+        [1, 10],
+        [1, 11],
+        [3, 30],
+      ]);
+      final unsorted = _ds(['id', 'w'], [
+        [2, 200],
+        [1, 100],
+      ]);
+      expect(
+        () => CombineFiles.addFiles(
+            [CombineInput(x), CombineInput(unsorted)],
+            by: ['id']),
+        throwsArgumentError,
+      );
+      expect(
+        () => CombineFiles.addFiles(
+            [CombineInput(x), CombineInput(_ds(['id', 'w'], [
+              [1, 1],
+            ]))],
+            by: ['nope']),
+        throwsArgumentError,
+      );
+    });
+
+    test('/IN= 指示变量与 /KEEP /DROP', () {
+      final (a, b) = twoTables();
+      final d = CombineFiles.addFiles([
+        CombineInput(a, inVar: 'src'),
+        CombineInput(b),
+      ]).dataset;
+      expect([for (final v in d.variables) v.name], ['id', 'score', 'group', 'src']);
+      expect(_col(d, 'src'), [1, 1, 0, 0]);
+
+      final dropped = CombineFiles.addFiles(
+        [CombineInput(a), CombineInput(b)],
+        drop: ['group'],
+      ).dataset;
+      expect([for (final v in dropped.variables) v.name], ['id', 'score']);
+
+      final kept = CombineFiles.addFiles(
+        [CombineInput(a), CombineInput(b)],
+        keep: ['score'],
+      ).dataset;
+      expect([for (final v in kept.variables) v.name], ['score']);
+      expect(() => CombineFiles.addFiles([CombineInput(a)], drop: ['nope']),
+          throwsArgumentError);
+    });
+  });
+
+  group('COMBINE FILES 匹配（MATCH FILES）', () {
+    test('按 BY 查表：保持主文件顺序，只在表里的键追加到末尾', () {
+      final main = _ds(['id', 'score'], [
+        [1, 80],
+        [2, 90],
+        [3, 70],
+        [3, 75],
+      ]);
+      final table = _ds(['id', 'group'], [
+        [1, 10],
+        [2, 20],
+        [4, 40],
+      ]);
+      final r = CombineFiles.matchFiles(CombineInput(main), [
+        CombineInput(table),
+      ], by: ['id']);
+      final d = r.dataset;
+      expect([for (final v in d.variables) v.name], ['id', 'score', 'group']);
+      expect(_numCol(d, 'id'), [1, 2, 3, 3, 4]);
+      expect(_col(d, 'score'), [80, 90, 70, 75, null]);
+      expect(_col(d, 'group'), [10, 20, null, null, 40]);
+      expect(r.message, contains('only in table'));
+    });
+
+    test('查表文件同键重复时取第一个并在提示里报告', () {
+      final main = _ds(['id', 'score'], [
+        [1, 80],
+        [2, 90],
+      ]);
+      final table = _ds(['id', 'group'], [
+        [1, 10],
+        [1, 99],
+        [2, 20],
+      ]);
+      final r = CombineFiles.matchFiles(CombineInput(main), [
+        CombineInput(table),
+      ], by: ['id']);
+      expect(_col(r.dataset, 'group'), [10, 20]);
+      expect(r.message, contains('duplicated'));
+    });
+
+    test('不给 BY 时按个案序号对齐，较短的文件不再贡献', () {
+      final main = _ds(['id', 'v'], [
+        [1, 10],
+        [2, 20],
+        [3, 30],
+      ]);
+      final t = _ds(['id', 'w'], [
+        [1, 100],
+        [2, 200],
+      ]);
+      final d =
+          CombineFiles.matchFiles(CombineInput(main), [CombineInput(t)]).dataset;
+      expect(_numCol(d, 'id'), [1, 2, 3]);
+      expect(_col(d, 'v'), [10, 20, 30]);
+      expect(_col(d, 'w'), [100, 200, null]);
+    });
+
+    test('/RENAME 让两侧键名不同也能匹配，/IN 标记来源', () {
+      final main = _ds(['id', 'score'], [
+        [1, 80],
+        [2, 90],
+      ]);
+      final table = _ds(['code', 'group'], [
+        [1, 10],
+        [2, 20],
+      ]);
+      final d = CombineFiles.matchFiles(
+        CombineInput(main, inVar: 'from_main'),
+        [
+          CombineInput(table,
+              rename: {'code': 'id'}, inVar: 'from_table'),
+        ],
+        by: ['id'],
+      ).dataset;
+      expect([for (final v in d.variables) v.name],
+          ['id', 'score', 'group', 'from_main', 'from_table']);
+      expect(_col(d, 'group'), [10, 20]);
+      expect(_col(d, 'from_main'), [1, 1]);
+      expect(_col(d, 'from_table'), [1, 1]);
+    });
+
+    test('BY 变量在查表文件里缺失时报错', () {
+      final main = _ds(['id', 'score'], [
+        [1, 80],
+      ]);
+      final table = _ds(['code', 'group'], [
+        [1, 10],
+      ]);
+      expect(
+        () => CombineFiles.matchFiles(CombineInput(main), [
+          CombineInput(table),
+        ], by: ['id']),
+        throwsArgumentError,
+      );
+    });
+  });
+
+  group('COMBINE FILES 语法动词', () {
+    test('ADD FILES /FILE=* /FILE=名字 /IN=来源 替换活动数据集', () {
+      final ds = _ds(['id', 'score'], [
+        [1, 80],
+        [2, 90],
+      ]);
+      final b = _ds(['id', 'score', 'group'], [
+        [3, 70, 1],
+      ]);
+      final rs = SyntaxExecutor.run(
+        'ADD FILES /FILE=* /IN=src /FILE=b2.',
+        ds,
+        messages: SyntaxMessages.en,
+        files: {'b2': b},
+      );
+      expect(rs.single.ok, isTrue);
+      expect(ds.nCases, 3);
+      expect([for (final v in ds.variables) v.name],
+          ['id', 'score', 'group', 'src']);
+      expect(_col(ds, 'src'), [1, 1, 0]);
+      expect(_col(ds, 'group'), [null, null, 1]);
+    });
+
+    test('MATCH FILES /FILE=* /TABLE=名字 /RENAME /BY', () {
+      final ds = _ds(['id', 'score'], [
+        [1, 80],
+        [2, 90],
+      ]);
+      final t = _ds(['code', 'group'], [
+        [1, 10],
+        [2, 20],
+      ]);
+      final rs = SyntaxExecutor.run(
+        "MATCH FILES /FILE=* /TABLE='classes.sav' /RENAME=(code=id) /BY id.",
+        ds,
+        messages: SyntaxMessages.en,
+        files: {'classes.sav': t},
+      );
+      expect(rs.single.ok, isTrue);
+      expect(ds.nCases, 2);
+      expect(_col(ds, 'group'), [10, 20]);
+      expect(rs.single.output, contains('MATCH FILES'));
+    });
+
+    test('错误：未知文件、TABLE 配 ADD、缺 FILE、未知子命令、类型不一致', () {
+      final ds = _ds(['id'], [
+        [1],
+      ]);
+      var rs = SyntaxExecutor.run('ADD FILES /FILE=* /FILE=nope.', ds,
+          messages: SyntaxMessages.en, files: {'b2': _ids(2)});
+      expect(rs.single.ok, isFalse);
+      expect(rs.single.output, contains('file not found'));
+
+      rs = SyntaxExecutor.run('ADD FILES /FILE=* /TABLE=b2.', ds,
+          messages: SyntaxMessages.en, files: {'b2': _ids(2)});
+      expect(rs.single.ok, isFalse);
+      expect(rs.single.output, contains('TABLE='));
+
+      rs = SyntaxExecutor.run('MATCH FILES /TABLE=b2 /BY id.', ds,
+          messages: SyntaxMessages.en, files: {'b2': _ids(2)});
+      expect(rs.single.ok, isFalse);
+      expect(rs.single.output, contains('FILE='));
+
+      rs = SyntaxExecutor.run('ADD FILES /NOPE=x.', ds,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isFalse);
+      expect(rs.single.output, contains('COMBINE FILES'));
+
+      final bad = Dataset(name: 'bad')
+        ..addVariable(Variable(name: 'id', type: VarType.string));
+      bad.addCase(['a']);
+      rs = SyntaxExecutor.run('ADD FILES /FILE=* /FILE=bad.', ds,
+          messages: SyntaxMessages.en, files: {'bad': bad});
+      expect(rs.single.ok, isFalse);
+      expect(rs.single.output, contains('different types'));
+      // 失败时活动数据集不动
+      expect(ds.nVars, 1);
+      expect(ds.nCases, 1);
+    });
+
+    test('注释行不影响后续命令的参数（parse 修正）', () {
+      final d = _ds(['score'], [
+        [1],
+        [2],
+      ]);
+      final rs = SyntaxExecutor.run('* 说明行\nCOMPUTE x = score + 1.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isTrue);
+      expect(_numCol(d, 'x'), [2, 3]);
+    });
+
+    test('.sps 例：附加数据集后追加 + 按键匹配（可复现）', () {
+      const sps = '''
+* v1.4.0 M2.5 可复现例：把 b 表按名追加进来，再按 id 匹配班级表。
+ADD FILES /FILE=* /IN=src /FILE='b.sav'.
+MATCH FILES /FILE=* /TABLE='classes.sav' /BY id.
+LIST.
+''';
+      final ds = _ds(['id', 'score'], [
+        [1, 80],
+        [2, 90],
+      ]);
+      final rs = SyntaxExecutor.run(
+        sps,
+        ds,
+        messages: SyntaxMessages.en,
+        files: {
+          'b.sav': _ds(['id', 'score'], [
+            [3, 70],
+          ]),
+          'classes.sav': _ds(['id', 'group'], [
+            [1, 10],
+            [2, 20],
+            [3, 30],
+          ]),
+        },
+      );
+      expect(rs.length, 3,
+          reason: rs.map((r) => '${r.command} ok=${r.ok}: ${r.output}').join(' | '));
+      expect(rs.every((r) => r.ok), isTrue,
+          reason: rs.map((r) => '${r.command} ok=${r.ok}: ${r.output}').join(' | '));
+      expect(ds.nCases, 3);
+      expect([for (final v in ds.variables) v.name],
+          ['id', 'score', 'src', 'group']);
+      expect(_numCol(ds, 'id'), [1, 2, 3]);
+      expect(_col(ds, 'src'), [1, 1, 0]);
+      expect(_col(ds, 'group'), [10, 20, 30]);
     });
   });
 }

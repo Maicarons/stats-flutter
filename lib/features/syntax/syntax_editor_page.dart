@@ -12,6 +12,7 @@ import '../../core/models/dataset.dart';
 import '../../core/syntax/syntax_engine.dart';
 import '../../shared/dataset_store.dart';
 import '../../shared/locale_util.dart';
+import '../data_editor/pick_dataset.dart';
 import 'syntax_highlight_controller.dart';
 
 class SyntaxEditorPage extends StatefulWidget {
@@ -25,6 +26,9 @@ class _SyntaxEditorPageState extends State<SyntaxEditorPage> {
   late final SyntaxHighlightController _codeCtrl;
   final _outCtrl = TextEditingController();
   bool _ran = false;
+
+  /// ADD FILES / MATCH FILES 引用的其它数据集（键：文件路径与文件名）
+  final Map<String, Dataset> _attached = {};
 
   Dataset get ds => datasetStore.data;
 
@@ -82,14 +86,37 @@ LIST.
     );
   }
 
+  /// 附加一个数据集文件，供 ADD FILES / MATCH FILES 引用
+  Future<void> _attachDataset() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final picked = await pickDatasetFile();
+    if (picked == null) return;
+    setState(() {
+      _attached[picked.fileName] = picked.dataset;
+      if (picked.path != null) _attached[picked.path!] = picked.dataset;
+    });
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.syntaxAttached(picked.fileName))),
+    );
+  }
+
   void _run() {
     final l10n = AppLocalizations.of(context);
     final results = SyntaxExecutor.run(
       _codeCtrl.text,
       ds,
       messages: isZhUi(context) ? SyntaxMessages.zh : SyntaxMessages.en,
+      files: _attached,
     );
     final buf = StringBuffer();
+    if (_attached.isNotEmpty) {
+      final names = <String>{};
+      for (final e in _attached.entries) {
+        names.add(e.key.split(RegExp(r'[\\/]')).last);
+      }
+      buf.writeln(l10n.syntaxAttachedList(names.join(', ')));
+    }
     var ok = 0, fail = 0;
     for (final r in results) {
       buf.writeln('─' * 40);
@@ -138,6 +165,11 @@ LIST.
             tooltip: l10n.saveSps,
             icon: const Icon(Icons.save_outlined),
             onPressed: _saveSyntax,
+          ),
+          IconButton(
+            tooltip: l10n.syntaxAttach,
+            icon: const Icon(Icons.library_add_outlined),
+            onPressed: _attachDataset,
           ),
           IconButton(
             tooltip: l10n.run,

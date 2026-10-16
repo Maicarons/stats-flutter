@@ -727,6 +727,37 @@
   "trMrNeedSet": "Select a multiple response set first",
   "trMrNeedBy": "Select a crosstab variable",
   "trMrHelp": "A dichotomy group (MDGROUP) counts one category per member variable, with cases whose value equals the counted value marked as selected; a category group (MCGROUP) treats the members as multiple responses of one categorical question, merging categories by value and labelling them from value labels. Frequencies report both responses and cases with responses; the crosstab reports both per column.",
+  "trOpCombine": "Combine files",
+  "trCombineAdd": "Append (ADD FILES)",
+  "trCombineMatch": "Match by key (MATCH FILES)",
+  "trCombineNoFile": "No file selected yet",
+  "trCombinePick": "Choose file",
+  "trCombineClear": "Clear",
+  "trCombineIn": "Source indicator (/IN=, optional)",
+  "trCombineBy": "Match keys (/BY, empty aligns by case number)",
+  "trCombineAddBy": "Interleave by (/BY, optional; both files must be sorted on it)",
+  "trCombineNeedFile": "Choose the file to combine first",
+  "trCombinePicked": "Selected: {name}",
+  "@trCombinePicked": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "trCombineReadFailed": "Could not read the file: {error}",
+  "@trCombineReadFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "trCombineHelp": "Append stacks two tables by variable name, filling variables a file lacks with missing values; match takes the current dataset as the main file and joins the chosen file's values by key (the first case wins on duplicate keys, and keys only in the chosen file are appended with the main variables missing). Variable and value labels survive the merge (the first file that defines a variable wins). Supports .sav/.csv/.tsv/.txt/.xlsx.",
+  "syntaxAttach": "Attach a dataset for ADD FILES / MATCH FILES",
+  "syntaxAttached": "Attached: {name}",
+  "@syntaxAttached": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "syntaxAttachedList": "Attached datasets: {names}",
   "trSampleFraction": "Fraction",
   "trSampleNFromN": "n FROM N",
   "trSampleFractionLabel": "Fraction p (open interval 0–1)",

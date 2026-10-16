@@ -167,6 +167,22 @@ class Dataset {
   /// MRSETS 多选集（定义顺序即显示顺序）
   List<MrSet> mrSets = [];
 
+  /// 用 [src] 的变量、个案与数据定义状态替换自身内容（保持对象引用不变，
+  /// 供 ADD FILES / MATCH FILES 这类「输出替换活动数据集」的命令使用）。
+  void replaceWith(Dataset src) {
+    name = src.name;
+    variables
+      ..clear()
+      ..addAll(src.variables);
+    cases
+      ..clear()
+      ..addAll(src.cases);
+    path = src.path;
+    weightVariable = src.weightVariable;
+    splitVariable = src.splitVariable;
+    mrSets = [for (final s in src.mrSets) s.copy()];
+  }
+
   int get nVars => variables.length;
   int get nCases => cases.length;
 

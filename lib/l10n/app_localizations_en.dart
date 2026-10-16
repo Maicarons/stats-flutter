@@ -1748,6 +1748,64 @@ class AppLocalizationsEn extends AppLocalizations {
       'A dichotomy group (MDGROUP) counts one category per member variable, with cases whose value equals the counted value marked as selected; a category group (MCGROUP) treats the members as multiple responses of one categorical question, merging categories by value and labelling them from value labels. Frequencies report both responses and cases with responses; the crosstab reports both per column.';
 
   @override
+  String get trOpCombine => 'Combine files';
+
+  @override
+  String get trCombineAdd => 'Append (ADD FILES)';
+
+  @override
+  String get trCombineMatch => 'Match by key (MATCH FILES)';
+
+  @override
+  String get trCombineNoFile => 'No file selected yet';
+
+  @override
+  String get trCombinePick => 'Choose file';
+
+  @override
+  String get trCombineClear => 'Clear';
+
+  @override
+  String get trCombineIn => 'Source indicator (/IN=, optional)';
+
+  @override
+  String get trCombineBy => 'Match keys (/BY, empty aligns by case number)';
+
+  @override
+  String get trCombineAddBy =>
+      'Interleave by (/BY, optional; both files must be sorted on it)';
+
+  @override
+  String get trCombineNeedFile => 'Choose the file to combine first';
+
+  @override
+  String trCombinePicked(String name) {
+    return 'Selected: $name';
+  }
+
+  @override
+  String trCombineReadFailed(String error) {
+    return 'Could not read the file: $error';
+  }
+
+  @override
+  String get trCombineHelp =>
+      'Append stacks two tables by variable name, filling variables a file lacks with missing values; match takes the current dataset as the main file and joins the chosen file\'s values by key (the first case wins on duplicate keys, and keys only in the chosen file are appended with the main variables missing). Variable and value labels survive the merge (the first file that defines a variable wins). Supports .sav/.csv/.tsv/.txt/.xlsx.';
+
+  @override
+  String get syntaxAttach => 'Attach a dataset for ADD FILES / MATCH FILES';
+
+  @override
+  String syntaxAttached(String name) {
+    return 'Attached: $name';
+  }
+
+  @override
+  String syntaxAttachedList(Object names) {
+    return 'Attached datasets: $names';
+  }
+
+  @override
   String get trSampleFraction => 'Fraction';
 
   @override
