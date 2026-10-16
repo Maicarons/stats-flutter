@@ -10,7 +10,11 @@ Excel-like browsing and editing with Data and Variable views.
 - **Tab** commit & move right (Shift+Tab left)
 - **Esc** cancel
 
+Keyboard navigation: **click** to select a cell (on desktop a click does not start editing), **arrow keys** move the selection, **Enter / F2** edits the selected cell, **Ctrl/Cmd+Z** undoes and **Ctrl/Cmd+Shift+Z** / **Ctrl/Cmd+Y** redoes.
+
 Numeric columns accept digits, minus and decimal point only.
+
+On wide screens (≥600 logical pixels) the **`#` column and the first variable column stay frozen**; horizontal scrolling only moves the remaining columns. Row numbers and the header are always pinned.
 
 ## Views
 

@@ -69,7 +69,8 @@ void main() {
       });
     }
 
-    for (final w in <double>[375, 1440]) {
+    // 数据编辑器：窄屏只冻结行号列、宽屏再冻结首个变量列，四个断点都要无溢出
+    for (final w in _widths) {
       testWidgets('数据编辑器 @ ${w}px', (tester) async {
         await expectNoOverflow(tester, const DataEditorPage(), w);
         await tester.pump(const Duration(seconds: 3));

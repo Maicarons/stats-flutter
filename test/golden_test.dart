@@ -154,7 +154,7 @@ void main() {
       page: const DataEditorPage(),
       size: wide,
       dark: false,
-      name: 'data_grid_wide_light',
+      name: 'grid_frozen_wide_light',
       // 让数据集替换触发的自动保存防抖计时器走完，避免测试结束时报「仍有计时器」
       before: (tester) async {
         await tester.pump(const Duration(seconds: 3));
@@ -175,6 +175,51 @@ void main() {
       before: (tester) async {
         await tester.pump(const Duration(seconds: 3));
         await tester.tap(find.text('post'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Run analysis'));
+        await tester.pumpAndSettle();
+      },
+    );
+  });
+
+  /// 箱线图 · 手机 · 深色（同一份数据，验证深色下的中位线/离群点对比度）。
+  testWidgets('箱线图 · 手机 · 深色', (t) async {
+    datasetStore.replace(Dataset.demoScores(zh: false));
+    await snap(
+      t,
+      page: const AnalysisRunner(analysisId: 'boxplot', title: 'Box plot'),
+      size: const Size(390, 2400),
+      dark: true,
+      name: 'boxplot_phone_dark',
+      target: find.byType(ChartCard).first,
+      before: (tester) async {
+        await tester.pump(const Duration(seconds: 3));
+        await tester.tap(find.text('post'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Run analysis'));
+        await tester.pumpAndSettle();
+      },
+    );
+  });
+
+  /// 分组箱线图：按 method 分 3 组并列（多组布局）。
+  testWidgets('分组箱线图 · 宽屏 · 浅色', (t) async {
+    datasetStore.replace(Dataset.demoScores(zh: false));
+    await snap(
+      t,
+      page: const AnalysisRunner(analysisId: 'boxplot', title: 'Box plot'),
+      size: const Size(760, 2400),
+      dark: false,
+      name: 'boxplot_grouped_light',
+      target: find.byType(ChartCard).first,
+      before: (tester) async {
+        await tester.pump(const Duration(seconds: 3));
+        await tester.tap(find.text('post'));
+        await tester.pumpAndSettle();
+        // 「分组变量（可选）」下拉 → method（3 组）
+        await tester.tap(find.byType(DropdownButtonFormField<String>));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('method').last);
         await tester.pumpAndSettle();
         await tester.tap(find.text('Run analysis'));
         await tester.pumpAndSettle();

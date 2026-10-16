@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:statkit/statkit.dart';
 import 'package:stats_flutter/core/models/dataset.dart';
 import 'package:stats_flutter/core/theme/app_theme.dart';
 import 'package:stats_flutter/features/data_editor/data_editor_page.dart';
@@ -7,8 +8,15 @@ import 'package:stats_flutter/features/learn/learn_page.dart';
 import 'package:stats_flutter/features/quiz/quiz_page.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 import 'package:stats_flutter/shared/dataset_store.dart';
+import 'package:stats_flutter/shared/ui/charts/charts.dart';
 
 const _seed = Color(0xFF2F6FED);
+
+/// 40 个近似正态点 + 1 个离群点，保证箱体 / 须 / 离群点都有内容。
+final _sample = <double>[
+  for (var i = 0; i < 40; i++) 50 + i * 1.3,
+  200,
+];
 
 Widget _app(Widget home, {Locale locale = const Locale('en'), bool dark = false}) =>
     MaterialApp(
@@ -86,6 +94,77 @@ void main() {
       await tester.pumpAndSettle();
       await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
     });
+  });
+
+  group('图表图例对比度（v1.3.1 新图表）', () {
+    for (final dark in [false, true]) {
+      final mode = dark ? 'dark' : 'light';
+
+      testWidgets('箱线 / 误差条 / Q-Q / 碎石图图例达 AA（$mode）', (tester) async {
+        _sizeTo(tester, const Size(420, 1600));
+
+        final boxes = boxPlotGroups([
+          _sample,
+          [for (final v in _sample) v - 6],
+        ]);
+        final bars = errorBarsFromGroups({
+          'A': _sample,
+          'B': [for (final v in _sample) v - 6],
+        });
+        final pts = normalQQPointsStandardized(_sample);
+
+        final charts = <Widget>[
+          BoxPlotChart(boxes: boxes, labels: const ['A', 'B']),
+          ErrorBarChart(bars: bars, referenceLine: bars.first.mean),
+          QQPlot(points: pts),
+          ScreePlot(
+            eigenvalues: const [3.4, 1.2, 0.8],
+            labels: const ['PC1', 'PC2', 'PC3'],
+          ),
+        ];
+        final legends = <List<ChartLegendItem>>[
+          const [
+            ChartLegendItem(color: _seed, label: 'Interquartile box Q1–Q3'),
+            ChartLegendItem(color: Colors.transparent, label: 'Median'),
+          ],
+          const [
+            ChartLegendItem(color: _seed, label: 'Mean'),
+            ChartLegendItem(color: Colors.transparent, label: '95% confidence interval'),
+          ],
+          const [
+            ChartLegendItem(color: _seed, label: 'Sample quantile z'),
+            ChartLegendItem(color: Colors.transparent, label: 'Reference line y = x'),
+          ],
+          const [
+            ChartLegendItem(color: _seed, label: 'Eigenvalue'),
+            ChartLegendItem(color: Colors.transparent, label: 'Cumulative variance'),
+          ],
+        ];
+
+        for (var i = 0; i < charts.length; i++) {
+          await tester.pumpWidget(
+            _app(
+              Scaffold(
+                body: SingleChildScrollView(
+                  child: ChartCard(
+                    title: 'Chart ${i + 1}',
+                    legend: legends[i],
+                    child: charts[i],
+                  ),
+                ),
+              ),
+              dark: dark,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await expectLater(
+            tester,
+            meetsGuideline(textContrastGuideline),
+            reason: '${charts[i].runtimeType} 的图例 / 轴标签对比度不足',
+          );
+        }
+      });
+    }
   });
 
   group('无障碍标签', () {

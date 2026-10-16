@@ -127,4 +127,30 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('1 万行只构建视口内的行（虚拟化未被冻结列破坏）', (tester) async {
+    datasetStore.replace(
+      Dataset(
+        name: 'big',
+        variables: [
+          Variable(name: 'a', decimals: 1),
+          Variable(name: 'b', decimals: 1),
+        ],
+        cases: [
+          for (var i = 0; i < 10000; i++)
+            [i.toDouble(), (i * 2).toDouble()],
+        ],
+      ),
+    );
+    await pumpGrid(tester, const Size(900, 600));
+
+    // 每个可视单元格一个 Listener（1 万行 × 2 列全量构建会是 2 万个）
+    final built = find.byType(Listener).evaluate().length;
+    expect(built, lessThan(200), reason: '只应构建视口内的行，实际 $built');
+
+    // 视口外的行不构建
+    expect(find.text('9999.0'), findsNothing);
+    expect(find.text('0.0'), findsWidgets, reason: '首行在视口内');
+    expect(tester.takeException(), isNull);
+  });
 }

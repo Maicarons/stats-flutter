@@ -138,6 +138,81 @@ void main() {
     });
   });
 
+  group('极端数据（M1 验收）', () {
+    testWidgets('箱线图：全部相同值（IQR = 0）不抛异常', (tester) async {
+      final box = boxPlot([for (var i = 0; i < 12; i++) 7.0]);
+      expect(box.iqr, 0);
+      await tester.pumpWidget(
+        _chartHost(BoxPlotChart(boxes: [box], labels: const ['v'])),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('箱线图：单点数据不抛异常', (tester) async {
+      final box = boxPlot(const [42.0]);
+      await tester.pumpWidget(
+        _chartHost(BoxPlotChart(boxes: [box], labels: const ['v'])),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('箱线图：超过 6 组折叠为前 6 组并给出提示', (tester) async {
+      final boxes = boxPlotGroups([
+        for (var i = 0; i < 8; i++)
+          [for (var j = 0; j < 10; j++) (i * 10 + j).toDouble()],
+      ]);
+      expect(boxes, hasLength(8));
+
+      await tester.pumpWidget(_chartHost(
+        BoxPlotChart(
+          boxes: boxes,
+          labels: [for (var i = 0; i < 8; i++) 'G${i + 1}'],
+          tooltips: [for (var i = 0; i < 8; i++) 't$i'],
+          overflowLabel: '2 more groups hidden',
+        ),
+      ));
+
+      expect(tester.takeException(), isNull);
+      // 提示条按「显示中的分组」逐组挂 Tooltip → 只应存在 6 个
+      expect(find.byType(Tooltip), findsNWidgets(6), reason: '只绘制前 6 组');
+      expect(find.text('2 more groups hidden'), findsOneWidget);
+    });
+
+    testWidgets('误差条图：单组也能渲染', (tester) async {
+      final bars = errorBarsFromGroups({
+        'A': const [1.0, 2.0, 3.0, 4.0, 5.0],
+      });
+      expect(bars, hasLength(1));
+      await tester.pumpWidget(_chartHost(ErrorBarChart(bars: bars)));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Q-Q 图：两点样本可渲染，一点样本走空态', (tester) async {
+      final pts = normalQQPoints(const [1.0, 120.0]);
+      expect(pts, hasLength(2));
+      await tester.pumpWidget(_chartHost(QQPlot(points: pts)));
+      expect(tester.takeException(), isNull);
+
+      expect(normalQQPoints(const [5.0]), isEmpty);
+      await tester.pumpWidget(
+        _chartHost(const QQPlot(points: [], emptyLabel: 'too few')),
+      );
+      expect(find.text('too few'), findsOneWidget);
+    });
+
+    testWidgets('碎石图：单个分量与等值特征值都能渲染', (tester) async {
+      await tester
+          .pumpWidget(_chartHost(ScreePlot(eigenvalues: const [2.0], labels: const ['PC1'])));
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(_chartHost(
+        ScreePlot(eigenvalues: const [1.0, 1.0, 1.0], labels: const ['A', 'B', 'C']),
+      ));
+      expect(tester.takeException(), isNull);
+      expect(ScreePlot.elbowComponent(const [1.0, 1.0, 1.0]), isNull);
+    });
+  });
+
   group('迁移后的既有图表', () {
     testWidgets('直方图 / 条形图 / 散点图 / 聚类散点图均可渲染', (tester) async {
       final values = _sample;
