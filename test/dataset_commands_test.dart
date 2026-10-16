@@ -2,14 +2,19 @@
 ///
 /// 语义参考 PSPP 2.1.2 源码（`_ref/pspp-2.1.2/src/language/commands/*.c`）：
 /// - RANK：`rank.c`（秩、N、RFRACTION、PROPORTION、PERCENT、NORMAL、NTILES + 结处理）
+/// - AUTORECODE：`autorecode.c`（取值 → 1..k 码 + 自动值标签）
+/// - SAMPLE：`sample.c`（按比例 / n FROM N）
+/// - MRSETS：`mrsets.c`（多选集定义与显示）
 ///
-/// 每个命令同时给「直接调用 Transforms」与「走语法动词」两条路径的断言。
+/// 每个命令同时给「直接调用 Transforms / MRSets」与「走语法动词」两条路径的断言。
 library;
 
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stats_flutter/core/models/dataset.dart';
+import 'package:stats_flutter/core/models/mrset.dart';
+import 'package:stats_flutter/core/models/project.dart';
 import 'package:stats_flutter/core/syntax/syntax_engine.dart';
 import 'package:stats_flutter/core/transforms/transforms.dart';
 
@@ -38,6 +43,69 @@ Dataset _ids(int n) {
     d.addCase([i]);
   }
   return d;
+}
+
+/// 多选集用的调查数据集：
+/// - act1..act5：二分变量（1 = 选中），带变量标签「活动i」；
+/// - subj1..subj3：分类法组的多个响应（同一分类问题的宽格式），
+///   值标签 1 语文 / 2 数学 / 3 英语；
+/// - gender：1 男 / 2 女。
+///
+/// 个案（act1..act5 | subj1..subj3 | gender）：
+///   1: 1 0 1 0 0 | 1 2 .        | 1
+///   2: 0 0 1 1 0 | 3 . .        | 2
+///   3: 1 1 0 0 0 | 2 2 .        | 1
+///   4: 0 0 0 0 0 | . . .        | 2
+Dataset _survey() {
+  final d = Dataset(name: 'survey');
+  for (var i = 1; i <= 5; i++) {
+    d.addVariable(Variable(
+      name: 'act$i',
+      label: '活动$i',
+      decimals: 0,
+      measure: MeasureLevel.nominal,
+    ));
+  }
+  for (var i = 1; i <= 3; i++) {
+    d.addVariable(Variable(
+      name: 'subj$i',
+      label: '科目$i',
+      decimals: 0,
+      measure: MeasureLevel.nominal,
+      valueLabels: const {1: '语文', 2: '数学', 3: '英语'},
+    ));
+  }
+  d.addVariable(Variable(
+    name: 'gender',
+    label: '性别',
+    decimals: 0,
+    measure: MeasureLevel.nominal,
+    valueLabels: const {1: '男', 2: '女'},
+  ));
+  d.addCase([1, 0, 1, 0, 0, 1, 2, null, 1]);
+  d.addCase([0, 0, 1, 1, 0, 3, null, null, 2]);
+  d.addCase([1, 1, 0, 0, 0, 2, 2, null, 1]);
+  d.addCase([0, 0, 0, 0, 0, null, null, null, 2]);
+  return d;
+}
+
+/// 定义测试用的两个多选集：二分法组 $act（VALUE=1）与分类法组 $subj
+void _defineSurveySets(Dataset d) {
+  MRSets.define(
+    d,
+    name: r'$act',
+    type: MrSetType.md,
+    variables: ['act1', 'act2', 'act3', 'act4', 'act5'],
+    label: '参加的活动',
+    counted: 1,
+  );
+  MRSets.define(
+    d,
+    name: r'$subj',
+    type: MrSetType.mc,
+    variables: ['subj1', 'subj2', 'subj3'],
+    label: '选考科目',
+  );
 }
 
 void main() {
@@ -585,6 +653,361 @@ void main() {
           messages: SyntaxMessages.en);
       expect(rs.length, 2);
       expect(_numCol(d, 'x'), [1.5, 1.5]);
+    });
+  });
+
+  group('MRSETS 定义与查询', () {
+    test('二分法组：成员顺序即类别顺序，标签取变量标签', () {
+      final d = _survey();
+      final s = MRSets.define(
+        d,
+        name: r'$act',
+        type: MrSetType.md,
+        variables: ['act1', 'act2', 'act3'],
+        label: '活动',
+        counted: 1,
+      );
+      expect(d.mrSets.length, 1);
+      expect(s.isDichotomy, isTrue);
+      expect(s.variables, ['act1', 'act2', 'act3']);
+      expect(s.counted, 1);
+      expect(MRSets.lookup(d, r'$ACT'), isNotNull); // 名字大小写不敏感
+      expect(MRSets.lookup(d, r'$act')!.label, '活动');
+      expect(MRSets.lookup(d, r'$nope'), isNull);
+    });
+
+    test('分类法组：不接受 VALUE，标签可为空', () {
+      final d = _survey();
+      final s = MRSets.define(
+        d,
+        name: r'$subj',
+        type: MrSetType.mc,
+        variables: ['subj1', 'subj2'],
+      );
+      expect(s.counted, isNull);
+      expect(s.type, MrSetType.mc);
+      expect(
+        () => MRSets.define(
+          d,
+          name: r'$bad',
+          type: MrSetType.mc,
+          variables: ['subj1', 'subj2'],
+          counted: 1,
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('同名定义覆盖旧定义（PSPP dict_add_mrset）', () {
+      final d = _survey();
+      MRSets.define(d,
+          name: r'$act',
+          type: MrSetType.md,
+          variables: ['act1', 'act2'],
+          counted: 1);
+      MRSets.define(d,
+          name: r'$act',
+          type: MrSetType.md,
+          variables: ['act1', 'act2', 'act3'],
+          counted: 1,
+          label: '新');
+      expect(d.mrSets.length, 1);
+      expect(MRSets.lookup(d, r'$act')!.variables.length, 3);
+      expect(MRSets.lookup(d, r'$act')!.label, '新');
+    });
+
+    test('定义校验：名字、成员数、类型、VALUE', () {
+      final d = _survey();
+      // 名字为空 / 非法
+      expect(
+        () => MRSets.define(d,
+            name: '  ', type: MrSetType.md, variables: ['act1', 'act2'], counted: 1),
+        throwsArgumentError,
+      );
+      expect(
+        () => MRSets.define(d,
+            name: '1bad name',
+            type: MrSetType.md,
+            variables: ['act1', 'act2'],
+            counted: 1),
+        throwsArgumentError,
+      );
+      // 成员不足 2 个（重复变量先去重）
+      expect(
+        () => MRSets.define(d,
+            name: r'$x', type: MrSetType.md, variables: ['act1'], counted: 1),
+        throwsArgumentError,
+      );
+      expect(
+        () => MRSets.define(d,
+            name: r'$x',
+            type: MrSetType.md,
+            variables: ['act1', 'act1'],
+            counted: 1),
+        throwsArgumentError,
+      );
+      // 变量不存在
+      expect(
+        () => MRSets.define(d,
+            name: r'$x',
+            type: MrSetType.md,
+            variables: ['act1', 'nope'],
+            counted: 1),
+        throwsArgumentError,
+      );
+      // 类型不一致
+      final d2 = _survey();
+      d2.addVariable(Variable(name: 'text', type: VarType.string));
+      expect(
+        () => MRSets.define(d2,
+            name: r'$x',
+            type: MrSetType.md,
+            variables: ['act1', 'text'],
+            counted: 1),
+        throwsArgumentError,
+      );
+      // 二分法组必须给 VALUE，且类型要与变量一致
+      expect(
+        () => MRSets.define(d,
+            name: r'$x', type: MrSetType.md, variables: ['act1', 'act2']),
+        throwsArgumentError,
+      );
+      expect(
+        () => MRSets.define(d,
+            name: r'$x',
+            type: MrSetType.md,
+            variables: ['act1', 'act2'],
+            counted: '1'),
+        throwsArgumentError,
+      );
+    });
+
+    test('删除：按名删除与 ALL', () {
+      final d = _survey();
+      _defineSurveySets(d);
+      expect(MRSets.delete(d, [r'$act']), 1);
+      expect(d.mrSets.length, 1);
+      expect(MRSets.delete(d, [r'$missing']), 0);
+      expect(MRSets.delete(d, [for (final s in d.mrSets) s.name]), 1);
+      expect(d.mrSets, isEmpty);
+    });
+
+    test('copy 与工程 JSON 往返都保留多选集', () {
+      final d = _survey();
+      _defineSurveySets(d);
+      final c = d.copy().mrSets;
+      expect(c.length, 2);
+      expect(c.first.name, r'$act');
+      expect(c.first.counted, 1);
+      // copy 是深拷贝，改副本不影响原数据集
+      c.first.variables.add('gender');
+      expect(MRSets.lookup(d, r'$act')!.variables.length, 5);
+      // 工程序列化
+      final p = Project.create(name: 'survey', dataset: d);
+      final back = Project.fromJson(p.toJson());
+      expect(back.dataset.mrSets.length, 2);
+      expect(back.dataset.mrSets[1].type, MrSetType.mc);
+      expect(back.dataset.mrSets[0].counted, 1);
+    });
+  });
+
+  group('MRSETS 频数与交叉表', () {
+    test('二分法组频数：每列一个成员变量，空值不计数', () {
+      final d = _survey();
+      _defineSurveySets(d);
+      final f = MRSets.frequencies(d, MRSets.lookup(d, r'$act')!);
+      expect([for (final c in f.categories) c.label],
+          ['活动1', '活动2', '活动3', '活动4', '活动5']);
+      expect([for (final c in f.categories) c.count], [2, 1, 2, 1, 0]);
+      expect(f.nResponses, 6);
+      expect(f.nCasesWithResponse, 3);
+      expect(f.nCases, 4);
+    });
+
+    test('分类法组频数：按取值合并，标签取值标签', () {
+      final d = _survey();
+      _defineSurveySets(d);
+      final f = MRSets.frequencies(d, MRSets.lookup(d, r'$subj')!);
+      expect([for (final c in f.categories) c.label], ['语文', '数学', '英语']);
+      expect([for (final c in f.categories) c.count], [1, 3, 1]);
+      expect(f.nResponses, 5);
+      expect(f.nCasesWithResponse, 3);
+    });
+
+    test('二分法组频数：CATEGORYLABELS=COUNTEDVALUES 用值标签', () {
+      final d = _survey();
+      // 给成员变量补上选中值的值标签
+      for (var i = 1; i <= 3; i++) {
+        d.variables[d.indexOf('act$i')].valueLabels[1] = '选中';
+      }
+      final s = MRSets.define(
+        d,
+        name: r'$act',
+        type: MrSetType.md,
+        variables: ['act1', 'act2'],
+        counted: 1,
+        categoryLabels: MrCategorySource.countedValues,
+      );
+      final f = MRSets.frequencies(d, s);
+      expect([for (final c in f.categories) c.label], ['选中', '选中']);
+      expect(f.nResponses, 3); // act1: 2 + act2: 1
+    });
+
+    test('二分法组频数：用户缺失值不计数', () {
+      final d = _survey();
+      d.variables[d.indexOf('act1')].missingValues.add(1); // 把 1 声明为缺失
+      final s = MRSets.define(d,
+          name: r'$act',
+          type: MrSetType.md,
+          variables: ['act1', 'act2'],
+          counted: 1);
+      final f = MRSets.frequencies(d, s);
+      expect([for (final c in f.categories) c.count], [0, 1]);
+      expect(f.nResponses, 1);
+      expect(f.nCasesWithResponse, 1);
+    });
+
+    test('二分法组 × 分类变量：列按取值排序，计数与分母都对', () {
+      final d = _survey();
+      _defineSurveySets(d);
+      final c = MRSets.crosstab(d, MRSets.lookup(d, r'$act')!, 'gender');
+      expect(c.colLabels, ['男', '女']);
+      expect(c.counts, [
+        [2, 0], // 活动1
+        [1, 0], // 活动2
+        [1, 1], // 活动3
+        [0, 1], // 活动4
+        [0, 0], // 活动5
+      ]);
+      expect(c.colResponses, [4, 2]);
+      expect(c.colCasesWithResponse, [2, 1]);
+      expect(c.colCases, [2, 2]);
+      expect(c.totalResponses, 6);
+      expect(c.totalCases, 4);
+      expect(c.byLabel, '性别');
+    });
+
+    test('分类法组 × 分类变量：一个个案的多个响应分别计数', () {
+      final d = _survey();
+      _defineSurveySets(d);
+      final c = MRSets.crosstab(d, MRSets.lookup(d, r'$subj')!, 'gender');
+      expect(c.colLabels, ['男', '女']);
+      expect(c.counts, [
+        [1, 0], // 语文
+        [3, 0], // 数学（第 3 个个案贡献两个响应）
+        [0, 1], // 英语
+      ]);
+      expect(c.colResponses, [4, 1]);
+      expect(c.colCasesWithResponse, [2, 1]);
+      expect(c.colCases, [2, 2]);
+    });
+
+    test('文本输出含标题、合计与百分比', () {
+      final d = _survey();
+      _defineSurveySets(d);
+      final text = MRSetsText.frequencies(
+          MRSets.frequencies(d, MRSets.lookup(d, r'$act')!));
+      expect(text, contains(r'$act'));
+      expect(text, contains('Total responses'));
+      expect(text, contains('6'));
+      expect(text, contains('3 / 4'));
+      final ct = MRSetsText.crosstab(
+          MRSets.crosstab(d, MRSets.lookup(d, r'$act')!, 'gender'));
+      expect(ct, contains('男'));
+      expect(ct, contains('Cases with responses'));
+      final df = MRSetsText.display(d.mrSets);
+      expect(df, contains('Dichotomies'));
+      expect(df, contains('Categories'));
+      expect(df, contains('act5'));
+    });
+  });
+
+  group('MRSETS 语法动词', () {
+    test('MDGROUP / MCGROUP / DISPLAY', () {
+      final d = _survey();
+      final rs = SyntaxExecutor.run(
+        "MRSETS /MDGROUP NAME=\$act LABEL='参加的活动' "
+        'VARIABLES=act1 act2 act3 act4 act5 VALUE=1 '
+        r'/MCGROUP NAME=$subj VARIABLES=subj1 subj2 subj3 '
+        '/DISPLAY NAME=ALL.',
+        d,
+        messages: SyntaxMessages.en,
+      );
+      expect(rs.single.ok, isTrue);
+      expect(rs.single.output, contains('MRSETS MDGROUP'));
+      expect(rs.single.output, contains('VALUE=1.0'));
+      expect(rs.single.output, contains('Multiple Response Sets'));
+      expect(d.mrSets.length, 2);
+      expect(MRSets.lookup(d, r'$act')!.label, '参加的活动');
+      expect(MRSets.lookup(d, r'$act')!.variables.length, 5);
+      expect(MRSets.lookup(d, r'$subj')!.type, MrSetType.mc);
+    });
+
+    test('/FREQUENCIES 与 /CROSSTABS', () {
+      final d = _survey();
+      _defineSurveySets(d);
+      final rs = SyntaxExecutor.run(
+          r'MRSETS /FREQUENCIES NAME=$act /CROSSTABS NAME=$subj BY=gender.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isTrue);
+      expect(rs.single.output, contains('/FREQUENCIES NAME='));
+      expect(rs.single.output, contains('/CROSSTABS NAME='));
+      expect(rs.single.output, contains('数学'));
+      expect(rs.single.output, contains('Cases with responses'));
+    });
+
+    test('/DELETE NAME= 与 NAME=ALL', () {
+      final d = _survey();
+      _defineSurveySets(d);
+      var rs = SyntaxExecutor.run(r'MRSETS /DELETE NAME=$act.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isTrue);
+      expect(rs.single.output, contains('1 set(s)'));
+      expect(d.mrSets.length, 1);
+      rs = SyntaxExecutor.run('MRSETS /DELETE NAME=ALL.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isTrue);
+      expect(d.mrSets, isEmpty);
+      expect(rs.single.output, contains('0 remaining'));
+    });
+
+    test('错误：缺 VALUE、缺变量、未知子命令、未定义集合', () {
+      final d = _survey();
+      // 二分法组缺 VALUE
+      var rs = SyntaxExecutor.run(
+          'MRSETS /MDGROUP NAME=\$act VARIABLES=act1 act2.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isFalse);
+      expect(rs.single.output, contains('VALUE'));
+      // 只有一个成员变量
+      rs = SyntaxExecutor.run(
+          r'MRSETS /MDGROUP NAME=$act VARIABLES=act1 VALUE=1.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isFalse);
+      expect(rs.single.output, contains('two variables'));
+      // 未知子命令
+      rs = SyntaxExecutor.run('MRSETS /NOPE NAME=x.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isFalse);
+      expect(rs.single.output, contains('MRSETS syntax'));
+      // 未定义的集合
+      rs = SyntaxExecutor.run(r'MRSETS /FREQUENCIES NAME=$none.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isFalse);
+      expect(rs.single.output, contains('no multiple response set'));
+      // 没有子命令
+      rs = SyntaxExecutor.run('MRSETS.', d, messages: SyntaxMessages.en);
+      expect(rs.single.ok, isFalse);
+      expect(rs.single.output, contains('MRSETS syntax'));
+    });
+
+    test('/CROSSTABS 缺 BY 时报语法提示', () {
+      final d = _survey();
+      _defineSurveySets(d);
+      final rs = SyntaxExecutor.run(r'MRSETS /CROSSTABS NAME=$act.', d,
+          messages: SyntaxMessages.en);
+      expect(rs.single.ok, isFalse);
+      expect(rs.single.output, contains('MRSETS syntax'));
     });
   });
 }

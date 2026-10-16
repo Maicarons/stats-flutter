@@ -1677,6 +1677,77 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trOpSample => 'SAMPLE';
 
   @override
+  String get trOpMrsets => 'MRSETS';
+
+  @override
+  String get trMrMode => 'Action';
+
+  @override
+  String get trMrDefine => 'Define set';
+
+  @override
+  String get trMrDelete => 'Delete set';
+
+  @override
+  String get trMrDisplay => 'Display definitions';
+
+  @override
+  String get trMrFrequencies => 'Frequencies';
+
+  @override
+  String get trMrCrosstabs => 'Crosstab';
+
+  @override
+  String get trMrName => 'Set name';
+
+  @override
+  String get trMrLabel => 'Set label';
+
+  @override
+  String get trMrType => 'Type';
+
+  @override
+  String get trMrTypeMd => 'MDGROUP (dichotomies)';
+
+  @override
+  String get trMrTypeMc => 'MCGROUP (categories)';
+
+  @override
+  String get trMrVars => 'Member variables (2 or more, same type)';
+
+  @override
+  String get trMrValue => 'Counted value (dichotomies)';
+
+  @override
+  String get trMrCategoryLabels => 'Category labels';
+
+  @override
+  String get trMrCatVarLabels => 'Member variable labels';
+
+  @override
+  String get trMrCatCounted => 'Member value labels of the counted value';
+
+  @override
+  String get trMrSet => 'Multiple response set';
+
+  @override
+  String get trMrBy => 'Crosstab by';
+
+  @override
+  String get trMrNeedVars2 =>
+      'A set needs at least two variables of the same type';
+
+  @override
+  String get trMrNeedSet => 'Select a multiple response set first';
+
+  @override
+  String get trMrNeedBy => 'Select a crosstab variable';
+
+  @override
+  String get trMrHelp =>
+      'A dichotomy group (MDGROUP) counts one category per member variable, with cases whose value equals the counted value marked as selected; a category group (MCGROUP) treats the members as multiple responses of one categorical question, merging categories by value and labelling them from value labels. Frequencies report both responses and cases with responses; the crosstab reports both per column.';
+
+  @override
   String get trSampleFraction => 'Fraction';
 
   @override

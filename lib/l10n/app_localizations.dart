@@ -3248,6 +3248,144 @@ abstract class AppLocalizations {
   /// **'SAMPLE'**
   String get trOpSample;
 
+  /// No description provided for @trOpMrsets.
+  ///
+  /// In en, this message translates to:
+  /// **'MRSETS'**
+  String get trOpMrsets;
+
+  /// No description provided for @trMrMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Action'**
+  String get trMrMode;
+
+  /// No description provided for @trMrDefine.
+  ///
+  /// In en, this message translates to:
+  /// **'Define set'**
+  String get trMrDefine;
+
+  /// No description provided for @trMrDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete set'**
+  String get trMrDelete;
+
+  /// No description provided for @trMrDisplay.
+  ///
+  /// In en, this message translates to:
+  /// **'Display definitions'**
+  String get trMrDisplay;
+
+  /// No description provided for @trMrFrequencies.
+  ///
+  /// In en, this message translates to:
+  /// **'Frequencies'**
+  String get trMrFrequencies;
+
+  /// No description provided for @trMrCrosstabs.
+  ///
+  /// In en, this message translates to:
+  /// **'Crosstab'**
+  String get trMrCrosstabs;
+
+  /// No description provided for @trMrName.
+  ///
+  /// In en, this message translates to:
+  /// **'Set name'**
+  String get trMrName;
+
+  /// No description provided for @trMrLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Set label'**
+  String get trMrLabel;
+
+  /// No description provided for @trMrType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get trMrType;
+
+  /// No description provided for @trMrTypeMd.
+  ///
+  /// In en, this message translates to:
+  /// **'MDGROUP (dichotomies)'**
+  String get trMrTypeMd;
+
+  /// No description provided for @trMrTypeMc.
+  ///
+  /// In en, this message translates to:
+  /// **'MCGROUP (categories)'**
+  String get trMrTypeMc;
+
+  /// No description provided for @trMrVars.
+  ///
+  /// In en, this message translates to:
+  /// **'Member variables (2 or more, same type)'**
+  String get trMrVars;
+
+  /// No description provided for @trMrValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Counted value (dichotomies)'**
+  String get trMrValue;
+
+  /// No description provided for @trMrCategoryLabels.
+  ///
+  /// In en, this message translates to:
+  /// **'Category labels'**
+  String get trMrCategoryLabels;
+
+  /// No description provided for @trMrCatVarLabels.
+  ///
+  /// In en, this message translates to:
+  /// **'Member variable labels'**
+  String get trMrCatVarLabels;
+
+  /// No description provided for @trMrCatCounted.
+  ///
+  /// In en, this message translates to:
+  /// **'Member value labels of the counted value'**
+  String get trMrCatCounted;
+
+  /// No description provided for @trMrSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple response set'**
+  String get trMrSet;
+
+  /// No description provided for @trMrBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Crosstab by'**
+  String get trMrBy;
+
+  /// No description provided for @trMrNeedVars2.
+  ///
+  /// In en, this message translates to:
+  /// **'A set needs at least two variables of the same type'**
+  String get trMrNeedVars2;
+
+  /// No description provided for @trMrNeedSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a multiple response set first'**
+  String get trMrNeedSet;
+
+  /// No description provided for @trMrNeedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a crosstab variable'**
+  String get trMrNeedBy;
+
+  /// No description provided for @trMrHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'A dichotomy group (MDGROUP) counts one category per member variable, with cases whose value equals the counted value marked as selected; a category group (MCGROUP) treats the members as multiple responses of one categorical question, merging categories by value and labelling them from value labels. Frequencies report both responses and cases with responses; the crosstab reports both per column.'**
+  String get trMrHelp;
+
   /// No description provided for @trSampleFraction.
   ///
   /// In en, this message translates to:

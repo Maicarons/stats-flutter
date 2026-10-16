@@ -3,6 +3,7 @@ library;
 
 
 import '../models/dataset.dart';
+import '../models/mrset.dart';
 import '../transforms/transforms.dart';
 import 'package:statkit/statkit.dart';
 
@@ -38,6 +39,7 @@ class SyntaxMessages {
   final String rankSyntax;
   final String autorecodeSyntax;
   final String sampleSyntax;
+  final String mrsetsSyntax;
 
   /// 源变量数与目标变量数不一致
   final String Function(int, int) autorecodeCountMismatch;
@@ -52,6 +54,7 @@ class SyntaxMessages {
     required this.rankSyntax,
     required this.autorecodeSyntax,
     required this.sampleSyntax,
+    required this.mrsetsSyntax,
     required this.autorecodeCountMismatch,
   });
 
@@ -67,6 +70,10 @@ class SyntaxMessages {
     autorecodeSyntax: 'AUTORECODE 语法: AUTORECODE VARIABLES=a b [/INTO=an bn]'
         ' [/DESCENDING] [/GROUP] [/BLANK=VALID|MISSING]',
     sampleSyntax: 'SAMPLE 语法: SAMPLE p 或 SAMPLE n FROM N [/SEED=123]',
+    mrsetsSyntax: 'MRSETS 语法: MRSETS /MDGROUP NAME=\$m VARIABLES=a b VALUE=1 '
+        '[/MCGROUP NAME=\$c VARIABLES=x y] [/DELETE NAME=\$m|ALL] '
+        '[/DISPLAY NAME=\$m|ALL] [/FREQUENCIES NAME=\$m] '
+        '[/CROSSTABS NAME=\$m BY=变量]',
     autorecodeCountMismatch: _zhArcCountMismatch,
   );
 
@@ -82,6 +89,10 @@ class SyntaxMessages {
     autorecodeSyntax: 'AUTORECODE syntax: AUTORECODE VARIABLES=a b [/INTO=an bn]'
         ' [/DESCENDING] [/GROUP] [/BLANK=VALID|MISSING]',
     sampleSyntax: 'SAMPLE syntax: SAMPLE p or SAMPLE n FROM N [/SEED=123]',
+    mrsetsSyntax: 'MRSETS syntax: MRSETS /MDGROUP NAME=\$m VARIABLES=a b VALUE=1 '
+        '[/MCGROUP NAME=\$c VARIABLES=x y] [/DELETE NAME=\$m|ALL] '
+        '[/DISPLAY NAME=\$m|ALL] [/FREQUENCIES NAME=\$m] '
+        '[/CROSSTABS NAME=\$m BY=var]',
     autorecodeCountMismatch: _enArcCountMismatch,
   );
 }
@@ -100,6 +111,9 @@ const _zhHelp = '''
   COMPUTE newvar = expression.
   RECODE var (old=new) ...
   AUTORECODE VARIABLES=a b [/INTO=an bn] [/DESCENDING] [/GROUP].
+  SAMPLE p  或  SAMPLE n FROM N  [/SEED=123].
+  MRSETS /MDGROUP NAME=\$m VARIABLES=a b VALUE=1.
+         /DISPLAY NAME=ALL   /FREQUENCIES NAME=\$m   /CROSSTABS NAME=\$m BY=g.
   RANK VARIABLES=v (A|D) /RANK|/N|/PERCENT|/NORMAL|/NTILES(4) /TIES=MEAN.
   SORT CASES BY var1 var2.
   SELECT IF condition.
@@ -117,6 +131,9 @@ Supported commands (subset):
   COMPUTE newvar = expression.
   RECODE var (old=new) ...
   AUTORECODE VARIABLES=a b [/INTO=an bn] [/DESCENDING] [/GROUP].
+  SAMPLE p  or  SAMPLE n FROM N  [/SEED=123].
+  MRSETS /MDGROUP NAME=\$m VARIABLES=a b VALUE=1.
+         /DISPLAY NAME=ALL   /FREQUENCIES NAME=\$m   /CROSSTABS NAME=\$m BY=g.
   RANK VARIABLES=v (A|D) /RANK|/N|/PERCENT|/NORMAL|/NTILES(4) /TIES=MEAN.
   SORT CASES BY var1 var2.
   SELECT IF condition.
@@ -227,6 +244,8 @@ class SyntaxExecutor {
           return _autorecode(cmd, ds, messages);
         case 'SAMPLE':
           return _sample(cmd, ds, messages);
+        case 'MRSETS':
+          return _mrsets(cmd, ds, messages);
         case 'SORT':
         case 'SORT CASES':
           return _sort(cmd, ds);
@@ -389,6 +408,163 @@ class SyntaxExecutor {
     }
     final r = Transforms.sample(ds, fraction: frac, seed: seed);
     return SyntaxResult(command: cmd.raw, ok: true, output: r.message);
+  }
+
+  /// MRSETS：`MRSETS /MDGROUP NAME=$m LABEL='…' VARIABLES=v1 v2 VALUE=1
+  /// /MCGROUP NAME=$c VARIABLES=a b /DELETE NAME=$m /DISPLAY NAME=ALL`。
+  ///
+  /// 应用扩展（PSPP 里多响应表由 CTABLES 提供）：`/FREQUENCIES NAME=$m` 与
+  /// `/CROSSTABS NAME=$m BY=gender`。
+  static SyntaxResult _mrsets(
+      SyntaxCommand cmd, Dataset ds, SyntaxMessages messages) {
+    final parts = cmd.raw.split(RegExp(r'\s*/\s*'));
+    final outs = <String>[];
+    for (final part in parts.skip(1)) {
+      final m = RegExp(r'^([A-Za-z]+)\s*(.*)$', dotAll: true)
+          .firstMatch(part.trim());
+      if (m == null) continue;
+      final sub = m.group(1)!.toUpperCase();
+      final body = m.group(2)!;
+      switch (sub) {
+        case 'MDGROUP':
+        case 'MCGROUP':
+          final isMd = sub == 'MDGROUP';
+          final catM = RegExp(r'CATEGORYLABELS\s*=\s*(\w+)', caseSensitive: false)
+              .firstMatch(body);
+          final set = MRSets.define(
+            ds,
+            name: _opt(body, 'NAME') ?? '',
+            type: isMd ? MrSetType.md : MrSetType.mc,
+            variables: _optVars(body),
+            label: _optQuoted(body, 'LABEL') ?? '',
+            counted: isMd ? _optValue(body) : null,
+            categoryLabels: (catM?.group(1) ?? '').toUpperCase() ==
+                    'COUNTEDVALUES'
+                ? MrCategorySource.countedValues
+                : MrCategorySource.varLabels,
+          );
+          outs.add('MRSETS ${set.type.verb} ${set.name} defined '
+              '(${set.variables.length} variables'
+              '${isMd ? ', VALUE=${set.counted}' : ''})');
+          break;
+        case 'DELETE':
+          final n = MRSets.delete(ds, _mrsetNames(body, ds));
+          outs.add('MRSETS /DELETE removed $n set(s); '
+              '${ds.mrSets.length} remaining');
+          break;
+        case 'DISPLAY':
+          final names = _mrsetNames(body, ds);
+          final sets = names.isEmpty
+              ? ds.mrSets
+              : [for (final n in names) _lookupOrThrow(ds, n)];
+          outs.add(MRSetsText.display(sets));
+          break;
+        case 'FREQUENCIES':
+          final names = _mrsetNames(body, ds);
+          final targets = names.isEmpty
+              ? [for (final s in ds.mrSets) s.name]
+              : names;
+          if (targets.isEmpty) {
+            outs.add('MRSETS /FREQUENCIES (no multiple response sets)');
+            break;
+          }
+          for (final n in targets) {
+            outs.add(MRSetsText.frequencies(
+                MRSets.frequencies(ds, _lookupOrThrow(ds, n))));
+          }
+          break;
+        case 'CROSSTABS':
+          final by = _opt(body, 'BY') ??
+              RegExp(r'\bBY\s+(\S+)', caseSensitive: false)
+                  .firstMatch(body)
+                  ?.group(1);
+          if (by == null) {
+            return SyntaxResult(
+                command: cmd.raw, ok: false, output: messages.mrsetsSyntax);
+          }
+          final names = _mrsetNames(body, ds);
+          final targets = names.isEmpty
+              ? [for (final s in ds.mrSets) s.name]
+              : names;
+          if (targets.isEmpty) {
+            outs.add('MRSETS /CROSSTABS (no multiple response sets)');
+            break;
+          }
+          for (final n in targets) {
+            outs.add(MRSetsText.crosstab(
+                MRSets.crosstab(ds, _lookupOrThrow(ds, n), by)));
+          }
+          break;
+        default:
+          return SyntaxResult(
+              command: cmd.raw, ok: false, output: messages.mrsetsSyntax);
+      }
+    }
+    if (outs.isEmpty) {
+      return SyntaxResult(
+          command: cmd.raw, ok: false, output: messages.mrsetsSyntax);
+    }
+    return SyntaxResult(command: cmd.raw, ok: true, output: outs.join('\n'));
+  }
+
+  static MrSet _lookupOrThrow(Dataset ds, String name) {
+    final s = MRSets.lookup(ds, name);
+    if (s == null) throw ArgumentError('no multiple response set named $name');
+    return s;
+  }
+
+  /// `KEY=token`（单个记号）
+  static String? _opt(String body, String key) =>
+      RegExp('$key\\s*=\\s*([^\\s/]+)', caseSensitive: false)
+          .firstMatch(body)
+          ?.group(1);
+
+  /// `KEY='…'`（带引号的文本）
+  static String? _optQuoted(String body, String key) {
+    final m = RegExp("$key\\s*=\\s*('[^']*'|\"[^\"]*\")", caseSensitive: false)
+        .firstMatch(body);
+    if (m == null) return null;
+    final t = m.group(1)!;
+    return t.substring(1, t.length - 1);
+  }
+
+  /// `VALUE=`：数字取值转 num，带引号或非数字保持字符串（类型与变量一致由定义校验）
+  static Object? _optValue(String body) {
+    final m = RegExp("VALUE\\s*=\\s*('[^']*'|\"[^\"]*\"|[^\\s/]+)",
+            caseSensitive: false)
+        .firstMatch(body);
+    if (m == null) return null;
+    final t = m.group(1)!;
+    if (t.startsWith("'") || t.startsWith('"')) {
+      return t.substring(1, t.length - 1);
+    }
+    return double.tryParse(t) ?? t;
+  }
+
+  /// `VARIABLES=`：取到下一个选项关键字为止
+  static List<String> _optVars(String body) {
+    final m = RegExp(r'VARIABLES\s*=([^/]*)', caseSensitive: false)
+        .firstMatch(body);
+    if (m == null) return const [];
+    var text = m.group(1)!;
+    final stop = RegExp(r'\b(NAME|LABEL|LABELSOURCE|VALUE|CATEGORYLABELS)\s*=',
+            caseSensitive: false)
+        .firstMatch(text);
+    if (stop != null) text = text.substring(0, stop.start);
+    return _names(text);
+  }
+
+  /// `/DELETE`、`/DISPLAY` 等的 `NAME=`：支持 `NAME=$m`、`NAME=[$a $b]` 与 `NAME=ALL`
+  static List<String> _mrsetNames(String body, Dataset ds) {
+    final m = RegExp(r'NAME\s*=\s*(\[[^\]]*\]|\S+)', caseSensitive: false)
+        .firstMatch(body);
+    if (m == null) return const [];
+    final t = m.group(1)!;
+    if (t.toUpperCase() == 'ALL') {
+      return [for (final s in ds.mrSets) s.name];
+    }
+    if (t.startsWith('[')) return _names(t);
+    return [t];
   }
 
   /// 从变量表文本里取变量名：忽略括号内容，按空白 / 逗号分列。

@@ -1,10 +1,12 @@
-/// 数据变换 UI（COMPUTE / RECODE / COUNT / RANK / SORT / SELECT / AGGREGATE / FLIP）
+/// 数据变换 UI（COMPUTE / RECODE / AUTORECODE / COUNT / RANK / SORT / SAMPLE /
+/// SELECT / MRSETS / AGGREGATE / FLIP）
 library;
 
 import 'package:flutter/material.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/models/dataset.dart';
+import '../../core/models/mrset.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/transforms/transforms.dart';
 import '../../shared/dataset_store.dart';
@@ -32,6 +34,14 @@ class _TransformPageState extends State<TransformPage> {
   final _fromCtrl = TextEditingController(text: '10');
   final _seedCtrl = TextEditingController(text: '20261016');
   bool _sampleByFraction = true;
+  _MrMode _mrMode = _MrMode.define;
+  MrSetType _mrType = MrSetType.md;
+  MrCategorySource _mrCat = MrCategorySource.varLabels;
+  final _mrNameCtrl = TextEditingController(text: r'$m');
+  final _mrLabelCtrl = TextEditingController();
+  final _mrValueCtrl = TextEditingController(text: '1');
+  String? _mrSetName;
+  String? _mrBy;
   String? _sourceVar;
   String? _groupVar;
   List<String> _selected = [];
@@ -59,6 +69,9 @@ class _TransformPageState extends State<TransformPage> {
     _nCtrl.dispose();
     _fromCtrl.dispose();
     _seedCtrl.dispose();
+    _mrNameCtrl.dispose();
+    _mrLabelCtrl.dispose();
+    _mrValueCtrl.dispose();
     super.dispose();
   }
 
@@ -216,6 +229,7 @@ class _TransformPageState extends State<TransformPage> {
         _Op('rank', l10n.trOpRank, Icons.format_list_numbered),
         _Op('sort', l10n.trOpSort, Icons.sort),
         _Op('sample', l10n.trOpSample, Icons.percent),
+        _Op('mrsets', l10n.trOpMrsets, Icons.checklist),
         _Op('select', l10n.trOpSelect, Icons.filter_alt_outlined),
         _Op('aggregate', l10n.trOpAggregate, Icons.functions),
         _Op('flip', l10n.trOpFlip, Icons.swap_horiz),
@@ -457,6 +471,86 @@ class _TransformPageState extends State<TransformPage> {
           gap,
           _multiSelect(l10n.trAggVars),
         ];
+      case 'mrsets':
+        final setNames = [for (final s in ds.mrSets) s.name];
+        return [
+          _dropdownOf<_MrMode>(
+            l10n.trMrMode,
+            _mrMode,
+            _MrMode.values,
+            (m) => switch (m) {
+              _MrMode.define => l10n.trMrDefine,
+              _MrMode.delete => l10n.trMrDelete,
+              _MrMode.display => l10n.trMrDisplay,
+              _MrMode.frequencies => l10n.trMrFrequencies,
+              _MrMode.crosstabs => l10n.trMrCrosstabs,
+            },
+            (m) => setState(() => _mrMode = m ?? _MrMode.define),
+          ),
+          gap,
+          if (_mrMode == _MrMode.define) ...[
+            TextField(
+              controller: _mrNameCtrl,
+              decoration: InputDecoration(
+                labelText: l10n.trMrName,
+                hintText: r'$m',
+              ),
+            ),
+            gap,
+            TextField(
+              controller: _mrLabelCtrl,
+              decoration: InputDecoration(labelText: l10n.trMrLabel),
+            ),
+            gap,
+            _dropdownOf<MrSetType>(
+              l10n.trMrType,
+              _mrType,
+              MrSetType.values,
+              (t) => t == MrSetType.md ? l10n.trMrTypeMd : l10n.trMrTypeMc,
+              (t) => setState(() => _mrType = t ?? MrSetType.md),
+            ),
+            gap,
+            _multiSelect(l10n.trMrVars),
+            gap,
+            if (_mrType == MrSetType.md) ...[
+              TextField(
+                controller: _mrValueCtrl,
+                decoration: InputDecoration(
+                  labelText: l10n.trMrValue,
+                  hintText: '1',
+                ),
+              ),
+              gap,
+              _dropdownOf<MrCategorySource>(
+                l10n.trMrCategoryLabels,
+                _mrCat,
+                MrCategorySource.values,
+                (c) => c == MrCategorySource.varLabels
+                    ? l10n.trMrCatVarLabels
+                    : l10n.trMrCatCounted,
+                (c) => setState(() => _mrCat = c ?? MrCategorySource.varLabels),
+              ),
+            ],
+          ] else ...[
+            _dropdown(
+              l10n.trMrSet,
+              _mrSetName,
+              [
+                if (_mrMode == _MrMode.delete || _mrMode == _MrMode.display)
+                  'ALL',
+                ...setNames,
+              ],
+              (v) => setState(() => _mrSetName = v),
+            ),
+            if (_mrMode == _MrMode.crosstabs) ...[
+              gap,
+              _dropdown(l10n.trMrBy, _mrBy, _varNames,
+                  (v) => setState(() => _mrBy = v)),
+            ],
+          ],
+          const SizedBox(height: AppSpacing.x2),
+          _hint(l10n.trMrHelp, scheme),
+        ];
       case 'flip':
         return [
           Text(
@@ -466,6 +560,93 @@ class _TransformPageState extends State<TransformPage> {
         ];
     }
     return const [];
+  }
+
+  /// MRSETS：定义 / 删除 / 显示定义 / 频数表 / 交叉表
+  TransformResult _runMrsets(AppLocalizations l10n) {
+    switch (_mrMode) {
+      case _MrMode.define:
+        if (_selected.length < 2) throw l10n.trMrNeedVars2;
+        final s = MRSets.define(
+          ds,
+          name: _mrNameCtrl.text.trim(),
+          type: _mrType,
+          variables: List.of(_selected),
+          label: _mrLabelCtrl.text.trim(),
+          counted: _mrType == MrSetType.md ? _mrCounted() : null,
+          categoryLabels: _mrCat,
+        );
+        return TransformResult(
+          message: 'MRSETS /${s.type.verb} ${s.name} defined '
+              '(${s.variables.length} variables'
+              '${s.type == MrSetType.md ? ', VALUE=${s.counted}' : ''})',
+          dataset: ds,
+          changed: 0,
+        );
+      case _MrMode.delete:
+        final names = _mrTargets();
+        if (names.isEmpty) throw l10n.trMrNeedSet;
+        final n = MRSets.delete(ds, names);
+        return TransformResult(
+          message: 'MRSETS /DELETE removed $n set(s); '
+              '${ds.mrSets.length} remaining',
+          dataset: ds,
+          changed: 0,
+        );
+      case _MrMode.display:
+        return TransformResult(
+            message: MRSetsText.display(_mrSetsToShow()),
+            dataset: ds,
+            changed: 0);
+      case _MrMode.frequencies:
+        final sets = _mrSetsToShow();
+        if (sets.isEmpty) throw l10n.trMrNeedSet;
+        return TransformResult(
+          message: [
+            for (final s in sets)
+              MRSetsText.frequencies(MRSets.frequencies(ds, s)),
+          ].join('\n\n'),
+          dataset: ds,
+          changed: 0,
+        );
+      case _MrMode.crosstabs:
+        if (_mrBy == null) throw l10n.trMrNeedBy;
+        final sets = _mrSetsToShow();
+        if (sets.isEmpty) throw l10n.trMrNeedSet;
+        return TransformResult(
+          message: [
+            for (final s in sets)
+              MRSetsText.crosstab(MRSets.crosstab(ds, s, _mrBy!)),
+          ].join('\n\n'),
+          dataset: ds,
+          changed: 0,
+        );
+    }
+  }
+
+  /// 当前选择的多选集（`ALL` 或未选择时返回全部）
+  List<MrSet> _mrSetsToShow() {
+    final names = _mrTargets();
+    if (names.isEmpty) return List.of(ds.mrSets);
+    return [
+      for (final n in names)
+        if (MRSets.lookup(ds, n) != null) MRSets.lookup(ds, n)!,
+    ];
+  }
+
+  List<String> _mrTargets() {
+    final v = _mrSetName;
+    if (v == null) return const [];
+    if (v == 'ALL') return [for (final s in ds.mrSets) s.name];
+    return [v];
+  }
+
+  /// MDGROUP 的选中值：成员为数值变量时按数字解析，否则按字符串
+  Object _mrCounted() {
+    final text = _mrValueCtrl.text.trim();
+    final i = _selected.isEmpty ? -1 : ds.indexOf(_selected.first);
+    final numeric = i >= 0 && ds.variables[i].type == VarType.numeric;
+    return numeric ? (num.tryParse(text) ?? text) : text;
   }
 
   Widget _hint(String text, ColorScheme scheme) => Text(
@@ -621,6 +802,9 @@ class _TransformPageState extends State<TransformPage> {
         case 'flip':
           r = Transforms.flip(ds);
           break;
+        case 'mrsets':
+          r = _runMrsets(l10n);
+          break;
         default:
           throw l10n.trUnknownOp;
       }
@@ -644,6 +828,9 @@ class _Op {
   final IconData icon;
   const _Op(this.id, this.label, this.icon);
 }
+
+/// MRSETS 面板上的操作
+enum _MrMode { define, delete, display, frequencies, crosstabs }
 
 /// 执行结果卡片：成功/失败用语义色 + 图标双重表达。
 class _ResultCard extends StatelessWidget {

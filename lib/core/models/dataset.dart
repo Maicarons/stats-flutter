@@ -1,6 +1,8 @@
 /// 核心数据模型：变量字典 + 数据集
 library;
 
+import 'mrset.dart';
+
 /// 测量级别
 enum MeasureLevel {
   scale('Scale', '标度'),
@@ -161,6 +163,9 @@ class Dataset {
 
   /// SPLIT FILE
   String? splitVariable;
+
+  /// MRSETS 多选集（定义顺序即显示顺序）
+  List<MrSet> mrSets = [];
 
   int get nVars => variables.length;
   int get nCases => cases.length;
@@ -327,9 +332,14 @@ class Dataset {
     return Dataset(name: 'demo_scores', variables: vars, cases: cases);
   }
 
+  /// 深拷贝：变量、个案与数据定义状态（权重 / 拆分 / 多选集）一并复制
   Dataset copy() => Dataset(
         name: name,
         variables: variables.map((v) => v.copy()).toList(),
         cases: cases.map((r) => List<Object?>.of(r)).toList(),
-      )..path = path;
+      )
+        ..path = path
+        ..weightVariable = weightVariable
+        ..splitVariable = splitVariable
+        ..mrSets = [for (final s in mrSets) s.copy()];
 }

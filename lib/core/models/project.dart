@@ -2,6 +2,7 @@
 library;
 
 import 'dataset.dart';
+import 'mrset.dart';
 
 class ProjectMeta {
   final String id;
@@ -86,6 +87,9 @@ class Project {
           'path': dataset.path,
           'weightVariable': dataset.weightVariable,
           'splitVariable': dataset.splitVariable,
+          'mrSets': [
+            for (final s in dataset.mrSets) s.toJson(),
+          ],
           'variables': [for (final v in dataset.variables) v.toJson()],
           'cases': [
             for (final row in dataset.cases)
@@ -111,7 +115,11 @@ class Project {
     final ds = Dataset(name: dsJson['name'] as String? ?? meta.name, variables: vars, cases: cases)
       ..path = dsJson['path'] as String?
       ..weightVariable = dsJson['weightVariable'] as String?
-      ..splitVariable = dsJson['splitVariable'] as String?;
+      ..splitVariable = dsJson['splitVariable'] as String?
+      ..mrSets = [
+        for (final s in (dsJson['mrSets'] as List? ?? []))
+          MrSet.fromJson(Map<String, dynamic>.from(s as Map)),
+      ];
     return Project(meta: meta, dataset: ds);
   }
 

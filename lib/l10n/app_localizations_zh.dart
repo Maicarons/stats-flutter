@@ -1659,6 +1659,76 @@ class AppLocalizationsZh extends AppLocalizations {
   String get trOpSample => 'SAMPLE 抽样';
 
   @override
+  String get trOpMrsets => 'MRSETS 多选集';
+
+  @override
+  String get trMrMode => '操作';
+
+  @override
+  String get trMrDefine => '定义多选集';
+
+  @override
+  String get trMrDelete => '删除多选集';
+
+  @override
+  String get trMrDisplay => '显示定义';
+
+  @override
+  String get trMrFrequencies => '频数表';
+
+  @override
+  String get trMrCrosstabs => '交叉表';
+
+  @override
+  String get trMrName => '集合名';
+
+  @override
+  String get trMrLabel => '集合标签';
+
+  @override
+  String get trMrType => '类型';
+
+  @override
+  String get trMrTypeMd => 'MDGROUP（二分法组）';
+
+  @override
+  String get trMrTypeMc => 'MCGROUP（分类法组）';
+
+  @override
+  String get trMrVars => '成员变量（≥ 2 个，类型一致）';
+
+  @override
+  String get trMrValue => '选中值 VALUE（二分法组）';
+
+  @override
+  String get trMrCategoryLabels => '类别标签来源';
+
+  @override
+  String get trMrCatVarLabels => '成员变量的变量标签';
+
+  @override
+  String get trMrCatCounted => '成员变量对选中值的值标签';
+
+  @override
+  String get trMrSet => '多选集';
+
+  @override
+  String get trMrBy => '交叉变量';
+
+  @override
+  String get trMrNeedVars2 => '多选集至少需要 2 个同类型变量';
+
+  @override
+  String get trMrNeedSet => '请先选择多选集';
+
+  @override
+  String get trMrNeedBy => '请选择交叉变量';
+
+  @override
+  String get trMrHelp =>
+      '二分法组（MDGROUP）每个成员变量算一个类别，取值为选中值的个案视为选中；分类法组（MCGROUP）是同一个分类问题的多个响应，按取值合并类别、标签取值标签。频数表同时给出响应数与有响应的个案数，交叉表按列给出两者。';
+
+  @override
   String get trSampleFraction => '按比例';
 
   @override
