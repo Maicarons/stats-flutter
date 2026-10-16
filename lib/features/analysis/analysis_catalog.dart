@@ -156,6 +156,19 @@ const List<AnalysisCategory> analysisCatalog = [
         desc: _anKruskalDesc,
       ),
       AnalysisItem(
+        id: 'jt_trend',
+        icon: Icons.trending_up,
+        title: _anJtTrend,
+        desc: _anJtTrendDesc,
+      ),
+      AnalysisItem(
+        id: 'permutation',
+        icon: Icons.shuffle,
+        title: _anPermutation,
+        desc: _anPermutationDesc,
+        advanced: true,
+      ),
+      AnalysisItem(
         id: 'reliability',
         icon: Icons.verified_outlined,
         title: _anReliability,
@@ -251,6 +264,20 @@ const List<AnalysisCategory> analysisCatalog = [
         advanced: true,
       ),
       AnalysisItem(
+        id: 'ancova',
+        icon: Icons.tune,
+        title: _anAncova,
+        desc: _anAncovaDesc,
+        advanced: true,
+      ),
+      AnalysisItem(
+        id: 'multinomial',
+        icon: Icons.category_outlined,
+        title: _anMultinomial,
+        desc: _anMultinomialDesc,
+        advanced: true,
+      ),
+      AnalysisItem(
         id: 'stepwise',
         icon: Icons.linear_scale,
         title: _anStepwise,
@@ -336,6 +363,10 @@ String _anWilcoxon(AppLocalizations l) => l.anWilcoxon;
 String _anWilcoxonDesc(AppLocalizations l) => l.anWilcoxonDesc;
 String _anKruskal(AppLocalizations l) => l.anKruskal;
 String _anKruskalDesc(AppLocalizations l) => l.anKruskalDesc;
+String _anJtTrend(AppLocalizations l) => l.anJtTrend;
+String _anJtTrendDesc(AppLocalizations l) => l.anJtTrendDesc;
+String _anPermutation(AppLocalizations l) => l.anPermutation;
+String _anPermutationDesc(AppLocalizations l) => l.anPermutationDesc;
 String _anReliability(AppLocalizations l) => l.anReliability;
 String _anReliabilityDesc(AppLocalizations l) => l.anReliabilityDesc;
 String _anMeans(AppLocalizations l) => l.anMeans;
@@ -362,6 +393,10 @@ String _anLogisticFull(AppLocalizations l) => l.anLogisticFull;
 String _anLogisticFullDesc(AppLocalizations l) => l.anLogisticFullDesc;
 String _anGlmTwo(AppLocalizations l) => l.anGlmTwo;
 String _anGlmTwoDesc(AppLocalizations l) => l.anGlmTwoDesc;
+String _anAncova(AppLocalizations l) => l.anAncova;
+String _anAncovaDesc(AppLocalizations l) => l.anAncovaDesc;
+String _anMultinomial(AppLocalizations l) => l.anMultinomial;
+String _anMultinomialDesc(AppLocalizations l) => l.anMultinomialDesc;
 String _anStepwise(AppLocalizations l) => l.anStepwise;
 String _anStepwiseDesc(AppLocalizations l) => l.anStepwiseDesc;
 String _anCtables(AppLocalizations l) => l.anCtables;

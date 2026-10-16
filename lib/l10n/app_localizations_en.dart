@@ -1079,6 +1079,121 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get pKolmogorov => 'p (Kolmogorov)';
+
+  @override
+  String get jtTitle => 'Jonckheere-Terpstra trend test';
+
+  @override
+  String get jtNote =>
+      'Groups are ordered by the ordering variable\'s level order (value labels first, then ascending values). The alternative is a monotone rise of the response along that order.';
+
+  @override
+  String get pOneTail => 'p (1-tailed)';
+
+  @override
+  String get pGreater => 'p (≥ observed)';
+
+  @override
+  String get pLess => 'p (≤ observed)';
+
+  @override
+  String get pleaseSelectCovariates => 'Please select at least one covariate';
+
+  @override
+  String get observedValue => 'Observed';
+
+  @override
+  String get permTitle => 'Permutation test';
+
+  @override
+  String get permDesign => 'Design';
+
+  @override
+  String get permIndependent => 'Independent samples';
+
+  @override
+  String get permPaired => 'Paired samples';
+
+  @override
+  String permRunInfo(int b, String seed, String mode) {
+    return 'Permutations: $b · seed $seed · $mode';
+  }
+
+  @override
+  String get permExact => 'exact enumeration';
+
+  @override
+  String get permRandom => 'random sampling';
+
+  @override
+  String get permDistribution => 'Permutation distribution';
+
+  @override
+  String get permStatMean => 'Mean of permuted';
+
+  @override
+  String get permStatSd => 'SD of permuted';
+
+  @override
+  String get permStatRange => 'Min / max of permuted';
+
+  @override
+  String get multinomialTitle => 'Multinomial logistic regression';
+
+  @override
+  String get referenceCategory => 'Reference category';
+
+  @override
+  String get multinomialFit => 'Model fit & classification';
+
+  @override
+  String get confusionMatrix => 'Confusion matrix';
+
+  @override
+  String get lrChiSquare => 'LR χ²';
+
+  @override
+  String get actualClass => 'Actual';
+
+  @override
+  String get predictedClass => 'Predicted';
+
+  @override
+  String multinomialNote(String ref, String r2, int n) {
+    return 'Reference category: $ref · McFadden R²=$r2 · N=$n';
+  }
+
+  @override
+  String get ancovaTitle => 'ANCOVA (analysis of covariance)';
+
+  @override
+  String get factorWord => 'Factor';
+
+  @override
+  String get typeIiiSs => 'Type III sums of squares';
+
+  @override
+  String get covariates => 'Covariates';
+
+  @override
+  String get covariateSlopes => 'Covariate slopes';
+
+  @override
+  String get adjustedMeans => 'Adjusted means (EMM)';
+
+  @override
+  String get rawMean => 'Raw mean';
+
+  @override
+  String get adjustedMean => 'Adjusted mean';
+
+  @override
+  String ancovaNote(String r2, String adj, int n) {
+    return 'Adjusted means are evaluated at the covariates\' means; the slope is on the original scale (change in Y per one unit of X). R²=$r2 · Adjusted R²=$adj · N=$n';
+  }
+
+  @override
   String get stepwiseTitle => 'Stepwise regression';
 
   @override
@@ -1458,6 +1573,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get anCtablesDesc => 'Row/column summaries';
+
+  @override
+  String get anJtTrend => 'Jonckheere-Terpstra trend';
+
+  @override
+  String get anJtTrendDesc => 'Ordered-alternative trend across groups';
+
+  @override
+  String get anAncova => 'ANCOVA (covariance)';
+
+  @override
+  String get anAncovaDesc => 'Group means adjusted for covariates';
+
+  @override
+  String get anMultinomial => 'Multinomial logistic';
+
+  @override
+  String get anMultinomialDesc => 'Nominal outcome with 3+ categories';
+
+  @override
+  String get anPermutation => 'Permutation test';
+
+  @override
+  String get anPermutationDesc =>
+      'Exact / random p without distributional assumptions';
 
   @override
   String get anHistogram => 'Histogram';

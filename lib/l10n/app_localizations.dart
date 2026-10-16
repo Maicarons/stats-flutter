@@ -2108,6 +2108,222 @@ abstract class AppLocalizations {
   /// **'R²={r2}  Adjusted R²={adj}  RMSE={rmse}  N={n}'**
   String glmNote(String r2, String adj, String rmse, int n);
 
+  /// No description provided for @pKolmogorov.
+  ///
+  /// In en, this message translates to:
+  /// **'p (Kolmogorov)'**
+  String get pKolmogorov;
+
+  /// No description provided for @jtTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Jonckheere-Terpstra trend test'**
+  String get jtTitle;
+
+  /// No description provided for @jtNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Groups are ordered by the ordering variable\'s level order (value labels first, then ascending values). The alternative is a monotone rise of the response along that order.'**
+  String get jtNote;
+
+  /// No description provided for @pOneTail.
+  ///
+  /// In en, this message translates to:
+  /// **'p (1-tailed)'**
+  String get pOneTail;
+
+  /// No description provided for @pGreater.
+  ///
+  /// In en, this message translates to:
+  /// **'p (≥ observed)'**
+  String get pGreater;
+
+  /// No description provided for @pLess.
+  ///
+  /// In en, this message translates to:
+  /// **'p (≤ observed)'**
+  String get pLess;
+
+  /// No description provided for @pleaseSelectCovariates.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select at least one covariate'**
+  String get pleaseSelectCovariates;
+
+  /// No description provided for @observedValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Observed'**
+  String get observedValue;
+
+  /// No description provided for @permTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Permutation test'**
+  String get permTitle;
+
+  /// No description provided for @permDesign.
+  ///
+  /// In en, this message translates to:
+  /// **'Design'**
+  String get permDesign;
+
+  /// No description provided for @permIndependent.
+  ///
+  /// In en, this message translates to:
+  /// **'Independent samples'**
+  String get permIndependent;
+
+  /// No description provided for @permPaired.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired samples'**
+  String get permPaired;
+
+  /// No description provided for @permRunInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Permutations: {b} · seed {seed} · {mode}'**
+  String permRunInfo(int b, String seed, String mode);
+
+  /// No description provided for @permExact.
+  ///
+  /// In en, this message translates to:
+  /// **'exact enumeration'**
+  String get permExact;
+
+  /// No description provided for @permRandom.
+  ///
+  /// In en, this message translates to:
+  /// **'random sampling'**
+  String get permRandom;
+
+  /// No description provided for @permDistribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Permutation distribution'**
+  String get permDistribution;
+
+  /// No description provided for @permStatMean.
+  ///
+  /// In en, this message translates to:
+  /// **'Mean of permuted'**
+  String get permStatMean;
+
+  /// No description provided for @permStatSd.
+  ///
+  /// In en, this message translates to:
+  /// **'SD of permuted'**
+  String get permStatSd;
+
+  /// No description provided for @permStatRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Min / max of permuted'**
+  String get permStatRange;
+
+  /// No description provided for @multinomialTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Multinomial logistic regression'**
+  String get multinomialTitle;
+
+  /// No description provided for @referenceCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference category'**
+  String get referenceCategory;
+
+  /// No description provided for @multinomialFit.
+  ///
+  /// In en, this message translates to:
+  /// **'Model fit & classification'**
+  String get multinomialFit;
+
+  /// No description provided for @confusionMatrix.
+  ///
+  /// In en, this message translates to:
+  /// **'Confusion matrix'**
+  String get confusionMatrix;
+
+  /// No description provided for @lrChiSquare.
+  ///
+  /// In en, this message translates to:
+  /// **'LR χ²'**
+  String get lrChiSquare;
+
+  /// No description provided for @actualClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Actual'**
+  String get actualClass;
+
+  /// No description provided for @predictedClass.
+  ///
+  /// In en, this message translates to:
+  /// **'Predicted'**
+  String get predictedClass;
+
+  /// No description provided for @multinomialNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference category: {ref} · McFadden R²={r2} · N={n}'**
+  String multinomialNote(String ref, String r2, int n);
+
+  /// No description provided for @ancovaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'ANCOVA (analysis of covariance)'**
+  String get ancovaTitle;
+
+  /// No description provided for @factorWord.
+  ///
+  /// In en, this message translates to:
+  /// **'Factor'**
+  String get factorWord;
+
+  /// No description provided for @typeIiiSs.
+  ///
+  /// In en, this message translates to:
+  /// **'Type III sums of squares'**
+  String get typeIiiSs;
+
+  /// No description provided for @covariates.
+  ///
+  /// In en, this message translates to:
+  /// **'Covariates'**
+  String get covariates;
+
+  /// No description provided for @covariateSlopes.
+  ///
+  /// In en, this message translates to:
+  /// **'Covariate slopes'**
+  String get covariateSlopes;
+
+  /// No description provided for @adjustedMeans.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjusted means (EMM)'**
+  String get adjustedMeans;
+
+  /// No description provided for @rawMean.
+  ///
+  /// In en, this message translates to:
+  /// **'Raw mean'**
+  String get rawMean;
+
+  /// No description provided for @adjustedMean.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjusted mean'**
+  String get adjustedMean;
+
+  /// No description provided for @ancovaNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjusted means are evaluated at the covariates\' means; the slope is on the original scale (change in Y per one unit of X). R²={r2} · Adjusted R²={adj} · N={n}'**
+  String ancovaNote(String r2, String adj, int n);
+
   /// No description provided for @stepwiseTitle.
   ///
   /// In en, this message translates to:
@@ -2833,6 +3049,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Row/column summaries'**
   String get anCtablesDesc;
+
+  /// No description provided for @anJtTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Jonckheere-Terpstra trend'**
+  String get anJtTrend;
+
+  /// No description provided for @anJtTrendDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Ordered-alternative trend across groups'**
+  String get anJtTrendDesc;
+
+  /// No description provided for @anAncova.
+  ///
+  /// In en, this message translates to:
+  /// **'ANCOVA (covariance)'**
+  String get anAncova;
+
+  /// No description provided for @anAncovaDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Group means adjusted for covariates'**
+  String get anAncovaDesc;
+
+  /// No description provided for @anMultinomial.
+  ///
+  /// In en, this message translates to:
+  /// **'Multinomial logistic'**
+  String get anMultinomial;
+
+  /// No description provided for @anMultinomialDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Nominal outcome with 3+ categories'**
+  String get anMultinomialDesc;
+
+  /// No description provided for @anPermutation.
+  ///
+  /// In en, this message translates to:
+  /// **'Permutation test'**
+  String get anPermutation;
+
+  /// No description provided for @anPermutationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact / random p without distributional assumptions'**
+  String get anPermutationDesc;
 
   /// No description provided for @anHistogram.
   ///

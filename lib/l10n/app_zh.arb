@@ -364,6 +364,68 @@
   "errorWord": "误差",
   "glmNote": "R²={r2}  调整R²={adj}  RMSE={rmse}  N={n}",
 
+  "pKolmogorov": "p（Kolmogorov）",
+
+  "jtTitle": "Jonckheere-Terpstra 趋势检验",
+  "jtNote": "分组按排序变量的水平顺序（先值标签顺序，再按取值升序）。备择假设是响应沿该顺序单调上升。",
+  "pOneTail": "单侧 p",
+  "pGreater": "p（≥ 观察值）",
+  "pLess": "p（≤ 观察值）",
+  "pleaseSelectCovariates": "请至少选择一个协变量",
+  "observedValue": "观察值",
+
+  "permTitle": "置换检验",
+  "permDesign": "设计",
+  "permIndependent": "独立样本",
+  "permPaired": "配对样本",
+  "permRunInfo": "置换次数：{b} · 种子 {seed} · {mode}",
+  "@permRunInfo": {
+    "placeholders": {
+      "b": {"type": "int"},
+      "seed": {"type": "String"},
+      "mode": {"type": "String"}
+    }
+  },
+  "permExact": "完全枚举",
+  "permRandom": "随机抽样",
+  "permDistribution": "置换分布",
+  "permStatMean": "置换均值",
+  "permStatSd": "置换标准差",
+  "permStatRange": "置换最小 / 最大值",
+
+  "multinomialTitle": "多项 logistic 回归",
+  "referenceCategory": "参考类别",
+  "multinomialFit": "模型拟合与分类",
+  "confusionMatrix": "混淆矩阵",
+  "lrChiSquare": "似然比 χ²",
+  "actualClass": "实际",
+  "predictedClass": "预测",
+  "multinomialNote": "参考类别：{ref} · McFadden R²={r2} · N={n}",
+  "@multinomialNote": {
+    "placeholders": {
+      "ref": {"type": "String"},
+      "r2": {"type": "String"},
+      "n": {"type": "int"}
+    }
+  },
+
+  "ancovaTitle": "协方差分析（ANCOVA）",
+  "factorWord": "因子",
+  "typeIiiSs": "类型 III 平方和",
+  "covariates": "协变量",
+  "covariateSlopes": "协变量斜率",
+  "adjustedMeans": "调整均值（EMM）",
+  "rawMean": "原始均值",
+  "adjustedMean": "调整均值",
+  "ancovaNote": "调整均值在协变量均值处求值；斜率是原始尺度（X 每增加 1 个单位 Y 的变化）。R²={r2} · 调整R²={adj} · N={n}",
+  "@ancovaNote": {
+    "placeholders": {
+      "r2": {"type": "String"},
+      "adj": {"type": "String"},
+      "n": {"type": "int"}
+    }
+  },
+
   "stepwiseTitle": "逐步回归",
   "enteredVars": "进入模型的变量",
   "noneEntered": "（无变量进入）",
@@ -488,6 +550,14 @@
   "anStepwiseDesc": "前进 / 后退筛选",
   "anCtables": "CTABLES 透视表",
   "anCtablesDesc": "行列汇总",
+  "anJtTrend": "有序趋势检验（J-T）",
+  "anJtTrendDesc": "分组有序时的单调趋势",
+  "anAncova": "协方差分析（ANCOVA）",
+  "anAncovaDesc": "控制协变量后的组间比较",
+  "anMultinomial": "多项 logistic 回归",
+  "anMultinomialDesc": "三分类及以上名义因变量",
+  "anPermutation": "置换检验",
+  "anPermutationDesc": "小样本下的无分布假设 p 值",
   "anHistogram": "直方图",
   "anHistogramDesc": "分布形态",
   "anScatter": "散点图",

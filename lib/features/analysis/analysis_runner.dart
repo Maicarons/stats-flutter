@@ -1,6 +1,11 @@
 import 'dart:io';
 import 'dart:math' as math;
 
+// 应用是 statkit 的同仓第一消费者：应用发布与 statkit 版本绑定（当前
+// statkit 0.5.0 ↔ app 1.4.0），两者的 API 调整在同一次发布里一起改，
+// 因此这里可以有意使用 statkit 标注为 @experimental 的入口。
+// ignore_for_file: experimental_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -36,6 +41,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   /// GLM 双元的第二个因素（可选，null = 单因素）。
   String? _factorB;
   String _corMethod = 'Pearson';
+
+  /// 置换检验的设计：false = 两独立样本，true = 配对样本。
+  bool _permPaired = false;
   int _kClusters = 3;
   final _muCtrl = TextEditingController(text: '0');
   AnalysisReport? _report;
@@ -150,6 +158,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     'means',
     'tukey',
     'glm_two',
+    'jt_trend',
   };
 
   /// 一个数值变量 + 可选分组变量（不选则按单组处理）。
@@ -266,6 +275,74 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                 clearable: true,
                 onChanged: (v) => setState(() => _factorB = v),
               ),
+            ],
+            if (id == 'ancova') ...[
+              _Dropdown(
+                label: l10n.dependentVar,
+                value: _yVar,
+                items: _numericVars,
+                onChanged: (v) => setState(() => _yVar = v),
+              ),
+              const SizedBox(height: 12),
+              groupDropdown(optional: false),
+              const SizedBox(height: 12),
+              _Dropdown(
+                label: l10n.factorB,
+                value: _factorB,
+                items: allVars,
+                clearable: true,
+                onChanged: (v) => setState(() => _factorB = v),
+              ),
+              const SizedBox(height: 12),
+              ParamVarPicker(
+                label: l10n.covariates,
+                names: _numericVars,
+                selected: _selectedVars,
+                onChanged: (v) => setState(() => _selectedVars = v),
+              ),
+            ],
+            if (id == 'multinomial') ...[
+              _Dropdown(
+                label: l10n.dependentVar,
+                value: _yVar,
+                items: allVars,
+                onChanged: (v) => setState(() => _yVar = v),
+              ),
+              const SizedBox(height: 12),
+              ParamVarPicker(
+                label: l10n.independentVar,
+                names: _numericVars,
+                selected: _selectedVars,
+                onChanged: (v) => setState(() => _selectedVars = v),
+              ),
+            ],
+            if (id == 'permutation') ...[
+              Text(l10n.permDesign,
+                  style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 6),
+              SegmentedButton<bool>(
+                segments: [
+                  ButtonSegment(value: false, label: Text(l10n.permIndependent)),
+                  ButtonSegment(value: true, label: Text(l10n.permPaired)),
+                ],
+                selected: {_permPaired},
+                onSelectionChanged: (s) =>
+                    setState(() => _permPaired = s.first),
+              ),
+              const SizedBox(height: 12),
+              if (_permPaired)
+                ParamVarPicker(
+                  label: l10n.pairVariables,
+                  names: _numericVars,
+                  selected: _selectedVars,
+                  max: 2,
+                  onChanged: (v) => setState(() => _selectedVars = v),
+                )
+              else ...[
+                singleVarPicker(),
+                const SizedBox(height: 12),
+                groupDropdown(optional: false),
+              ],
             ],
             if (id == 'ttest_one') ...[
               const SizedBox(height: 12),
@@ -428,6 +505,12 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         case 'kruskal':
           _runKruskal();
           break;
+        case 'jt_trend':
+          _runJtTrend();
+          break;
+        case 'permutation':
+          _runPermutation();
+          break;
         case 'reliability':
           _runReliability();
           break;
@@ -475,6 +558,12 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
           break;
         case 'glm_two':
           _runGlmTwo();
+          break;
+        case 'ancova':
+          _runAncova();
+          break;
+        case 'multinomial':
+          _runMultinomial();
           break;
         case 'stepwise':
           _runStepwise();
@@ -927,7 +1016,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
           tables: [
             ReportTable(
               headers: [
-                l10n.testWord, l10n.statistic, 'p',
+                l10n.testWord, l10n.statistic, 'p', l10n.pKolmogorov,
                 l10n.skewness, l10n.kurtosis, l10n.verdictWord,
               ],
               rows: [
@@ -935,6 +1024,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                   r.test,
                   formatNum(r.statistic),
                   formatP(r.p),
+                  r.pKolmogorovAsymptotic.isFinite
+                      ? formatP(r.pKolmogorovAsymptotic)
+                      : '—',
                   formatNum(r.skewness),
                   formatNum(r.kurtosis),
                   r.looksNormal ? l10n.looksNormal : l10n.deviatesNormal,
@@ -1645,6 +1737,447 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
           ],
           notes: l10n.glmNote(formatNum(r.r2), formatNum(r.adjR2),
               formatNum(r.rmse), r.n),
+        ),
+      ],
+    );
+  }
+
+  /// 有序分组的水平顺序：先按值标签的键升序（1、2、3… 的语义顺序），
+  /// 再把未被值标签覆盖的实际取值补上（数值按大小，其它按显示文本）。
+  /// 用于 Jonckheere-Terpstra 与多项 logistic 的类别顺序。
+  List<String> _orderedLevels(String groupVar) {
+    final vi = ds.indexOf(groupVar);
+    if (vi < 0) throw l10n.varNotFound;
+    final v = ds.variables[vi];
+    final out = <String>[];
+    final seen = <String>{};
+    for (final k in v.valueLabels.keys.toList()..sort()) {
+      final label = v.valueLabels[k]!;
+      if (seen.add(label)) out.add(label);
+    }
+    final rest = <Object?>[];
+    for (final row in ds.cases) {
+      if (vi >= row.length) continue;
+      final raw = row[vi];
+      if (raw == null) continue;
+      if (raw is num && v.valueLabels.containsKey(raw)) continue;
+      rest.add(raw);
+    }
+    if (rest.every((e) => e is num)) {
+      rest.sort((a, b) => (a as num).compareTo(b as num));
+    } else {
+      rest.sort((a, b) => v.displayValue(a).compareTo(v.displayValue(b)));
+    }
+    for (final raw in rest) {
+      final label = v.displayValue(raw);
+      if (label.isNotEmpty && seen.add(label)) out.add(label);
+    }
+    return out;
+  }
+
+  /// 有序备择的趋势检验：分组按 [_orderedLevels] 的顺序进入检验。
+  void _runJtTrend() {
+    final vName = _selectedVars.isNotEmpty ? _selectedVars.first : null;
+    if (vName == null || _groupVar == null) throw l10n.pleaseSelectGroup;
+    final byLevel = _splitByGroup(vName, _groupVar!);
+    final pairs = <(String, List<double>)>[
+      for (final lv in _orderedLevels(_groupVar!))
+        if (byLevel[lv] != null && byLevel[lv]!.isNotEmpty) (lv, byLevel[lv]!),
+    ];
+    if (pairs.length < 2) throw l10n.needTwoGroups;
+    final r = NparExtended.jonckheereTerpstra([for (final e in pairs) e.$2]);
+    final pOne = r.extra['pOneTail'] as double?;
+    _report = AnalysisReport(
+      title: l10n.jtTitle,
+      subtitle: '$vName · ${_groupVar!}',
+      sections: [
+        ReportSection(
+          heading: l10n.testResult,
+          tables: [
+            ReportTable(
+              headers: [
+                l10n.statistic,
+                'Z',
+                l10n.pTwoTail,
+                l10n.pOneTail,
+                'k',
+                'N',
+              ],
+              rows: [
+                [
+                  formatNum(r.statistic),
+                  r.z == null ? '—' : formatNum(r.z!),
+                  formatP(r.p),
+                  pOne == null ? '—' : formatP(pOne),
+                  '${pairs.length}',
+                  '${r.n1}',
+                ],
+              ],
+            ),
+            ReportTable(
+              caption: l10n.groupVariable,
+              headers: [l10n.group, 'n', l10n.mean, l10n.median],
+              rows: [
+                for (final (level, values) in pairs)
+                  [
+                    level,
+                    '${values.length}',
+                    formatNum(values.reduce((a, b) => a + b) / values.length),
+                    formatNum(percentile(List.of(values)..sort(), 50)),
+                  ],
+              ],
+            ),
+          ],
+          notes: l10n.jtNote,
+        ),
+      ],
+    );
+  }
+
+  /// 置换检验：独立样本（均值差）或配对样本（差值的均值）。
+  void _runPermutation() {
+    const b = 9999;
+    if (_permPaired) {
+      if (_selectedVars.length < 2) throw l10n.pleaseSelectVars;
+      final r = Permutation.pairedDifference(
+        MissingAware.numeric(ds, _selectedVars[0]),
+        MissingAware.numeric(ds, _selectedVars[1]),
+        permutations: b,
+      );
+      _report = _permReport(_selectedVars[0], _selectedVars[1], r);
+    } else {
+      final vName = _selectedVars.isNotEmpty ? _selectedVars.first : null;
+      if (vName == null || _groupVar == null) throw l10n.pleaseSelectGroup;
+      final groups = _splitByGroup(vName, _groupVar!);
+      if (groups.length < 2) throw l10n.needTwoGroups;
+      final keys = groups.keys.take(2).toList();
+      final r = Permutation.twoSampleMeanDifference(
+        groups[keys[0]]!,
+        groups[keys[1]]!,
+        permutations: b,
+      );
+      _report = _permReport(keys[0], keys[1], r);
+    }
+  }
+
+  AnalysisReport _permReport(String g1, String g2, PermutationResult r) {
+    final design = _permPaired ? l10n.permPaired : l10n.permIndependent;
+    return AnalysisReport(
+      title: l10n.permTitle,
+      subtitle: '$g1 vs $g2 · $design',
+      sections: [
+        ReportSection(
+          heading: l10n.testResult,
+          tables: [
+            ReportTable(
+              headers: [
+                l10n.observedValue,
+                'Z',
+                l10n.pTwoTail,
+                l10n.pGreater,
+                l10n.pLess,
+              ],
+              rows: [
+                [
+                  formatNum(r.observed),
+                  formatNum(r.z),
+                  formatP(r.pTwoTail),
+                  formatP(r.pGreater),
+                  formatP(r.pLess),
+                ],
+              ],
+            ),
+            ReportTable(
+              caption: l10n.permDistribution,
+              headers: [
+                l10n.permStatMean,
+                l10n.permStatSd,
+                l10n.permStatRange,
+              ],
+              rows: [
+                [
+                  formatNum(r.meanPermuted),
+                  formatNum(r.sdPermuted),
+                  '[${formatNum(r.minPermuted)}, ${formatNum(r.maxPermuted)}]',
+                ],
+              ],
+            ),
+          ],
+          notes: l10n.permRunInfo(
+            r.permutations,
+            '${r.seed}',
+            r.exact ? l10n.permExact : l10n.permRandom,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 协方差分析：类型 III 平方和 + 协变量斜率 + 调整均值（EMM）。
+  void _runAncova() {
+    if (_yVar == null) throw l10n.pleaseSelectDepVar;
+    if (_groupVar == null) throw l10n.pleaseSelectGroup;
+    if (_selectedVars.isEmpty) throw l10n.pleaseSelectCovariates;
+    final yi = ds.indexOf(_yVar!);
+    final ai = ds.indexOf(_groupVar!);
+    final bi = _factorB == null ? -1 : ds.indexOf(_factorB!);
+    final ci = [for (final n in _selectedVars) ds.indexOf(n)];
+    if (yi < 0 || ai < 0 || ci.any((i) => i < 0)) throw l10n.varNotFound;
+
+    final y = <double>[];
+    final a = <String>[];
+    final bList = <String>[];
+    final covs = {for (final n in _selectedVars) n: <double>[]};
+    for (final row in ds.cases) {
+      // 逐个变量应用「用户缺失值」规则；任一变量缺失即整行剔除（完全案例）
+      final yraw = yi < row.length ? row[yi] : null;
+      final araw = ai < row.length ? row[ai] : null;
+      final braw = bi >= 0 && bi < row.length ? row[bi] : null;
+      if (ds.variables[yi].isMissing(yraw) || ds.variables[ai].isMissing(araw)) {
+        continue;
+      }
+      if (bi >= 0 && ds.variables[bi].isMissing(braw)) continue;
+      final vals = <double>[];
+      var ok = yraw is num;
+      if (ok) {
+        for (final j in ci) {
+          final raw = j < row.length ? row[j] : null;
+          if (ds.variables[j].isMissing(raw) || raw is! num) {
+            ok = false;
+            break;
+          }
+          vals.add(raw.toDouble());
+        }
+      }
+      if (!ok) continue;
+      y.add((yraw as num).toDouble());
+      a.add(ds.variables[ai].displayValue(araw));
+      bList.add(bi >= 0 ? ds.variables[bi].displayValue(braw) : '—');
+      for (var k = 0; k < ci.length; k++) {
+        covs[_selectedVars[k]]!.add(vals[k]);
+      }
+    }
+    if (y.isEmpty) throw l10n.noValidData;
+    final r = ancova(
+      y: y,
+      a: a,
+      b: bi >= 0 ? bList : null,
+      covariates: covs,
+      yName: _yVar!,
+      aName: _groupVar!,
+      bName: _factorB ?? 'B',
+    );
+
+    _report = AnalysisReport(
+      title: l10n.ancovaTitle,
+      subtitle: '${r.yName} ~ ${r.factorNames.join(' * ')}'
+          '${r.covariateNames.isEmpty ? '' : ' + ${r.covariateNames.join(' + ')}'}',
+      sections: [
+        ReportSection(
+          heading: l10n.typeIiiSs,
+          tables: [
+            ReportTable(
+              headers: [
+                l10n.source,
+                'SS',
+                'df',
+                'MS',
+                'F',
+                'p',
+                l10n.partialEta2,
+              ],
+              rows: [
+                for (final t in r.terms)
+                  [
+                    t.isCovariate ? '${t.name} (cov)' : t.name,
+                    formatNum(t.ss),
+                    '${t.df}',
+                    formatNum(t.ms),
+                    formatNum(t.f),
+                    formatP(t.p),
+                    formatNum(t.partialEta2),
+                  ],
+                [
+                  l10n.errorWord,
+                  formatNum(r.ssError),
+                  '${r.dfError}',
+                  formatNum(r.msError),
+                  '',
+                  '',
+                  '',
+                ],
+              ],
+            ),
+          ],
+          notes: l10n.ancovaNote(
+            formatNum(r.r2),
+            formatNum(r.adjR2),
+            r.n,
+          ),
+        ),
+        ReportSection(
+          heading: l10n.covariateSlopes,
+          tables: [
+            ReportTable(
+              headers: [l10n.term, 'B', 'SE', 't', 'p', l10n.ci95],
+              rows: [
+                for (final s in r.slopes)
+                  [
+                    s.name,
+                    formatNum(s.b),
+                    formatNum(s.se),
+                    formatNum(s.t),
+                    formatP(s.p),
+                    '[${formatNum(s.ciLower95)}, ${formatNum(s.ciUpper95)}]',
+                  ],
+              ],
+            ),
+          ],
+        ),
+        ReportSection(
+          heading: l10n.adjustedMeans,
+          tables: [
+            ReportTable(
+              headers: [
+                l10n.factorWord,
+                l10n.group,
+                'N',
+                l10n.rawMean,
+                l10n.adjustedMean,
+                'SE',
+                l10n.ci95,
+              ],
+              rows: [
+                for (final m in r.means)
+                  [
+                    m.factor,
+                    m.level,
+                    '${m.n}',
+                    formatNum(m.raw),
+                    formatNum(m.adjusted),
+                    formatNum(m.se),
+                    '[${formatNum(m.ciLower95)}, ${formatNum(m.ciUpper95)}]',
+                  ],
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// 多项 logistic 回归（softmax，参考类别 = 最高类别）。
+  void _runMultinomial() {
+    if (_yVar == null) throw l10n.pleaseSelectDepVar;
+    if (_selectedVars.isEmpty) throw l10n.pleaseSelectVars;
+    final labels = _orderedLevels(_yVar!);
+    if (labels.length < 3) throw l10n.noValidData;
+    final vi = ds.indexOf(_yVar!);
+    final xi = [for (final n in _selectedVars) ds.indexOf(n)];
+    if (vi < 0 || xi.any((i) => i < 0)) throw l10n.varNotFound;
+    final code = {for (var i = 0; i < labels.length; i++) labels[i]: i + 1};
+
+    final xs = [for (var j = 0; j < xi.length; j++) <double>[]];
+    final y = <int>[];
+    for (final row in ds.cases) {
+      final yraw = vi < row.length ? row[vi] : null;
+      if (ds.variables[vi].isMissing(yraw)) continue;
+      final c = code[ds.variables[vi].displayValue(yraw)];
+      if (c == null) continue;
+      final vals = <double>[];
+      var ok = true;
+      for (final j in xi) {
+        final raw = j < row.length ? row[j] : null;
+        if (ds.variables[j].isMissing(raw) || raw is! num) {
+          ok = false;
+          break;
+        }
+        vals.add(raw.toDouble());
+      }
+      if (!ok) continue;
+      y.add(c);
+      for (var j = 0; j < vals.length; j++) {
+        xs[j].add(vals[j]);
+      }
+    }
+    if (y.length < 3) throw l10n.noValidData;
+    // 只把实际出现的类别传给显示名（按类别码升序，与库内的类别顺序一致）
+    final present = y.toSet().toList()..sort();
+    if (present.length < 3) throw l10n.noValidData;
+    final display = [
+      for (final c in present) labels[c - 1],
+    ];
+    final r = multinomialLogistic(
+      xs,
+      y,
+      names: _selectedVars,
+      levelLabels: display,
+    );
+
+    _report = AnalysisReport(
+      title: l10n.multinomialTitle,
+      subtitle: '$_yVar! ~ ${_selectedVars.join(' + ')}',
+      sections: [
+        ReportSection(
+          heading: l10n.waldCoefficients,
+          tables: [
+            ReportTable(
+              headers: [l10n.term, 'B', 'SE', 'Wald', 'p', 'OR', 'OR 95%CI'],
+              rows: [
+                for (final c in r.coefficients)
+                  [
+                    '${c.level} · ${c.name}',
+                    formatNum(c.beta),
+                    formatNum(c.se),
+                    formatNum(c.wald),
+                    formatP(c.p),
+                    formatNum(c.oddsRatio),
+                    '[${formatNum(c.orLower95)}, ${formatNum(c.orUpper95)}]',
+                  ],
+              ],
+            ),
+          ],
+          notes: l10n.multinomialNote(
+            r.reference,
+            formatNum(r.pseudoR2),
+            r.n,
+          ),
+        ),
+        ReportSection(
+          heading: l10n.multinomialFit,
+          tables: [
+            ReportTable(
+              headers: [
+                l10n.pseudoR2Mcfadden,
+                l10n.lrChiSquare,
+                'df',
+                'p',
+                'N',
+                l10n.accuracy,
+              ],
+              rows: [
+                [
+                  formatNum(r.pseudoR2),
+                  formatNum(r.lrChi),
+                  '${r.dfModel}',
+                  formatP(r.lrP),
+                  '${r.n}',
+                  '${(r.accuracy * 100).toStringAsFixed(1)}%',
+                ],
+              ],
+            ),
+            ReportTable(
+              caption: l10n.confusionMatrix,
+              headers: [
+                l10n.actualClass,
+                for (final l in r.levelLabels) '$l (${l10n.predictedClass})',
+              ],
+              rows: [
+                for (var i = 0; i < r.confusion.length; i++)
+                  [r.levelLabels[i], for (final v in r.confusion[i]) '$v'],
+              ],
+            ),
+          ],
         ),
       ],
     );

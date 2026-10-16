@@ -10,12 +10,16 @@ class AnalysisReport {
   final List<ReportSection> sections;
   final DateTime createdAt;
 
+  /// 生成时间的来源：默认当前时间。
+  /// 测试（golden）把它固定后，报告末尾的「生成时间」一行才可复现。
+  static DateTime Function() clock = DateTime.now;
+
   AnalysisReport({
     required this.title,
     required this.subtitle,
     required this.sections,
     DateTime? createdAt,
-  }) : createdAt = createdAt ?? DateTime.now();
+  }) : createdAt = createdAt ?? clock();
 
   String toPlainText() {
     final b = StringBuffer();

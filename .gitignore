@@ -61,3 +61,5 @@ tool/
 
 # Internal dev notes (not published)
 _internal/
+# golden 测试失败时落盘的对比图（仅供本地排查）
+test/failures/

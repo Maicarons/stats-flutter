@@ -478,6 +478,68 @@
     }
   },
 
+  "pKolmogorov": "p (Kolmogorov)",
+
+  "jtTitle": "Jonckheere-Terpstra trend test",
+  "jtNote": "Groups are ordered by the ordering variable's level order (value labels first, then ascending values). The alternative is a monotone rise of the response along that order.",
+  "pOneTail": "p (1-tailed)",
+  "pGreater": "p (≥ observed)",
+  "pLess": "p (≤ observed)",
+  "pleaseSelectCovariates": "Please select at least one covariate",
+  "observedValue": "Observed",
+
+  "permTitle": "Permutation test",
+  "permDesign": "Design",
+  "permIndependent": "Independent samples",
+  "permPaired": "Paired samples",
+  "permRunInfo": "Permutations: {b} · seed {seed} · {mode}",
+  "@permRunInfo": {
+    "placeholders": {
+      "b": {"type": "int"},
+      "seed": {"type": "String"},
+      "mode": {"type": "String"}
+    }
+  },
+  "permExact": "exact enumeration",
+  "permRandom": "random sampling",
+  "permDistribution": "Permutation distribution",
+  "permStatMean": "Mean of permuted",
+  "permStatSd": "SD of permuted",
+  "permStatRange": "Min / max of permuted",
+
+  "multinomialTitle": "Multinomial logistic regression",
+  "referenceCategory": "Reference category",
+  "multinomialFit": "Model fit & classification",
+  "confusionMatrix": "Confusion matrix",
+  "lrChiSquare": "LR χ²",
+  "actualClass": "Actual",
+  "predictedClass": "Predicted",
+  "multinomialNote": "Reference category: {ref} · McFadden R²={r2} · N={n}",
+  "@multinomialNote": {
+    "placeholders": {
+      "ref": {"type": "String"},
+      "r2": {"type": "String"},
+      "n": {"type": "int"}
+    }
+  },
+
+  "ancovaTitle": "ANCOVA (analysis of covariance)",
+  "factorWord": "Factor",
+  "typeIiiSs": "Type III sums of squares",
+  "covariates": "Covariates",
+  "covariateSlopes": "Covariate slopes",
+  "adjustedMeans": "Adjusted means (EMM)",
+  "rawMean": "Raw mean",
+  "adjustedMean": "Adjusted mean",
+  "ancovaNote": "Adjusted means are evaluated at the covariates' means; the slope is on the original scale (change in Y per one unit of X). R²={r2} · Adjusted R²={adj} · N={n}",
+  "@ancovaNote": {
+    "placeholders": {
+      "r2": {"type": "String"},
+      "adj": {"type": "String"},
+      "n": {"type": "int"}
+    }
+  },
+
   "stepwiseTitle": "Stepwise regression",
   "enteredVars": "Variables entered",
   "noneEntered": "(no variables entered)",
@@ -609,6 +671,14 @@
   "anStepwiseDesc": "Forward / backward selection",
   "anCtables": "CTABLES pivot table",
   "anCtablesDesc": "Row/column summaries",
+  "anJtTrend": "Jonckheere-Terpstra trend",
+  "anJtTrendDesc": "Ordered-alternative trend across groups",
+  "anAncova": "ANCOVA (covariance)",
+  "anAncovaDesc": "Group means adjusted for covariates",
+  "anMultinomial": "Multinomial logistic",
+  "anMultinomialDesc": "Nominal outcome with 3+ categories",
+  "anPermutation": "Permutation test",
+  "anPermutationDesc": "Exact / random p without distributional assumptions",
   "anHistogram": "Histogram",
   "anHistogramDesc": "Distribution shape",
   "anScatter": "Scatter plot",

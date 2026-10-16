@@ -1068,6 +1068,120 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get pKolmogorov => 'p（Kolmogorov）';
+
+  @override
+  String get jtTitle => 'Jonckheere-Terpstra 趋势检验';
+
+  @override
+  String get jtNote => '分组按排序变量的水平顺序（先值标签顺序，再按取值升序）。备择假设是响应沿该顺序单调上升。';
+
+  @override
+  String get pOneTail => '单侧 p';
+
+  @override
+  String get pGreater => 'p（≥ 观察值）';
+
+  @override
+  String get pLess => 'p（≤ 观察值）';
+
+  @override
+  String get pleaseSelectCovariates => '请至少选择一个协变量';
+
+  @override
+  String get observedValue => '观察值';
+
+  @override
+  String get permTitle => '置换检验';
+
+  @override
+  String get permDesign => '设计';
+
+  @override
+  String get permIndependent => '独立样本';
+
+  @override
+  String get permPaired => '配对样本';
+
+  @override
+  String permRunInfo(int b, String seed, String mode) {
+    return '置换次数：$b · 种子 $seed · $mode';
+  }
+
+  @override
+  String get permExact => '完全枚举';
+
+  @override
+  String get permRandom => '随机抽样';
+
+  @override
+  String get permDistribution => '置换分布';
+
+  @override
+  String get permStatMean => '置换均值';
+
+  @override
+  String get permStatSd => '置换标准差';
+
+  @override
+  String get permStatRange => '置换最小 / 最大值';
+
+  @override
+  String get multinomialTitle => '多项 logistic 回归';
+
+  @override
+  String get referenceCategory => '参考类别';
+
+  @override
+  String get multinomialFit => '模型拟合与分类';
+
+  @override
+  String get confusionMatrix => '混淆矩阵';
+
+  @override
+  String get lrChiSquare => '似然比 χ²';
+
+  @override
+  String get actualClass => '实际';
+
+  @override
+  String get predictedClass => '预测';
+
+  @override
+  String multinomialNote(String ref, String r2, int n) {
+    return '参考类别：$ref · McFadden R²=$r2 · N=$n';
+  }
+
+  @override
+  String get ancovaTitle => '协方差分析（ANCOVA）';
+
+  @override
+  String get factorWord => '因子';
+
+  @override
+  String get typeIiiSs => '类型 III 平方和';
+
+  @override
+  String get covariates => '协变量';
+
+  @override
+  String get covariateSlopes => '协变量斜率';
+
+  @override
+  String get adjustedMeans => '调整均值（EMM）';
+
+  @override
+  String get rawMean => '原始均值';
+
+  @override
+  String get adjustedMean => '调整均值';
+
+  @override
+  String ancovaNote(String r2, String adj, int n) {
+    return '调整均值在协变量均值处求值；斜率是原始尺度（X 每增加 1 个单位 Y 的变化）。R²=$r2 · 调整R²=$adj · N=$n';
+  }
+
+  @override
   String get stepwiseTitle => '逐步回归';
 
   @override
@@ -1443,6 +1557,30 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get anCtablesDesc => '行列汇总';
+
+  @override
+  String get anJtTrend => '有序趋势检验（J-T）';
+
+  @override
+  String get anJtTrendDesc => '分组有序时的单调趋势';
+
+  @override
+  String get anAncova => '协方差分析（ANCOVA）';
+
+  @override
+  String get anAncovaDesc => '控制协变量后的组间比较';
+
+  @override
+  String get anMultinomial => '多项 logistic 回归';
+
+  @override
+  String get anMultinomialDesc => '三分类及以上名义因变量';
+
+  @override
+  String get anPermutation => '置换检验';
+
+  @override
+  String get anPermutationDesc => '小样本下的无分布假设 p 值';
 
   @override
   String get anHistogram => '直方图';

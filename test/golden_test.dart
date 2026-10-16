@@ -11,6 +11,7 @@ import 'package:stats_flutter/features/data_editor/data_editor_page.dart';
 import 'package:stats_flutter/features/learn/learn_content.dart';
 import 'package:stats_flutter/features/learn/learn_page.dart';
 import 'package:stats_flutter/features/learn/lesson_detail_page.dart';
+import 'package:stats_flutter/features/output/report_builder.dart';
 import 'package:stats_flutter/features/quiz/quiz_page.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 import 'package:stats_flutter/shared/dataset_store.dart';
@@ -53,7 +54,11 @@ Widget _app(Widget home, {required bool dark}) => MaterialApp(
     );
 
 void main() {
-  setUpAll(_loadAppFonts);
+  setUpAll(() async {
+    await _loadAppFonts();
+    // 报告末尾的「生成时间」来自真实时钟；golden 里固定它才能复现。
+    AnalysisReport.clock = () => DateTime(2026, 1, 1, 9, 0);
+  });
 
   Future<void> snap(
     WidgetTester tester, {
@@ -260,6 +265,65 @@ void main() {
       before: (tester) async {
         await tester.pump(const Duration(seconds: 3));
         await tester.tap(find.text('post'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Run analysis'));
+        await tester.pumpAndSettle();
+      },
+    );
+  });
+
+  /// 协方差分析：参数区（因变量 / 因子 / 协变量）+ 类型 III 表 +
+  /// 协变量斜率 + 原始/调整均值三张表（v1.4.0 新增）。
+  testWidgets('协方差分析 · 宽屏 · 浅色', (t) async {
+    datasetStore.replace(Dataset.demoScores(zh: false));
+    await snap(
+      t,
+      page: const AnalysisRunner(analysisId: 'ancova', title: 'ANCOVA'),
+      size: const Size(760, 1500),
+      dark: false,
+      name: 'ancova_wide_light',
+      before: (tester) async {
+        await tester.pump(const Duration(seconds: 3));
+        // 因变量 → post
+        await tester.tap(find.byType(DropdownButtonFormField<String>).at(0));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('post').last);
+        await tester.pumpAndSettle();
+        // 因子 A → method（3 组）
+        await tester.tap(find.byType(DropdownButtonFormField<String>).at(1));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('method').last);
+        await tester.pumpAndSettle();
+        // 协变量 → pre
+        await tester.tap(find.widgetWithText(FilterChip, 'pre'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Run analysis'));
+        await tester.pumpAndSettle();
+      },
+    );
+  });
+
+  /// 多项 logistic：系数表（Wald / OR / 95% CI）+ 似然比检验 + 混淆矩阵（深色）。
+  /// 用宽屏，让 7 列的系数表完整呈现（手机宽度下表格本身可横向滚动）。
+  testWidgets('多项 logistic · 宽屏 · 深色', (t) async {
+    datasetStore.replace(Dataset.demoScores(zh: false));
+    await snap(
+      t,
+      page: const AnalysisRunner(analysisId: 'multinomial', title: 'Multinomial logistic'),
+      size: const Size(760, 1900),
+      dark: true,
+      name: 'multinomial_wide_dark',
+      before: (tester) async {
+        await tester.pump(const Duration(seconds: 3));
+        // 因变量 → method（3 类）
+        await tester.tap(find.byType(DropdownButtonFormField<String>).at(0));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('method').last);
+        await tester.pumpAndSettle();
+        // 自变量 → pre, hours
+        await tester.tap(find.widgetWithText(FilterChip, 'pre'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilterChip, 'hours'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Run analysis'));
         await tester.pumpAndSettle();
