@@ -20,6 +20,7 @@ export 'src/examine.dart';
 export 'src/factor_advanced.dart';
 export 'src/logistic_full.dart';
 export 'src/glm.dart';
+export 'src/ancova.dart';
 export 'src/stepwise.dart';
 export 'src/ctables.dart';
 export 'src/permutation.dart';

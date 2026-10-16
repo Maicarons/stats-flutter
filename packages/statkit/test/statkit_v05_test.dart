@@ -546,4 +546,381 @@ void main() {
       expect(multinomialLogistic([x], y).lrP, inInclusiveRange(0, 1));
     });
   });
+
+  group('协方差分析 ANCOVA', () {
+    /// 单元 ANCOVA 的同一份数据：3 组 × 10 例，组内 x 均值不同（1..10 + 0.7g）
+    ({List<String> a, List<double> y, List<double> x}) oneWayData() {
+      final a = <String>[], y = <double>[], x = <double>[];
+      for (var g = 0; g < 3; g++) {
+        for (var i = 1; i <= 10; i++) {
+          final xv = i + g * 0.7;
+          a.add('G$g');
+          x.add(xv);
+          // 真值：截距 5 + 组效应 2g + 斜率 1.5x，叠加确定性的小扰动
+          y.add(5 + g * 2 + 1.5 * xv + (((i * 7 + g) % 5) - 2) * 0.1);
+        }
+      }
+      return (a: a, y: y, x: x);
+    }
+
+    test('类型 III 平方和与 FWL 残差化一致（两条独立路径）', () {
+      final d = oneWayData();
+      final r = ancova(
+        y: d.y,
+        a: d.a,
+        covariates: {'x': d.x},
+        aName: 'G',
+        yName: 'Y',
+      );
+      expect(r.n, 30);
+      expect(r.nParams, 4); // 截距 + (3−1) 个组效应列 + 1 个协变量列
+      expect(r.dfError, 26);
+      expect(r.yName, 'Y');
+      expect(r.factorNames, ['G']);
+      expect(r.covariateNames, ['x']);
+      expect(r.terms.length, 2);
+      expect(r.terms[0].name, 'G');
+      expect(r.terms[0].isCovariate, isFalse);
+      expect(r.terms[0].df, 2);
+      expect(r.terms[0].ss, closeTo(77.38887829, 1e-6));
+      expect(r.terms[0].ms, closeTo(38.69443915, 1e-6));
+      expect(r.terms[0].f, closeTo(1723.1745, 1e-3));
+      expect(r.terms[0].partialEta2, greaterThan(0.99));
+      expect(r.terms[1].name, 'x');
+      expect(r.terms[1].isCovariate, isTrue);
+      expect(r.terms[1].df, 1);
+      expect(r.terms[1].ss, closeTo(550.891162, 1e-6));
+      expect(r.ssError, closeTo(0.58383838, 1e-8));
+      expect(r.ssTotal, closeTo(737.525, 1e-8));
+      expect(r.ssModel, closeTo(r.ssTotal - r.ssError, 1e-9));
+      expect(r.msError, closeTo(r.ssError / 26, 1e-12));
+      expect(r.r2, closeTo(0.999208, 1e-6));
+      expect(r.rmse, closeTo(math.sqrt(r.ssError / 26), 1e-12));
+      expect(r.covariateMeans['x'], closeTo(6.2, 1e-12));
+
+      // 独立路径（Frisch–Waugh–Lovell）：SS_G = Σỹ² − SSE(ỹ ~ 残差化后的效应编码列)
+      // 用 regression.dart 的另一套 OLS 实现，与 ancova 内部的求解无关
+      final yRes = Regression.multiple([d.x], d.y).residuals;
+      final eff = <List<double>>[
+        for (var g = 0; g < 2; g++)
+          [
+            for (var i = 0; i < d.a.length; i++)
+              d.a[i] == 'G$g' ? 1.0 : (d.a[i] == 'G2' ? -1.0 : 0.0)
+          ]
+      ];
+      final eRes = [for (final e in eff) Regression.multiple([d.x], e).residuals];
+      final residFit = Regression.multiple(eRes, yRes);
+      final ssG = yRes.fold<double>(0, (s, v) => s + v * v) -
+          residFit.ssResidual;
+      expect(ssG, closeTo(r.terms[0].ss, 1e-8));
+    });
+
+    test('协变量斜率 = 组内合并斜率（经典 ANCOVA 恒等式）', () {
+      final d = oneWayData();
+      final r = ancova(y: d.y, a: d.a, covariates: {'x': d.x}, aName: 'G');
+      expect(r.slopes.length, 1);
+      expect(r.slopes[0].name, 'x');
+      // 分组分别做一元回归，再按组内 SS_x 合并（同斜率的极大似然解）
+      var num = 0.0, den = 0.0;
+      for (var g = 0; g < 3; g++) {
+        final xx = <double>[], yy = <double>[];
+        for (var i = 0; i < d.a.length; i++) {
+          if (d.a[i] == 'G$g') {
+            xx.add(d.x[i]);
+            yy.add(d.y[i]);
+          }
+        }
+        final fit = Regression.simple(xx, yy);
+        final xb = xx.reduce((p, q) => p + q) / xx.length;
+        final yb = yy.reduce((p, q) => p + q) / yy.length;
+        var sxx = 0.0, sxy = 0.0;
+        for (var i = 0; i < xx.length; i++) {
+          sxx += (xx[i] - xb) * (xx[i] - xb);
+          sxy += (xx[i] - xb) * (yy[i] - yb);
+        }
+        num += sxy;
+        den += sxx;
+        // 各组自己的斜率
+        expect(fit.coefficients[1].beta, closeTo(sxy / sxx, 1e-12));
+      }
+      // 内部求解加了 1e-12 量级的岭（仅为数值可逆），偏差 ~1e-10
+      expect(r.slopes[0].b, closeTo(num / den, 1e-9));
+      expect(r.slopes[0].b, closeTo(1.491919, 1e-6));
+      expect(r.slopes[0].se, closeTo(0.009525, 1e-6));
+      expect(r.slopes[0].t, closeTo(r.slopes[0].b / r.slopes[0].se, 1e-12));
+      expect(r.slopes[0].p, lessThan(1e-30));
+      expect(r.slopes[0].ciLower95, lessThan(r.slopes[0].b));
+      expect(r.slopes[0].ciUpper95, greaterThan(r.slopes[0].b));
+    });
+
+    test('调整均值等于 ȳ_g − b(x̄_g − x̄)，且确实与原始均值不同', () {
+      final d = oneWayData();
+      final r = ancova(y: d.y, a: d.a, covariates: {'x': d.x}, aName: 'G');
+      final b = r.slopes[0].b;
+      final xBar = d.x.reduce((p, q) => p + q) / d.x.length;
+      expect(r.means.length, 3);
+      for (var g = 0; g < 3; g++) {
+        final idx = [
+          for (var i = 0; i < d.a.length; i++)
+            if (d.a[i] == 'G$g') i
+        ];
+        final yBar =
+            idx.map((i) => d.y[i]).reduce((p, q) => p + q) / idx.length;
+        final xBarG =
+            idx.map((i) => d.x[i]).reduce((p, q) => p + q) / idx.length;
+        final m = r.means.firstWhere((e) => e.level == 'G$g');
+        expect(m.factor, 'G');
+        expect(m.n, 10);
+        expect(m.raw, closeTo(yBar, 1e-12));
+        expect(m.adjusted, closeTo(yBar - b * (xBarG - xBar), 1e-8));
+        // 0、2 两组的 x 均值偏离总体均值 0.7 → 调整量恰好是 0.7b ≈ 1.044；
+        // 1 组的 x 均值恰好等于总体均值 6.2，调整量为 0（对称设计）
+        if (g == 1) {
+          expect((m.adjusted - m.raw).abs(), lessThan(1e-8));
+        } else {
+          expect((m.adjusted - m.raw).abs(), closeTo(0.7 * b, 1e-8));
+        }
+        expect(m.se, greaterThan(0));
+        expect(m.ciLower95, closeTo(m.adjusted - tCritical(26, 0.05) * m.se, 1e-9));
+        expect(m.ciUpper95, closeTo(m.adjusted + tCritical(26, 0.05) * m.se, 1e-9));
+      }
+      expect(r.means[0].adjusted, closeTo(14.29434343, 1e-7));
+      expect(r.means[1].adjusted, closeTo(16.30000000, 1e-7));
+      expect(r.means[2].adjusted, closeTo(18.30565657, 1e-7));
+      // 调整后组间仍保持约 2.0 的间隔（真值），且三段间隔严格相等
+      // （各组 x 均值等差 + 共斜率 → 相邻调整均值之差相同）
+      final d1 = r.means[1].adjusted - r.means[0].adjusted;
+      final d2 = r.means[2].adjusted - r.means[1].adjusted;
+      expect(d1, closeTo(d2, 1e-9));
+      expect(d1, closeTo(2.0, 0.01));
+    });
+
+    test('无协变量的平衡双因子退化为 glmTwoWay 的经典 ANOVA', () {
+      final cells = <(String, String), List<double>>{};
+      final a = <String>[], b = <String>[], y = <double>[];
+      for (final av in ['a1', 'a2']) {
+        for (final bv in ['b1', 'b2', 'b3']) {
+          final vals = <double>[];
+          for (var i = 0; i < 5; i++) {
+            final v = 3.0 +
+                (av == 'a1' ? 0 : 2.0) +
+                (bv == 'b1' ? 0 : (bv == 'b2' ? -1.0 : 0.5)) +
+                (av == 'a2' && bv == 'b2' ? 1.5 : 0) +
+                ((i * 3 + av.codeUnitAt(1) + bv.codeUnitAt(1)) % 4 - 1.5) * 0.3;
+            vals.add(v);
+            a.add(av);
+            b.add(bv);
+            y.add(v);
+          }
+          cells[(av, bv)] = vals;
+        }
+      }
+      final g = glmTwoWay(cells);
+      final r = ancova(y: y, a: a, b: b, aName: 'A', bName: 'B');
+      expect(r.nParams, 6); // 截距 + 1 + 2 + 2
+      expect(r.dfError, 24);
+      expect(r.covariateNames, isEmpty);
+      expect(r.slopes, isEmpty);
+      for (var i = 0; i < 3; i++) {
+        expect(r.terms[i].name, g.terms[i].name);
+        expect(r.terms[i].df, g.terms[i].df);
+        // 平衡设计里类型 I = II = III
+        expect(r.terms[i].ss, closeTo(g.terms[i].ss, 1e-9));
+        expect(r.terms[i].ms, closeTo(g.terms[i].ms, 1e-9));
+        expect(r.terms[i].f, closeTo(g.terms[i].f, 1e-9));
+        expect(r.terms[i].p, closeTo(g.terms[i].p, 1e-9));
+      }
+      expect(r.ssError, closeTo(g.ssError, 1e-9));
+      expect(r.dfError, g.dfError);
+      expect(r.r2, closeTo(g.r2, 1e-9));
+      // 两因子时给出 A、B 与 A×B 三套调整均值（无协变量 → 等于原始均值）
+      expect(r.means.length, 2 + 3 + 6);
+      for (final m in r.means) {
+        expect(m.adjusted, closeTo(m.raw, 1e-9));
+      }
+    });
+
+    test('协变量显著时组间差异被正确剥离', () {
+      // 两组的 x 完全不重叠：未调整看差异巨大，控制 x 后差异消失
+      final a = <String>[], y = <double>[], x = <double>[];
+      for (var g = 0; g < 2; g++) {
+        for (var i = 0; i < 20; i++) {
+          final xv = g == 0 ? 1.0 + i * 0.5 : 11.0 + i * 0.5;
+          a.add('T$g');
+          x.add(xv);
+          y.add(10 + 2.0 * xv + ((i * 5) % 7 - 3) * 0.05);
+        }
+      }
+      final r = ancova(y: y, a: a, covariates: {'x': x}, aName: 'T');
+      final unadj = glmOneWay({
+        'T0': [for (var i = 0; i < 20; i++) y[i]],
+        'T1': [for (var i = 20; i < 40; i++) y[i]],
+      });
+      // 未调整：组效应极显著
+      expect(unadj.terms[0].f, greaterThan(100));
+      expect(unadj.terms[0].p, lessThan(1e-10));
+      // 调整后：组效应不再显著
+      expect(r.terms[0].f, lessThan(1));
+      expect(r.terms[0].p, greaterThan(0.1));
+      // 斜率恢复真值 2.0
+      expect(r.slopes[0].b, closeTo(2.0, 5e-3));
+      expect(r.slopes[0].p, lessThan(1e-30));
+      // 原始均值差 > 15，调整均值差 < 0.1
+      final raw = [for (final m in r.means) m.raw];
+      final adj = [for (final m in r.means) m.adjusted];
+      expect((raw[0] - raw[1]).abs(), greaterThan(15));
+      expect((adj[0] - adj[1]).abs(), lessThan(0.1));
+    });
+
+    test('双因子 + 协变量：类型 III 平方和与独立手算一致', () {
+      final a = <String>[], b = <String>[], y = <double>[], x = <double>[];
+      for (final av in ['a1', 'a2']) {
+        for (final bv in ['b1', 'b2']) {
+          for (var i = 0; i < 8; i++) {
+            final xv = 1.0 + i;
+            a.add(av);
+            b.add(bv);
+            x.add(xv);
+            y.add(2 +
+                (av == 'a2' ? 1.0 : 0) +
+                (bv == 'b2' ? -0.8 : 0) +
+                (av == 'a2' && bv == 'b2' ? 2.2 : 0) +
+                1.2 * xv +
+                ((i * 3 + av.codeUnitAt(1)) % 4 - 1.5) * 0.2);
+          }
+        }
+      }
+      final r = ancova(y: y, a: a, b: b, covariates: {'x': x});
+      expect(r.n, 32);
+      expect(r.nParams, 5); // 截距 + 1 + 1 + 1 + 1
+      expect(r.dfError, 27);
+      expect(r.terms.map((t) => t.name).toList(), ['A', 'B', 'A×B', 'x']);
+      expect(r.terms.map((t) => t.isCovariate).toList(),
+          [false, false, false, true]);
+
+      // 独立手算：效应编码列 + regression.dart 的 OLS，逐项去掉求差
+      List<double> eff2(List<String> v, String first) => [
+            for (var i = 0; i < v.length; i++) v[i] == first ? 1.0 : -1.0
+          ];
+      final ca = eff2(a, 'a1');
+      final cb = eff2(b, 'b1');
+      final cab = [for (var i = 0; i < y.length; i++) ca[i] * cb[i]];
+      final all = <List<double>>[ca, cb, cab, x];
+      final full = Regression.multiple(all, y).ssResidual;
+      final names = ['A', 'B', 'A×B', 'x'];
+      for (var t = 0; t < 4; t++) {
+        final reduced = [
+          for (var j = 0; j < 4; j++)
+            if (j != t) all[j]
+        ];
+        final sseRed = Regression.multiple(reduced, y).ssResidual;
+        expect(r.terms[t].ss, closeTo(sseRed - full, 1e-8), reason: names[t]);
+      }
+      expect(r.ssError, closeTo(full, 1e-8));
+      expect(r.slopes[0].b, closeTo(1.219048, 1e-6));
+      expect(r.slopes[0].se, closeTo(0.018420, 1e-6));
+
+      // A×B 单元调整均值（在 x 的总体均值处求值），边缘均值 = 单元均值的等权平均
+      final cell = {
+        for (final m in r.means.where((m) => m.factor == 'A×B')) m.level: m.adjusted
+      };
+      expect(cell['a1 × b1'], closeTo(7.4, 1e-3));
+      expect(cell['a1 × b2'], closeTo(6.6, 1e-3));
+      expect(cell['a2 × b1'], closeTo(8.4, 1e-3));
+      expect(cell['a2 × b2'], closeTo(9.8, 1e-3));
+      final ma = {
+        for (final m in r.means.where((m) => m.factor == 'A')) m.level: m.adjusted
+      };
+      expect(ma['a1'], closeTo((cell['a1 × b1']! + cell['a1 × b2']!) / 2, 1e-9));
+      expect(ma['a2'], closeTo((cell['a2 × b1']! + cell['a2 × b2']!) / 2, 1e-9));
+      final mb = {
+        for (final m in r.means.where((m) => m.factor == 'B')) m.level: m.adjusted
+      };
+      expect(mb['b1'],
+          closeTo((cell['a1 × b1']! + cell['a2 × b1']!) / 2, 1e-9));
+      expect(mb['b2'],
+          closeTo((cell['a1 × b2']! + cell['a2 × b2']!) / 2, 1e-9));
+      expect(r.covariateMeans['x'], closeTo(4.5, 1e-12));
+    });
+
+    test('各格样本数不等时类型 III 不偏（与序列平方和不同）', () {
+      // 三组样本数不等（8 / 14 / 5），且各组 x 的分布不同
+      final a = <String>[], y = <double>[], x = <double>[];
+      const sizes = [8, 14, 5];
+      for (var g = 0; g < 3; g++) {
+        for (var i = 0; i < sizes[g]; i++) {
+          final xv = 1.0 + i * 0.9 + g * 2.5;
+          a.add('K$g');
+          x.add(xv);
+          y.add(4 + g * 1.5 + 1.8 * xv + (((i * 11 + g * 3) % 7) - 3) * 0.08);
+        }
+      }
+      final r = ancova(y: y, a: a, covariates: {'x': x}, aName: 'K');
+      expect(r.n, 27);
+      expect(r.nParams, 4);
+      expect(r.dfError, 23);
+
+      // 类型 III：独立手算 = SSE(截距 + x) − SSE(截距 + x + 组效应列)
+      final eff = <List<double>>[
+        for (var g = 0; g < 2; g++)
+          [
+            for (var i = 0; i < a.length; i++)
+              a[i] == 'K$g' ? 1.0 : (a[i] == 'K2' ? -1.0 : 0.0)
+          ]
+      ];
+      final withX = Regression.multiple([x], y).ssResidual;
+      final full = Regression.multiple([x, ...eff], y).ssResidual;
+      expect(r.terms[0].ss, closeTo(withX - full, 1e-8));
+      expect(r.ssError, closeTo(full, 1e-8));
+
+      // 序列（类型 I，先组后协变量）平方和：Σ(y − ȳ)² − SSE(截距 + 组)
+      final yBar = y.reduce((p, q) => p + q) / y.length;
+      final ssTotal = y.fold<double>(0, (s, v) => s + (v - yBar) * (v - yBar));
+      final ssA1 = ssTotal - Regression.multiple(eff, y).ssResidual;
+      // 协变量与分组相关 → 两种口径必须明显不同；类型 III 才是「控制协变量后」的组效应
+      expect((ssA1 - r.terms[0].ss).abs(), greaterThan(1));
+    });
+
+    test('多个协变量与参数校验', () {
+      final rng = math.Random(17);
+      final a = <String>[], y = <double>[], x1 = <double>[], x2 = <double>[];
+      for (var g = 0; g < 2; g++) {
+        for (var i = 0; i < 25; i++) {
+          final u = rng.nextDouble() * 3;
+          final v = rng.nextDouble() * 2;
+          a.add('P$g');
+          x1.add(u);
+          x2.add(v);
+          y.add(1.0 + g * 0.5 + 1.4 * u - 0.9 * v + rng.nextDouble() * 0.05);
+        }
+      }
+      final r = ancova(y: y, a: a, covariates: {'x1': x1, 'x2': x2});
+      expect(r.covariateNames, ['x1', 'x2']);
+      expect(r.slopes.length, 2);
+      expect(r.nParams, 4); // 截距 + 1 个组效应列 + 2 个协变量列
+      expect(r.dfError, 46);
+      expect(r.slopes[0].b, closeTo(1.4, 0.02));
+      expect(r.slopes[1].b, closeTo(-0.9, 0.02));
+      expect(r.terms.length, 3);
+      expect(r.terms[2].isCovariate, isTrue);
+
+      // 长度不一致
+      expect(() => ancova(y: [1.0, 2.0], a: ['a', 'b'], covariates: {'x': [1.0]}),
+          throwsArgumentError);
+      expect(() => ancova(y: [1.0, 2.0], a: ['a', 'b'], b: ['u']),
+          throwsArgumentError);
+      // 因子只有一个水平
+      expect(() => ancova(y: [1.0, 2.0], a: ['a', 'a']), throwsArgumentError);
+      // 空单元：A×B 有一个组合没有观测 → 交互项不可估计
+      expect(
+          () => ancova(
+                y: [1.0, 2.0, 3.0, 4.0],
+                a: ['a1', 'a1', 'a1', 'a2'],
+                b: ['b1', 'b1', 'b2', 'b1'],
+              ),
+          throwsArgumentError);
+      // 数据为空
+      expect(() => ancova(y: const [], a: const []), throwsArgumentError);
+    });
+  });
 }
