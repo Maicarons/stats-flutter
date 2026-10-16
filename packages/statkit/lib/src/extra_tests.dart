@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'descriptives.dart';
 import 'distributions.dart';
 import 'hypothesis.dart';
+import 'nonparametric.dart';
 
 /// 分层/分组均值表（MEANS）
 class MeansRow {
@@ -76,6 +77,9 @@ class NormalityResult {
   final String test;
   final double statistic;
   final double p;
+
+  /// 参数完全指定时的 Kolmogorov 渐近 p（作对照，主 p 是 Lilliefors 修正值）
+  final double pKolmogorovAsymptotic;
   final double skewness;
   final double kurtosis;
   final bool looksNormal;
@@ -83,40 +87,32 @@ class NormalityResult {
     required this.test,
     required this.statistic,
     required this.p,
+    this.pKolmogorovAsymptotic = double.nan,
     required this.skewness,
     required this.kurtosis,
     required this.looksNormal,
   });
 }
 
-/// Lilliefors / KS 正态性 + 偏度峰度辅助判断
+/// Lilliefors（K-S，均值方差由样本估计）正态性 + 偏度峰度辅助判断。
+///
+/// p 值来自 `Nonparametric.kolmogorovSmirnovNormal`（Dallal & Wilkinson 1986
+/// 近似），不再用参数完全指定时的 Kolmogorov 渐近式——后者在参数被估计时
+/// 会系统性偏大，表现为「几乎不会拒绝正态性」。
 NormalityResult normalityTest(List<double> data) {
   final d = Descriptives.compute(data);
-  final n = d.n;
-  final v = d.sorted;
-  double dp = 0, dn = 0;
-  final sd = d.sd > 0 ? d.sd : 1.0;
-  for (var i = 0; i < n; i++) {
-    final cdf = normCdf((v[i] - d.mean) / sd);
-    dp = math.max(dp, ((i + 1) / n - cdf).abs());
-    dn = math.max(dn, (cdf - i / n).abs());
-  }
-  final ks = math.max(dp, dn);
-  // Kolmogorov 近似 p
-  final x = (math.sqrt(n) + 0.12 + 0.11 / math.sqrt(n)) * ks;
-  double sum = 0;
-  for (var k = 1; k <= 100; k++) {
-    sum += math.pow(-1, k - 1).toDouble() * math.exp(-2 * k * k * x * x);
-  }
-  final p = (2 * sum).clamp(0.0, 1.0);
-  // 经验规则：|偏度|<1 且 |峰度|<2 且 KS p>0.05
+  final ks = Nonparametric.kolmogorovSmirnovNormal(data);
+  final p = ks.p;
+  // 经验规则：|偏度|<1.5 且 |峰度|<3 且 Lilliefors p>0.05
   final looksNormal = p > 0.05 &&
       d.skewness.abs() < 1.5 &&
       d.kurtosis.abs() < 3;
   return NormalityResult(
-    test: 'Kolmogorov-Smirnov (Lilliefors approx.)',
-    statistic: ks,
+    test: 'Kolmogorov-Smirnov (Lilliefors)',
+    statistic: ks.statistic,
     p: p,
+    pKolmogorovAsymptotic:
+        ks.extra['pKolmogorovAsymptotic'] as double? ?? double.nan,
     skewness: d.skewness,
     kurtosis: d.kurtosis,
     looksNormal: looksNormal,

@@ -22,3 +22,4 @@ export 'src/logistic_full.dart';
 export 'src/glm.dart';
 export 'src/stepwise.dart';
 export 'src/ctables.dart';
+export 'src/permutation.dart';

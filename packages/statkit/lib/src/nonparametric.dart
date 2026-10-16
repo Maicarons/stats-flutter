@@ -256,29 +256,67 @@ class Nonparametric {
     );
   }
 
-  /// 单样本 KS（对比正态）
+  /// 单样本 KS（对比正态），p 用 Lilliefors 修正
+  ///
+  /// 均值与标准差由同一样本估计，零分布是 Lilliefors 分布而非 Kolmogorov 分布：
+  /// 直接套 Kolmogorov 渐近公式会系统性偏大（D 被参数拟合「抬高」），
+  /// 表现为过度保守、难以拒绝正态性。这里用 Dallal & Wilkinson (1986) 近似
+  /// （R `nortest::lillie.test` 与 statsmodels `pvalmethod='approx'` 同一公式），
+  /// 该近似在 p < 0.1 时可靠；完全指定分布的 Kolmogorov 渐近 p 放在
+  /// `extra['pKolmogorovAsymptotic']` 里备查。
   static NonparametricResult kolmogorovSmirnovNormal(List<double> data) {
     final d = Descriptives.compute(data);
     final n = d.n;
     final v = d.sorted;
     double dp = 0, dn = 0;
+    final sd = d.sd > 0 ? d.sd : 1.0;
     for (var i = 0; i < n; i++) {
-      final cdf = normCdf((v[i] - d.mean) / (d.sd > 0 ? d.sd : 1));
-      final empAbove = (i + 1) / n;
-      final empBelow = i / n;
-      dp = math.max(dp, (empAbove - cdf).abs());
-      dn = math.max(dn, (cdf - empBelow).abs());
+      final cdf = normCdf((v[i] - d.mean) / sd);
+      dp = math.max(dp, (i + 1) / n - cdf);
+      dn = math.max(dn, cdf - i / n);
     }
     final ks = math.max(dp, dn);
-    final p = _ksSf(ks, n);
+    final pLilliefors = lillieforsP(ks, n);
+    final pKolmogorov = _ksSf(ks, n);
     return NonparametricResult(
-      testName: 'One-Sample KS (Normal)',
+      testName: 'One-Sample KS (Lilliefors)',
       statistic: ks,
       statisticName: 'D',
-      p: p,
+      p: pLilliefors,
       n1: n,
-      extra: {'mean': d.mean, 'sd': d.sd},
+      extra: {
+        'mean': d.mean,
+        'sd': d.sd,
+        'dPlus': dp,
+        'dMinus': dn,
+        'z': math.sqrt(n.toDouble()) * ks, // SPSS / PSPP 报的 K-S Z
+        'pLilliefors': pLilliefors,
+        'pKolmogorovAsymptotic': pKolmogorov,
+        'pMethod': 'lilliefors-dallal-wilkinson-1986',
+      },
     );
+  }
+
+  /// Lilliefors 检验 p 值近似（Dallal & Wilkinson, 1986）。
+  ///
+  /// [d]：KS 统计量（均值与方差由样本估计），[n]：样本量。
+  /// n > 100 时按 (n/100)^0.49 缩放 D 后退化为 n = 100 的形式
+  /// （statsmodels 与 R nortest 同处理）。该近似在 p < 0.1 时可靠，
+  /// p 较大区间的数值只作参考，不影响「是否拒绝」的读数。
+  static double lillieforsP(double d, int n) {
+    if (n <= 0 || !d.isFinite || d <= 0) return 1;
+    var dd = d;
+    var nn = n.toDouble();
+    if (nn > 100) {
+      dd *= math.pow(nn / 100.0, 0.49).toDouble();
+      nn = 100;
+    }
+    final p = math.exp(-7.01256 * dd * dd * (nn + 2.78019) +
+        2.99587 * dd * math.sqrt(nn + 2.78019) -
+        0.122119 +
+        0.974598 / math.sqrt(nn) +
+        1.67997 / nn);
+    return p.clamp(0.0, 1.0);
   }
 
   static double _ksSf(double d, int n) {
