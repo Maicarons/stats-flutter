@@ -227,10 +227,11 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
         ),
         body: IndexedStack(
           index: _index,
-          children: const [
-            DataEditorPage(),
-            AnalysisHub(),
-            TransformPage(embedded: true),
+          children: [
+            const DataEditorPage(),
+            // active：只有当前可见的标签页才允许抢焦点 / 响应页面快捷键
+            AnalysisHub(active: _index == 1),
+            const TransformPage(embedded: true),
           ],
         ),
       ),

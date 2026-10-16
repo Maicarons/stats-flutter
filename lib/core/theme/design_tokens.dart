@@ -53,6 +53,12 @@ abstract final class AppDur {
 
   /// 页面转场
   static const Duration page = Duration(milliseconds: 280);
+
+  /// 列表逐项入场：相邻项延迟
+  static const Duration staggerStep = Duration(milliseconds: 24);
+
+  /// 列表逐项入场：整段动效总时长上限（含最后一项自己的时长）
+  static const Duration staggerMax = Duration(milliseconds: 300);
 }
 
 /// 动效辅助：尊重系统「减弱动态效果」设置
@@ -65,6 +71,22 @@ abstract final class AppMotion {
 
   static bool reduced(BuildContext context) =>
       MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+}
+
+/// 焦点可见性：统一焦点环（向外扩散的 2px 描边，不影响布局、不与 hover 冲突）。
+abstract final class AppFocus {
+  /// 焦点环线宽
+  static const double ringWidth = 2;
+
+  /// 焦点环：以 [BoxShadow] 形式绘制在组件外侧，不参与布局，
+  /// 因此获得焦点时不会像加粗边框那样让内容抖动 1px。
+  static List<BoxShadow> ring(ColorScheme scheme) => [
+        BoxShadow(
+          color: scheme.primary.withValues(alpha: 0.55),
+          blurRadius: 0,
+          spreadRadius: ringWidth,
+        ),
+      ];
 }
 
 /// 语义色 + 图表调色板 + 阴影，随主题明暗切换。

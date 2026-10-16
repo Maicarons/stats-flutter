@@ -319,7 +319,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get doubleClickEdit => '双击单元格编辑';
 
   @override
-  String get cellEditHint => 'Enter 下移 · Tab 右移 · Esc 取消';
+  String get cellEditHint => '方向键选格 · Enter 进入编辑 · Tab 右移 · Esc 取消';
 
   @override
   String get row => '行';
@@ -1898,6 +1898,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get legendCi => '95% 置信区间';
+
+  @override
+  String moreGroupsHidden(int n) {
+    return '其余 $n 组未显示（最多并列 6 组）';
+  }
 
   @override
   String get boxPlotNote =>

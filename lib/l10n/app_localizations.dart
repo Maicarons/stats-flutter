@@ -701,7 +701,7 @@ abstract class AppLocalizations {
   /// No description provided for @cellEditHint.
   ///
   /// In en, this message translates to:
-  /// **'Enter · Tab · Esc'**
+  /// **'Arrows select · Enter edits · Tab moves right · Esc cancels'**
   String get cellEditHint;
 
   /// No description provided for @row.
@@ -3667,6 +3667,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'95% confidence interval'**
   String get legendCi;
+
+  /// No description provided for @moreGroupsHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} more groups hidden (at most 6 side by side)'**
+  String moreGroupsHidden(int n);
 
   /// No description provided for @boxPlotNote.
   ///

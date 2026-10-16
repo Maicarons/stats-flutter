@@ -34,10 +34,24 @@ class _EditableDataGridState extends State<EditableDataGrid> {
 
   /// 正在编辑 (row, col)；null 表示未编辑
   (int, int)? _editing;
+
+  /// 选中单元格 (row, col)：未编辑时方向键移动它，Enter / F2 从这里开始编辑。
+  /// 行号为原始行号（非过滤后的显示序号）。
+  (int, int)? _sel;
+
+  /// 最近一次布局宽度（用于把选中单元格滚进视口）。
+  double _boxW = 0;
+
   final _editCtrl = TextEditingController();
-  final _editFocus = FocusNode(debugLabel: 'cellEdit');
+
+  /// 编辑框焦点节点，同时承担 Esc / Enter / Tab 的按键处理。
+  ///
+  /// 注意：按键处理必须挂在**这个**节点上（TextField 自己用的就是它），
+  /// 不能再包一层 `KeyboardListener`——`KeyboardListener` 会用自己的包装
+  /// 覆盖 `focusNode.onKeyEvent`，导致处理器永远收不到按键。
+  late final FocusNode _editFocus =
+      FocusNode(debugLabel: 'cellEdit', onKeyEvent: _onKey);
   final _gridFocus = FocusNode(debugLabel: 'gridKeys');
-  FocusNode? _keyNode;
 
   /// 编辑前的原始值快照（用于取消）
   Object? _snapshot;
@@ -105,7 +119,6 @@ class _EditableDataGridState extends State<EditableDataGrid> {
     _editCtrl.dispose();
     _editFocus.dispose();
     _gridFocus.dispose();
-    _keyNode?.dispose();
     super.dispose();
   }
 
@@ -136,6 +149,7 @@ class _EditableDataGridState extends State<EditableDataGrid> {
     final raw = c < row.length ? row[c] : null;
     _snapshot = raw;
     _editing = (r, c);
+    _sel = (r, c);
     _editCtrl.text = raw?.toString() ?? '';
     setState(() {});
 
@@ -223,14 +237,35 @@ class _EditableDataGridState extends State<EditableDataGrid> {
     return KeyEventResult.ignored;
   }
 
-  /// 未编辑状态下的全局快捷键（Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z）
+  /// 未编辑状态下的快捷键：方向键移动选中单元格、Enter/F2 进入编辑、
+  /// Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z 撤销重做。
   KeyEventResult _onGridKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent || _editing != null) {
       return KeyEventResult.ignored;
     }
+    final key = event.logicalKey;
+    final move = switch (key) {
+      LogicalKeyboardKey.arrowUp => (-1, 0),
+      LogicalKeyboardKey.arrowDown => (1, 0),
+      LogicalKeyboardKey.arrowLeft => (0, -1),
+      LogicalKeyboardKey.arrowRight => (0, 1),
+      _ => null,
+    };
+    if (move != null) {
+      _moveSelection(move.$1, move.$2);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter ||
+        key == LogicalKeyboardKey.f2) {
+      final sel = _sel;
+      if (sel != null) {
+        _startEdit(sel.$1, sel.$2);
+        return KeyEventResult.handled;
+      }
+    }
     final ctrl = HardwareKeyboard.instance.isControlPressed;
     if (!ctrl) return KeyEventResult.ignored;
-    final key = event.logicalKey;
     if (key == LogicalKeyboardKey.keyZ) {
       if (HardwareKeyboard.instance.isShiftPressed) {
         datasetStore.redo();
@@ -246,6 +281,61 @@ class _EditableDataGridState extends State<EditableDataGrid> {
     return KeyEventResult.ignored;
   }
 
+  /// 方向键移动选中单元格；无选中态时先落到首个可见行。
+  void _moveSelection(int dr, int dc) {
+    final rows = _filteredRows();
+    if (rows.isEmpty) return;
+    final cur = _sel;
+    if (cur == null || !rows.contains(cur.$1)) {
+      setState(() => _sel = (rows.first, dc < 0 ? ds.nVars - 1 : 0));
+      _scrollSelIntoView();
+      return;
+    }
+    final rIdx = rows.indexOf(cur.$1);
+    final nr = (rIdx + dr).clamp(0, rows.length - 1);
+    final nc = (cur.$2 + dc).clamp(0, ds.nVars - 1);
+    setState(() => _sel = (rows[nr], nc));
+    _scrollSelIntoView();
+  }
+
+  /// 把选中单元格滚进视口（纵向两区同步镜像，横向仅滚动非冻结列）。
+  void _scrollSelIntoView() {
+    final sel = _sel;
+    if (sel == null || _boxW <= 0) return;
+
+    final rows = _filteredRows();
+    final idx = rows.indexOf(sel.$1);
+    if (idx >= 0 && _vCtrl.hasClients) {
+      final pos = _vCtrl.position;
+      final top = idx * _rowH;
+      final bottom = top + _rowH;
+      if (top < pos.pixels) {
+        _vCtrl.jumpTo(top.clamp(0.0, pos.maxScrollExtent));
+      } else if (bottom > pos.pixels + pos.viewportDimension) {
+        _vCtrl.jumpTo(
+          (bottom - pos.viewportDimension).clamp(0.0, pos.maxScrollExtent),
+        );
+      }
+    }
+
+    final frozen = _frozenVarCount(_boxW);
+    if (sel.$2 < frozen || !_hCtrl.hasClients) return;
+    final colW = _colWidths(_boxW);
+    var left = 0.0;
+    for (var c = frozen; c < sel.$2 && c < colW.length; c++) {
+      left += colW[c];
+    }
+    final right = left + (sel.$2 < colW.length ? colW[sel.$2] : 0);
+    final pos = _hCtrl.position;
+    if (left < pos.pixels) {
+      _hCtrl.jumpTo(left.clamp(0.0, pos.maxScrollExtent));
+    } else if (right > pos.pixels + pos.viewportDimension) {
+      _hCtrl.jumpTo(
+        (right - pos.viewportDimension).clamp(0.0, pos.maxScrollExtent),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final rows = _filteredRows();
@@ -257,6 +347,7 @@ class _EditableDataGridState extends State<EditableDataGrid> {
       onKeyEvent: _onGridKey,
       child: LayoutBuilder(
         builder: (context, box) {
+          _boxW = box.maxWidth;
           final colW = _colWidths(box.maxWidth);
           final frozen = _frozenVarCount(box.maxWidth);
           final frozenW =
@@ -644,6 +735,7 @@ class _EditableDataGridState extends State<EditableDataGrid> {
       {bool frozenEdge = false}) {
     final v = ds.variables[c];
     final isEdit = _editing != null && _editing!.$1 == ri && _editing!.$2 == c;
+    final isSel = !isEdit && _sel != null && _sel!.$1 == ri && _sel!.$2 == c;
     final raw = c < row.length ? row[c] : null;
     final display = widget.showValueLabels
         ? v.displayValue(raw)
@@ -663,6 +755,12 @@ class _EditableDataGridState extends State<EditableDataGrid> {
           ),
         ),
       ),
+      // 选中态用前景描边（不占布局，不引起列宽/行高变化）
+      foregroundDecoration: isSel
+          ? BoxDecoration(
+              border: Border.all(color: scheme.primary, width: 1.6),
+            )
+          : null,
       child: isEdit
           ? _editor(v, scheme)
           : _viewer(ri, c, v, display, missing, scheme),
@@ -678,28 +776,39 @@ class _EditableDataGridState extends State<EditableDataGrid> {
         true,
       _ => false,
     };
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: touchPlatform ? () => _startEdit(ri, c) : null,
-      onDoubleTap: () => _startEdit(ri, c),
-      onLongPress: () => _startEdit(ri, c),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.x2),
-        alignment: v.align == VarAlign.left
-            ? Alignment.centerLeft
-            : v.align == VarAlign.center
-                ? Alignment.center
-                : Alignment.centerRight,
-        child: Text(
-          missing ? '·' : display,
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
-          style: TextStyle(
-            fontSize: 12.5,
-            color: missing ? scheme.onSurfaceVariant.withValues(alpha: 0.55) : null,
-            fontStyle: missing ? FontStyle.italic : null,
-            fontFeatures:
-                v.isNumeric ? const [FontFeature.tabularFigures()] : null,
+    return Listener(
+      // 用原始指针事件选中单元格：不受「双击」手势竞技场延迟影响，
+      // 点击后立即可用方向键（单击在桌面端仍不进入编辑）。
+      onPointerDown: (_) {
+        if (_sel?.$1 != ri || _sel?.$2 != c) {
+          setState(() => _sel = (ri, c));
+        }
+        if (!_gridFocus.hasFocus) _gridFocus.requestFocus();
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: touchPlatform ? () => _startEdit(ri, c) : null,
+        onDoubleTap: () => _startEdit(ri, c),
+        onLongPress: () => _startEdit(ri, c),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.x2),
+          alignment: v.align == VarAlign.left
+              ? Alignment.centerLeft
+              : v.align == VarAlign.center
+                  ? Alignment.center
+                  : Alignment.centerRight,
+          child: Text(
+            missing ? '·' : display,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: TextStyle(
+              fontSize: 12.5,
+              color:
+                  missing ? scheme.onSurfaceVariant.withValues(alpha: 0.55) : null,
+              fontStyle: missing ? FontStyle.italic : null,
+              fontFeatures:
+                  v.isNumeric ? const [FontFeature.tabularFigures()] : null,
+            ),
           ),
         ),
       ),
@@ -707,43 +816,38 @@ class _EditableDataGridState extends State<EditableDataGrid> {
   }
 
   Widget _editor(Variable v, ColorScheme scheme) {
-    _keyNode ??= FocusNode(onKeyEvent: _onKey);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: KeyboardListener(
-        focusNode: _keyNode!,
-        child: TextField(
-          controller: _editCtrl,
-          focusNode: _editFocus,
-          autofocus: true,
-          style: const TextStyle(fontSize: 12.5),
-          decoration: InputDecoration(
-            isDense: true,
-            isCollapsed: true,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
-              borderSide: BorderSide(color: scheme.primary, width: 1.5),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
-              borderSide: BorderSide(color: scheme.primary, width: 1.5),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
-              borderSide: BorderSide(color: scheme.primary, width: 1.5),
-            ),
-            filled: true,
-            fillColor: scheme.surface,
+      child: TextField(
+        controller: _editCtrl,
+        focusNode: _editFocus,
+        autofocus: true,
+        style: const TextStyle(fontSize: 12.5),
+        decoration: InputDecoration(
+          isDense: true,
+          isCollapsed: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: BorderSide(color: scheme.primary, width: 1.5),
           ),
-          keyboardType:
-              v.isNumeric ? TextInputType.number : TextInputType.text,
-          inputFormatters: v.isNumeric
-              ? [FilteringTextInputFormatter.allow(RegExp(r'[-0-9.]'))]
-              : null,
-          onSubmitted: (_) => _move(1, 0),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: BorderSide(color: scheme.primary, width: 1.5),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: BorderSide(color: scheme.primary, width: 1.5),
+          ),
+          filled: true,
+          fillColor: scheme.surface,
         ),
+        keyboardType: v.isNumeric ? TextInputType.number : TextInputType.text,
+        inputFormatters: v.isNumeric
+            ? [FilteringTextInputFormatter.allow(RegExp(r'[-0-9.]'))]
+            : null,
+        onSubmitted: (_) => _move(1, 0),
       ),
     );
   }

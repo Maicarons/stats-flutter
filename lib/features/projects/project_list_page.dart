@@ -165,9 +165,13 @@ class _ProjectListPageState extends State<ProjectListPage> {
                   itemCount: _recents.length,
                   separatorBuilder: (_, __) =>
                       const SizedBox(width: AppSpacing.x3),
-                  itemBuilder: (_, i) => _RecentCard(
-                    meta: _recents[i],
-                    onTap: () => _open(_recents[i]),
+                  itemBuilder: (_, i) => StaggeredItem(
+                    index: i,
+                    offset: 6,
+                    child: _RecentCard(
+                      meta: _recents[i],
+                      onTap: () => _open(_recents[i]),
+                    ),
                   ),
                 ),
               ),
@@ -277,10 +281,13 @@ class _ProjectListPageState extends State<ProjectListPage> {
           crossAxisSpacing: AppSpacing.x3,
         ),
         delegate: SliverChildBuilderDelegate(
-          (context, i) => _ProjectCard(
-            meta: list[i],
-            onOpen: () => _open(list[i]),
-            onMenu: (a) => _onMenu(a, list[i]),
+          (context, i) => StaggeredItem(
+            index: i,
+            child: _ProjectCard(
+              meta: list[i],
+              onOpen: () => _open(list[i]),
+              onMenu: (a) => _onMenu(a, list[i]),
+            ),
           ),
           childCount: list.length,
         ),
@@ -289,10 +296,13 @@ class _ProjectListPageState extends State<ProjectListPage> {
     return SliverList.separated(
       itemCount: list.length,
       separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.x3),
-      itemBuilder: (context, i) => _ProjectCard(
-        meta: list[i],
-        onOpen: () => _open(list[i]),
-        onMenu: (a) => _onMenu(a, list[i]),
+      itemBuilder: (context, i) => StaggeredItem(
+        index: i,
+        child: _ProjectCard(
+          meta: list[i],
+          onOpen: () => _open(list[i]),
+          onMenu: (a) => _onMenu(a, list[i]),
+        ),
       ),
     );
   }

@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/theme/design_tokens.dart';
@@ -12,7 +13,15 @@ import 'analysis_runner.dart';
 
 class AnalysisHub extends StatefulWidget {
   final bool embedded;
-  const AnalysisHub({super.key, this.embedded = true});
+
+  /// 是否是工作区里当前可见的标签页。
+  ///
+  /// 用于页面级快捷键（Ctrl/Cmd+K）的可见性判断：`IndexedStack` 会把
+  /// 数据 / 分析 / 变换三个标签页都建出来，隐藏页若去抢焦点，
+  /// 用户就会遇到「明明在数据页打字，焦点却跑到分析页搜索框」。
+  final bool active;
+
+  const AnalysisHub({super.key, this.embedded = true, this.active = true});
 
   @override
   State<AnalysisHub> createState() => _AnalysisHubState();
@@ -20,6 +29,9 @@ class AnalysisHub extends StatefulWidget {
 
 class _AnalysisHubState extends State<AnalysisHub> {
   final _search = TextEditingController();
+  final _searchFocus = FocusNode(debugLabel: 'analysisSearch');
+  final _pageFocus = FocusNode(debugLabel: 'analysisHub');
+  final _scroll = ScrollController();
   String _query = '';
 
   @override
@@ -27,16 +39,50 @@ class _AnalysisHubState extends State<AnalysisHub> {
     super.initState();
     analysisPrefs.addListener(_onPrefs);
     analysisPrefs.load();
+    if (widget.active && !widget.embedded) _grabPageFocus();
+  }
+
+  @override
+  void didUpdateWidget(covariant AnalysisHub oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 切到分析页时把焦点交给页面容器，给键盘用户一个稳定起点
+    if (widget.active && !oldWidget.active) _grabPageFocus();
   }
 
   void _onPrefs() {
     if (mounted) setState(() {});
   }
 
+  /// 页面容器拿焦点：Ctrl/Cmd+K 与 Tab 都从页面起点开始。
+  /// 用户正在输入（如在单元格里编辑）时不抢。
+  void _grabPageFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.active) return;
+      if (FocusManager.instance.primaryFocus?.context?.widget is EditableText) {
+        return;
+      }
+      _pageFocus.requestFocus();
+    });
+  }
+
+  void _focusSearch() {
+    if (_scroll.hasClients) {
+      _scroll.animateTo(
+        0,
+        duration: AppDur.fast,
+        curve: Curves.easeOut,
+      );
+    }
+    _searchFocus.requestFocus();
+  }
+
   @override
   void dispose() {
     analysisPrefs.removeListener(_onPrefs);
     _search.dispose();
+    _searchFocus.dispose();
+    _pageFocus.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -77,60 +123,80 @@ class _AnalysisHubState extends State<AnalysisHub> {
     final searching = _query.trim().isNotEmpty;
     final matches = _matches;
 
-    return Scaffold(
-      appBar: widget.embedded
-          ? null
-          : AppBar(
-              title: Text(
-                l10n.tabAnalysis,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-      body: ConstrainedContent(
-        padding: EdgeInsets.zero,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.x4,
-            AppSpacing.x3,
-            AppSpacing.x4,
-            AppSpacing.x6,
-          ),
-          children: [
-            TextField(
-              controller: _search,
-              decoration: InputDecoration(
-                hintText: l10n.anSearchHint,
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: _query.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: l10n.cancel,
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () {
-                          _search.clear();
-                          setState(() => _query = '');
-                        },
-                      ),
-              ),
-              onChanged: (v) => setState(() => _query = v),
-            ),
-            const SizedBox(height: AppSpacing.x3),
-            if (searching)
-              ..._buildSearchResults(matches)
-            else ...[
-              ..._buildQuickSections(l10n),
-              for (var i = 0; i < analysisCatalog.length; i++)
-                _CategorySection(
-                  // 稳定 key：收藏/最近区块插入或移除时，
-                  // 分类需要保持展开状态，而不是被重建折叠。
-                  key: ValueKey('analysis-category-${analysisCatalog[i].items.first.id}'),
-                  category: analysisCatalog[i],
-                  initiallyExpanded: i == 0,
-                  onTap: _open,
-                  onToggleFavorite: (id) => analysisPrefs.toggleFavorite(id),
+    return CallbackShortcuts(
+      // Ctrl/Cmd+K：聚焦搜索框（页面级快捷键，只在分析页可见时生效）
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyK, control: true):
+            _focusSearch,
+        const SingleActivator(LogicalKeyboardKey.keyK, meta: true): _focusSearch,
+      },
+      child: Focus(
+        focusNode: _pageFocus,
+        skipTraversal: true,
+        child: Scaffold(
+          appBar: widget.embedded
+              ? null
+              : AppBar(
+                  title: Text(
+                    l10n.tabAnalysis,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
-            ],
-          ],
+          body: ConstrainedContent(
+            padding: EdgeInsets.zero,
+            child: ListView(
+              controller: _scroll,
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.x4,
+                AppSpacing.x3,
+                AppSpacing.x4,
+                AppSpacing.x6,
+              ),
+              children: [
+                TextField(
+                  controller: _search,
+                  focusNode: _searchFocus,
+                  decoration: InputDecoration(
+                    hintText: l10n.anSearchHint,
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    suffixIcon: _query.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: l10n.cancel,
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              _search.clear();
+                              setState(() => _query = '');
+                            },
+                          ),
+                  ),
+                  onChanged: (v) => setState(() => _query = v),
+                ),
+                const SizedBox(height: AppSpacing.x3),
+                if (searching)
+                  ..._buildSearchResults(matches)
+                else ...[
+                  ..._buildQuickSections(l10n),
+                  for (var i = 0; i < analysisCatalog.length; i++)
+                    StaggeredItem(
+                      // 稳定 key：收藏/最近区块插入或移除时，
+                      // 分类需要保持展开状态，而不是被重建折叠。
+                      key: ValueKey(
+                        'analysis-category-${analysisCatalog[i].items.first.id}',
+                      ),
+                      index: i + 2,
+                      child: _CategorySection(
+                        category: analysisCatalog[i],
+                        initiallyExpanded: i == 0,
+                        onTap: _open,
+                        onToggleFavorite: (id) =>
+                            analysisPrefs.toggleFavorite(id),
+                      ),
+                    ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -167,17 +233,20 @@ class _AnalysisHubState extends State<AnalysisHub> {
           ),
         ),
       ),
-      for (final it in matches)
-        Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.x2),
-          child: AnalysisTile(
-            title: it.title(l10n),
-            description: it.desc(l10n),
-            icon: it.icon,
-            compact: true,
-            favorite: analysisPrefs.isFavorite(it.id),
-            onToggleFavorite: () => analysisPrefs.toggleFavorite(it.id),
-            onTap: () => _open(it),
+      for (final (i, it) in matches.indexed)
+        StaggeredItem(
+          index: i,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.x2),
+            child: AnalysisTile(
+              title: it.title(l10n),
+              description: it.desc(l10n),
+              icon: it.icon,
+              compact: true,
+              favorite: analysisPrefs.isFavorite(it.id),
+              onToggleFavorite: () => analysisPrefs.toggleFavorite(it.id),
+              onTap: () => _open(it),
+            ),
           ),
         ),
     ];
@@ -212,10 +281,14 @@ class _AnalysisHubState extends State<AnalysisHub> {
             scrollDirection: Axis.horizontal,
             itemCount: recents.length,
             separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.x2),
-            itemBuilder: (_, i) => ActionChip(
-              avatar: Icon(recents[i].icon, size: 16),
-              label: Text(recents[i].title(l10n)),
-              onPressed: () => _open(recents[i]),
+            itemBuilder: (_, i) => StaggeredItem(
+              index: i,
+              offset: 6,
+              child: ActionChip(
+                avatar: Icon(recents[i].icon, size: 16),
+                label: Text(recents[i].title(l10n)),
+                onPressed: () => _open(recents[i]),
+              ),
             ),
           ),
         ),
@@ -239,10 +312,14 @@ class _AnalysisHubState extends State<AnalysisHub> {
             scrollDirection: Axis.horizontal,
             itemCount: favs.length,
             separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.x2),
-            itemBuilder: (_, i) => ActionChip(
-              avatar: Icon(favs[i].icon, size: 16),
-              label: Text(favs[i].title(l10n)),
-              onPressed: () => _open(favs[i]),
+            itemBuilder: (_, i) => StaggeredItem(
+              index: i,
+              offset: 6,
+              child: ActionChip(
+                avatar: Icon(favs[i].icon, size: 16),
+                label: Text(favs[i].title(l10n)),
+                onPressed: () => _open(favs[i]),
+              ),
             ),
           ),
         ),
@@ -259,7 +336,6 @@ class _CategorySection extends StatelessWidget {
   final void Function(String) onToggleFavorite;
 
   const _CategorySection({
-    super.key,
     required this.category,
     required this.initiallyExpanded,
     required this.onTap,

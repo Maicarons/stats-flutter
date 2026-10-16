@@ -35,6 +35,8 @@ Future<bool> showConfirmDialog(
             child: Text(cancelLabel ?? MaterialLocalizations.of(ctx).cancelButtonLabel),
           ),
           FilledButton(
+            // 首焦落在主行动按钮上：键盘用户回车即确认，不需要先 Tab 一圈
+            autofocus: true,
             style: danger
                 ? FilledButton.styleFrom(backgroundColor: scheme.error)
                 : null,

@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../core/theme/design_tokens.dart';
+import 'focus_ring.dart';
 
 class AppCard extends StatelessWidget {
   final Widget child;
@@ -69,16 +70,25 @@ class AppCard extends StatelessWidget {
       );
     }
 
-    final decoration = BoxDecoration(
-      color: color ?? scheme.surfaceContainerLow,
-      borderRadius: r,
-      border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.8)),
-      boxShadow: elevated ? app.shadowSm : null,
-    );
+    // 边框颜色 + 外扩焦点环：宽度不变，所以获得焦点时布局纹丝不动。
+    Widget decorate(bool focused) => DecoratedBox(
+          decoration: BoxDecoration(
+            color: color ?? scheme.surfaceContainerLow,
+            borderRadius: r,
+            border: Border.all(
+              color: focused
+                  ? scheme.primary
+                  : scheme.outlineVariant.withValues(alpha: 0.8),
+            ),
+            boxShadow: [
+              if (elevated) ...app.shadowSm,
+              if (focused) ...AppFocus.ring(scheme),
+            ],
+          ),
+          child: content,
+        );
 
-    return DecoratedBox(
-      decoration: decoration,
-      child: content,
-    );
+    if (onTap == null) return decorate(false);
+    return FocusRing(builder: (context, focused) => decorate(focused));
   }
 }

@@ -325,7 +325,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get doubleClickEdit => 'Double-click a cell to edit';
 
   @override
-  String get cellEditHint => 'Enter · Tab · Esc';
+  String get cellEditHint =>
+      'Arrows select · Enter edits · Tab moves right · Esc cancels';
 
   @override
   String get row => 'Row';
@@ -1921,6 +1922,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get legendCi => '95% confidence interval';
+
+  @override
+  String moreGroupsHidden(int n) {
+    return '$n more groups hidden (at most 6 side by side)';
+  }
 
   @override
   String get boxPlotNote =>

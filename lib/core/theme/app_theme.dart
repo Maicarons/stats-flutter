@@ -74,6 +74,9 @@ abstract final class AppTheme {
       visualDensity: VisualDensity.adaptivePlatformDensity,
       scaffoldBackgroundColor: scheme.surface,
       splashFactory: InkSparkle.splashFactory,
+      // 焦点可见性：Material 组件（图标按钮 / 列表项 / Tab）统一焦点色；
+      // 卡片类组件另用 AppFocus.ring 画外扩焦点环。
+      focusColor: scheme.primary.withValues(alpha: 0.16),
       extensions: <ThemeExtension<dynamic>>[app],
 
       // 卡片：细描边 + 无海拔（阴影交给 AppCard 按需加）
