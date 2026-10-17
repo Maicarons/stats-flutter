@@ -92,7 +92,7 @@ has stabilised.
 This repository's app depends on statkit by path, so an app release and the
 statkit version it shipped are listed together in the app's release notes
 (app `1.4.0` shipped statkit `0.5.0`; `0.5.1` is the packaging patch that
-followed it).
+followed it, and app `1.5.0` ships `0.5.1`).
 
 ## Testing
 

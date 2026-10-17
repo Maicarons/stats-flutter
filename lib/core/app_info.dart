@@ -5,6 +5,6 @@ library;
 
 abstract final class AppInfo {
   static const String name = 'Stats-flutter';
-  static const String version = '1.4.0+6';
-  static const String buildLabel = '1.4.0';
+  static const String version = '1.5.0+7';
+  static const String buildLabel = '1.5.0';
 }

@@ -18,5 +18,6 @@ p-values use APA style (`<.001` / `.032`) with significance stars.
 
 ### Export
 
-- The top-right menu shares the **whole report** (plain text) or exports it to an HTML / Markdown file.
+- Every run lands in the **output tree**: run a procedure repeatedly and each result becomes its own card, newest first with only the newest expanded (see [Output & export](/en/guide/output)).
+- Each card can copy the full text, share it as plain text, export it as **PDF / HTML / Markdown**, or be deleted; "Export all" in the top-right merges every card of the procedure into one file.
 - The menu next to each section heading **copies or exports that section alone** (Markdown or HTML), named like `stats-<report>-<section>-20261015.md`; a non-ASCII section title falls back to its index.
