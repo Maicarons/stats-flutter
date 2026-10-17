@@ -4,11 +4,11 @@ Pick a procedure, set parameters, run, and read a text report with charts.
 
 ## Categories
 
-- **Descriptives & Explore**: descriptives, frequencies, histogram / bar / scatter, box plot (whiskers / IQR box / median / mean / outliers, grouped, at most 6 side by side), error bar chart (mean with 95% CI), normal Q-Q plot (scatter + y = x guide line), normality tests
-- **Compare Means**: one-sample / independent / paired t-tests, Oneway ANOVA
-- **Association**: Pearson/Spearman correlation, crosstabs chi-square
-- **Regression & Clustering**: linear regression, K-Means (with cluster scatter), PCA (loadings + scree plot)
-- **Nonparametric & Reliability**: Mann-Whitney, Wilcoxon, Kruskal-Wallis, Cronbach α
+- **Descriptives & Explore**: descriptives, frequencies, histogram / bar / scatter, box plot (whiskers / IQR box / median / mean / outliers, grouped, at most 6 side by side), error bar chart (mean with 95% CI), normal Q-Q plot (scatter + y = x guide line), normality tests (Lilliefors-corrected p)
+- **Compare Means**: one-sample / independent / paired t-tests, Oneway ANOVA, ANCOVA (group comparison controlling a covariate, Type III sums of squares), Tukey HSD
+- **Association**: Pearson/Spearman correlation (pairwise deletion, see [missing values](/en/guide/missing-values)), crosstabs chi-square
+- **Regression & Clustering**: linear / stepwise regression, logistic regression, multinomial logistic regression, K-Means (with cluster scatter), PCA (loadings + scree plot), ROC
+- **Nonparametric & Reliability**: Mann-Whitney (tie-corrected), Wilcoxon, Kruskal-Wallis, Jonckheere-Terpstra trend, permutation tests (two-sample mean difference / paired difference, exact enumeration for small samples), Cronbach α
 
 ## Reports
 

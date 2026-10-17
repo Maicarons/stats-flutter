@@ -1,6 +1,6 @@
 # 统计过程
 
-计算由纯 Dart 包 [`statkit`](/api/statkit) 完成。
+计算由纯 Dart 包 [`statkit`](/api/statkit) 完成（不依赖 Flutter）。
 
 ## 对照表
 
@@ -10,17 +10,29 @@
 | 频率 | `Frequencies.compute` / `histogramBins` |
 | t 检验 | `TTest.oneSample` / `independentSamples` / `paired` |
 | ANOVA | `OnewayAnova.compute`、`tukeyHsd` |
+| 协方差分析 | `ancova`（Type III 平方和） |
+| 置换检验 | `Permutation.random` / `Permutation.exact`、`twoSampleMeanDifference`、`pairedDifference` |
 | 相关 | `Correlation.pearson` / `spearman` / `matrix` |
-| 回归 | `Regression.simple` / `multiple` |
-| 逻辑回归 | `logisticRegression` |
+| 回归 | `Regression.simple` / `multiple`、`stepwiseRegression` |
+| 逻辑回归 | `logisticRegression` / `logisticRegressionFull`（二元）、`multinomialLogistic`（多分类） |
 | 因子 | `factorPca` |
 | 卡方 | `ChiSquareTest.goodnessOfFit` / `independence` |
-| 非参数 | `Nonparametric.mannWhitney` / `wilcoxon` / `kruskalWallis` … |
+| 非参数 | `Nonparametric.mannWhitney` / `wilcoxon` / `kruskalWallis` / `jonckheereTerpstra` / `lillieforsP` |
 | 信度 | `Reliability.cronbachAlpha` |
 | 聚类 | `KMeans.cluster` |
 | ROC | `rocCurve` |
 | 正态性 | `normalityTest` |
 | 均值表 | `meansTable` |
+
+statkit **0.5.0** 新增的过程（Jonckheere-Terpstra 有序趋势检验、置换检验、Lilliefors 校正、多项 logistic 回归、ANCOVA）标注为 `@experimental`：接口可能在次版本里调整。
+
+## v1.4.0 修正与对齐的口径
+
+- **二元 logistic 回归**：IRLS 迭代此前在两点之间振荡（工作响应权重写错），截距标准误又取了标准化尺度 —— 现在系数、OR、SE、p 都来自真正的极大似然点。
+- **Levene 方差齐性**：改为以组**均值**为中心（PSPP / SPSS 的 ONEWAY、T-TEST、GLM 口径），`useMean: false` 仍可取 Brown-Forsythe。
+- **Mann-Whitney U**：渐近方差补上**结校正**，p 用 `2·Φ(z)`（PSPP 的 Asymp. Sig.（双尾））；连续性校正后的 Z / p（SPSS、R 口径）另存于 `extra['zContinuityCorrected']` / `extra['pContinuityCorrected']`。
+- **KS 正态性检验**：参数由样本估计时改用 **Lilliefors** 校正的 p（原先前一种口径几乎不会拒绝）。
+- **取数口径**：用户缺失值 / 系统缺失、成对删除与整行删除的适用范围见[缺失值口径](/guide/missing-values)。
 
 ## 数值实现
 
@@ -36,4 +48,4 @@
 cd packages/statkit && dart test
 ```
 
-13 组用例覆盖描述、分布、t、ANOVA、相关、回归、非参数、信度、K-Means。
+91 个用例覆盖描述、分布、t、ANOVA / ANCOVA、相关、回归、logistic、非参数与置换、信度、K-Means 等。与 PSPP 2.1.2 的对拍用例在应用侧 `test/pspp_parity_test.dart`，随 CI 一同运行。

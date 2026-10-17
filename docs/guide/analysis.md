@@ -15,22 +15,27 @@
 ### 比较均值
 - 单样本 / 独立 / 配对 t 检验（Levene 自动 Welch）
 - 单因素 ANOVA（η²、ω²、Levene）
+- 协方差分析 ANCOVA（控制协变量后的组间比较，Type III 平方和）
 - 分层均值 MEANS
 - 事后比较 Tukey HSD
 
 ### 相关与关联
-- Pearson / Spearman 相关矩阵
+- Pearson / Spearman 相关矩阵（成对删除，见[缺失值口径](/guide/missing-values)）
 - 交叉表卡方：χ²、似然比、φ、Cramér's V
 
 ### 回归与聚类
 - 简单 / 多元线性回归（VIF、DW、标准化 β）
+- 逐步回归
 - 逻辑回归（OR、伪 R²、正确率）
+- 多项 logistic 回归（三分类及以上名义因变量）
 - K-Means 聚类（含簇中心散点图）
 - 主成分因子分析（PCA 载荷 + 碎石图，碎石图只绘制已提取的主成分）
 - ROC / AUC
 
 ### 非参数与信度
-- Mann-Whitney U、Wilcoxon、Kruskal-Wallis H
+- Mann-Whitney U（含结校正）、Wilcoxon、Kruskal-Wallis H
+- 有序趋势检验（Jonckheere-Terpstra）：分组本身有序时的单调趋势
+- 置换检验：两独立样本均值差 / 配对差，小样本下不依赖分布假设（可给出精确枚举）
 - Cronbach α（项总相关、删除项后 α）
 
 ## 报告内容
