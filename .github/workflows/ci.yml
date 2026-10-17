@@ -29,7 +29,22 @@ jobs:
       - run: flutter analyze --no-fatal-infos
       # golden 基线与渲染平台相关（见 dart_test.yaml），CI 上排除；
       # 本地执行：flutter test --tags golden
-      - run: flutter test --exclude-tags golden
+      # benchmark 由下面的影子任务跑（见 dart_test.yaml），主流程不跑
+      - run: flutter test --exclude-tags "golden || benchmark"
+
+  # 10 万行规模基准（v1.4.0 M5.3）：只把每步耗时打进日志，
+  # 失败仅告警、不挡发布；超时会缩短但不会 gate。
+  benchmark:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter test --tags benchmark
 
   docs:
     runs-on: ubuntu-latest

@@ -2,8 +2,13 @@
 #
 # golden：界面基线截图。基线图像与渲染平台强相关（字体栅格化 / 抗锯齿差异），
 # 目前基线由 Windows 环境生成，因此在 CI 上排除：
-#   CI        -> flutter test --exclude-tags golden
+#   CI        -> flutter test --exclude-tags "golden || benchmark"
 #   本地验证  -> flutter test --tags golden
 #   更新基线  -> flutter test --tags golden --update-goldens
+#
+# benchmark：10 万行核心分析路径的耗时基准（v1.4.0 M5.3）。默认不跑，CI 上由
+# 影子任务跑（continue-on-error: true，只告警不挡发布）：
+#   本地 -> flutter test --tags benchmark
 tags:
   golden:
+  benchmark:
