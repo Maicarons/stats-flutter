@@ -13,6 +13,8 @@
 ///   ONEWAY with missing values）
 /// - `tests/language/commands/correlations.at`（CORRELATIONS -- unweighted，
 ///   `/MISSING=PAIRWISE` 那三张表的 N 与 r）
+/// - `tests/language/commands/npar.at`（NPAR TESTS Mann-Whitney 的秩表与
+///   检验统计量，含结校正）
 ///
 /// 已登记的口径差异（非缺陷）：
 /// 1. RANK 的缺失个案：PSPP 2.1.2 在 `rank.at` 的 `a` 列把一个**行首**缺失值
@@ -21,7 +23,12 @@
 ///    与 `b` 列一致。
 /// 2. 相关系数按 PSPP / SPSS 默认的**成对删除**（`/MISSING=PAIRWISE`）取值，
 ///    与 `correlations.at` 第三张表（带 N 的那张）一致。
+/// 3. Mann-Whitney 的 Z 与 p 按 PSPP（不做连续性校正）；连续性校正的
+///    Z / p 另存在 `extra['zContinuityCorrected']` /
+///    `extra['pContinuityCorrected']`（SPSS、R `correct = TRUE` 的口径）。
 library;
+
+import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:statkit/statkit.dart';
@@ -305,6 +312,57 @@ void main() {
       expect(x.length, 7);
       expect(MissingAware.numeric(d, 'bar').length, 8);
       expect(MissingAware.numeric(d, 'bang').length, 7);
+    });
+  });
+
+  group('PSPP 对拍 · NPAR TESTS Mann-Whitney（npar.at）', () {
+    // PSPP npar.at「NPAR TESTS Mann-Whitney」的 npar-mann-whitney.sps：
+    // height BY sex (0,1)，40 个个案里 sex=4/5 的 4 个落在组说明之外。
+    // 应用侧走真实路径：按分组变量拆组后取前两组（升序即 0、1）。
+    late Dataset d;
+    setUp(() {
+      d = Dataset(name: 'npar-mw');
+      d.addVariable(Variable(name: 'height'));
+      d.addVariable(Variable(name: 'sex', decimals: 0));
+      const rows = <(double, int)>[
+        (201, 1), (84, 1), (83, 1), (94, 1), (88, 0), (99, 0), (55, 0),
+        (69, 0), (86, 1), (79, 1), (91, 0), (201, 0), (88, 1), (85, 1),
+        (82, 1), (88, 0), (75, 0), (99, 0), (81, 0), (72, 1), (89, 1),
+        (92, 1), (80, 0), (82, 0), (76, 0), (65, 0), (85, 0), (76, 1),
+        (145, 1), (24, 1), (1, 4), (-4, 5), (34, 5), (21, 4),
+      ];
+      for (final (h, s) in rows) {
+        d.addCase([h, s]);
+      }
+    });
+
+    test('秩表与检验统计量与 PSPP 一致（U=98 / W=218 / Z=-.6020 / p=.547）', () {
+      final groups = MissingAware.groups(d, 'height', 'sex');
+      // 组说明 (0,1) 之外的 4、5 自成一类，但不参与检验
+      expect(groups.keys.toSet(), {'0', '1', '4', '5'});
+      expect(groups['0']!.length, 15);
+      expect(groups['1']!.length, 15);
+      final r = Nonparametric.mannWhitney(groups['0']!, groups['1']!);
+      // Table: Ranks
+      expectNum(r.meanRank1!, 14.5333, digits: 3);
+      expectNum(r.meanRank2!, 16.4667, digits: 3);
+      expectNum(r.meanRank1! * r.n1, 218.0, digits: 3); // Wilcoxon W
+      expectNum(r.meanRank2! * r.n2, 247.0, digits: 3);
+      // Table: Test Statistics
+      expectNum(r.statistic, 98.0, digits: 3); // Mann-Whitney U
+      expectNum(r.z!, -0.6020, digits: 3);
+      expect(r.p, closeTo(0.547, 0.001));
+    });
+
+    test('结校正：不含结校正会得到 -.6014，含校正才是 PSPP 的 -.6020', () {
+      final groups = MissingAware.groups(d, 'height', 'sex');
+      final r = Nonparametric.mannWhitney(groups['0']!, groups['1']!);
+      final n = r.n1 + r.n2;
+      final sigmaNoTies = math.sqrt(r.n1 * r.n2 * (n + 1) / 12);
+      final zNoTies = (r.statistic - r.n1 * r.n2 / 2) / sigmaNoTies;
+      expect(zNoTies, closeTo(-0.6014, 0.0001));
+      expect(r.extra['tieTerm'] as double, closeTo(4.5, 1e-12));
+      expect(r.z, closeTo(-0.6020, 0.0001));
     });
   });
 }
