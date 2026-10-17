@@ -957,4 +957,31 @@ void main() {
       }
     });
   });
+
+  group('Levene 方差齐性：默认对组均值（PSPP / SPSS 口径）', () {
+    // PSPP tests/language/commands/oneway.at「ONEWAY basic operation」的三组
+    const g1 = [3.0, 2.0, 1.0, 1.0, 4.0];
+    const g2 = [4.0, 2.0, 3.0, 5.0, 2.0];
+    const g3 = [7.0, 4.0, 5.0, 3.0, 6.0];
+
+    test('默认（组均值）：F = 0.0917，PSPP 打印 .09（2,12）p=.913', () {
+      final r = leveneTest([g1, g2, g3]);
+      expect(r.f, closeTo(0.0917, 0.0001));
+      expect(r.df1, 2);
+      expect(r.df2, 12);
+      expect(r.p, closeTo(0.913, 0.001));
+    });
+
+    test('useMean: false 时是 Brown-Forsythe（组中位数）：F = 0.1176', () {
+      final r = leveneTest([g1, g2, g3], useMean: false);
+      expect(r.f, closeTo(0.1176, 0.0001));
+    });
+
+    test('独立样本 t 检验沿用同一口径（均值中心）', () {
+      final r = TTest.independentSamples(g1, g2);
+      final direct = leveneTest([g1, g2]);
+      expect(r.leveneF, closeTo(direct.f, 1e-12));
+      expect(r.leveneP, closeTo(direct.p, 1e-12));
+    });
+  });
 }

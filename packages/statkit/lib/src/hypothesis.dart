@@ -209,8 +209,13 @@ class LeveneResult {
   });
 }
 
-/// Levene 方差齐性（默认 Brown-Forsythe：绝对离差对中位数）
-LeveneResult leveneTest(List<List<double>> groups, {bool useMean = false}) {
+/// Levene 方差齐性：**默认对组均值**（经典 Levene，与 PSPP 2.1.2 / SPSS 的
+/// ONEWAY `/STATISTICS=homogeneity`、T-TEST 与 GLM 的方差齐性检验一致 ——
+/// PSPP 见 `src/math/levene.c`，中心 `t_bar` 就是 `Σ value·weight / n`）。
+///
+/// [useMean] 传 false 时改用组中位数，即 Brown-Forsythe（更稳健，但数值与
+/// PSPP / SPSS 的 Levene 表不同）。
+LeveneResult leveneTest(List<List<double>> groups, {bool useMean = true}) {
   final gs = groups.where((g) => g.length >= 2).toList();
   final k = gs.length;
   if (k < 2) {

@@ -54,6 +54,14 @@ in [README.md](README.md) for what that promises.
   estimated, which made the test almost never reject. `D` is now computed with
   signed `D+`/`D−` and the Lilliefors p is the primary p; the plain asymptotic
   value is kept in `extra['pKolmogorovAsymptotic']`.
+- `leveneTest`: the default centre was the group **median** (Brown-Forsythe)
+  while PSPP 2.1.2 and SPSS centre Levene's test on the group **mean** in
+  ONEWAY `/STATISTICS=homogeneity`, T-TEST and GLM (PSPP `src/math/levene.c`,
+  where `t_bar = Σ value·weight / n`). `useMean` now defaults to `true`;
+  the median-centred Brown-Forsythe remains available as `useMean: false`.
+  On PSPP's `oneway.at` example this changes F from 0.1176 to 0.0917
+  (PSPP prints `.09`), which also feeds the equal/unequal-variance choice of
+  `TTest.independentSamples`.
 
 ### Changed
 - `normalityTest` now decides on the Lilliefors p, i.e. a strictly more
