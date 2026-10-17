@@ -293,6 +293,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get exporting => '正在生成文件…';
+
+  @override
   String get copied => '已复制';
 
   @override

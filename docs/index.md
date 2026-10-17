@@ -23,7 +23,10 @@ features:
     details: 电子表格体验，值标签增删改、缺失值、CSV 导入导出、加权/拆分/查找。
   - icon: 🔧
     title: 变换与语法
-    details: COMPUTE / RECODE / AUTORECODE / RANK / SAMPLE / SORT / SELECT IF / 合并数据集，以及可执行的语法子集编辑器。
+    details: COMPUTE / RECODE / AUTORECODE / RANK / SAMPLE / SORT / SELECT IF / 合并数据集，宏与 INCLUDE、注释按 PSPP 语义，逐命令错误定位。
+  - icon: 📤
+    title: 输出与导出
+    details: 会话级输出树（每次运行一张卡片），导出 PDF / HTML / Markdown，数值列右对齐、p 值加星着色、变量与值标签。
   - icon: 🎓
     title: 学习 + 测试
     details: 8 课概念短课、20 题随机测验，即时判分与错题解析。

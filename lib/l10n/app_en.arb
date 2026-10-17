@@ -110,6 +110,7 @@
   "@exportFailed": {
     "placeholders": {"e": {"type": "String"}}
   },
+  "exporting": "Generating file…",
   "copied": "Copied",
   "editCase": "Edit case #{n}",
   "@editCase": {

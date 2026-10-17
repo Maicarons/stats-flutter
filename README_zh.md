@@ -54,6 +54,20 @@ COMPUTE · RECODE · COUNT · RANK · SORT CASES · SELECT IF · AGGREGATE · FL
 ### 语法编辑器
 可执行子集：`DESCRIPTIVES` `T-TEST` `COMPUTE` `RECODE` `SORT` `SELECT IF` `LIST` `HELP`
 
+语法层：PSPP 注释语义（`*` / `COMMENT`）、宏（`DEFINE`、位置与关键字参数、`!LET` / `!IF` / `!DO`、`!CONCAT` …）、`INCLUDE`（相对路径 + 循环保护）、逐命令错误定位、`.sps` 往返（剥 BOM、非法字节替换为 U+FFFD）
+
+### 输出与导出
+- 会话级输出树：每个分析每次运行一张卡片，最新在前、默认只展开最新一张
+- 每张卡片：复制、分享、删除、导出；「导出全部」把该分析的所有卡片合成一份
+- **PDF**（内置中文字体子集、页眉页脚、第 x / y 页）、**HTML**、**Markdown**
+- 三种输出共用表样式：数值列右对齐、p 值列加星着色、变量与值标签
+
+### 平台
+- 国际化：English / 中文（flutter gen-l10n）
+- 主题：浅色 / 深色 / 跟随系统 + 8 种主色
+- 统一品牌图标（启动页 / 应用图标 / 文档）
+- 中文显示：内置 Noto Sans SC 子集并改名 `StatsSansSC`（OFL-1.1，`tools/subset_cjk_font.py` 可复现）；拉丁文使用 Inter
+
 ## 统计内核 `packages/statkit`
 
 纯 Dart，零 Flutter 依赖，13 组测试。

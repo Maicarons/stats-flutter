@@ -11,6 +11,7 @@ import 'package:stats_flutter/features/data_editor/data_editor_page.dart';
 import 'package:stats_flutter/features/learn/learn_content.dart';
 import 'package:stats_flutter/features/learn/learn_page.dart';
 import 'package:stats_flutter/features/learn/lesson_detail_page.dart';
+import 'package:stats_flutter/features/output/output_store.dart';
 import 'package:stats_flutter/features/output/report_builder.dart';
 import 'package:stats_flutter/features/quiz/quiz_page.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
@@ -58,6 +59,12 @@ void main() {
     await _loadAppFonts();
     // 报告末尾的「生成时间」来自真实时钟；golden 里固定它才能复现。
     AnalysisReport.clock = () => DateTime(2026, 1, 1, 9, 0);
+  });
+
+  setUp(() {
+    // 输出树是会话级的静态状态：每条用例从空输出开始，否则同一分析的
+    // 上一次报告会留在树里，让 `find.text('post')` 之类的查找变歧义。
+    OutputStore.reset();
   });
 
   Future<void> snap(

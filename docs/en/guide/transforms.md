@@ -117,6 +117,8 @@ HELP.
 
 The template bar above the editor inserts a command; the output pane reports each command. A whole line starting with `*` is a comment.
 
+Comment semantics, macros, `INCLUDE`, error locations and the `.sps` round-trip are covered in [Syntax language](/en/guide/syntax).
+
 ## Other data operations
 
 The Data menu also offers:

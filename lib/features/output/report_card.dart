@@ -95,9 +95,7 @@ class ReportCard extends StatelessWidget {
                           ),
                         const SizedBox(height: 2),
                         Text(
-                          l10n.generatedAt(
-                            report.createdAt.toLocal().toIso8601String(),
-                          ),
+                          l10n.generatedAt(stampOf(report.createdAt)),
                           style: TextStyle(
                             color: scheme.onSurfaceVariant,
                             fontSize: AppFontSize.caption,

@@ -20,7 +20,10 @@ features:
     details: Spreadsheet editing with value labels, missing values, CSV import/export, weight/split/find.
   - icon: 🔧
     title: Transforms & syntax
-    details: COMPUTE / RECODE / AUTORECODE / RANK / SAMPLE / SORT / SELECT IF / merge datasets, plus an executable syntax subset editor.
+    details: COMPUTE / RECODE / AUTORECODE / RANK / SAMPLE / SORT / SELECT IF / merge datasets, PSPP comment semantics, macros and INCLUDE, per-command error locations.
+  - icon: 📤
+    title: Output & export
+    details: A session output tree (one card per run) with PDF / HTML / Markdown export, right-aligned numeric columns, starred p-values and variable / value labels.
   - icon: 🎓
     title: Learn & Quiz
     details: Eight lessons and a 20-question bank with instant scoring and explanations.

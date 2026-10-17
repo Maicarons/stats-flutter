@@ -650,6 +650,12 @@ abstract class AppLocalizations {
   /// **'Export failed: {e}'**
   String exportFailed(String e);
 
+  /// No description provided for @exporting.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating file…'**
+  String get exporting;
+
   /// No description provided for @copied.
   ///
   /// In en, this message translates to:

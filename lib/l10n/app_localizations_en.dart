@@ -299,6 +299,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get exporting => 'Generating file…';
+
+  @override
   String get copied => 'Copied';
 
   @override

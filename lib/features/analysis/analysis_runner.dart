@@ -831,11 +831,16 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
           heading: l10n.finalClusterCenters,
           tables: [
             ReportTable(
-              headers: [l10n.cluster, 'X', 'Y', l10n.caseCount],
+              headers: [
+                l10n.cluster,
+                variableLabel(ds, _xVar!),
+                variableLabel(ds, _yVar!),
+                l10n.caseCount,
+              ],
               rows: rows,
             ),
           ],
-          notes: 'X=$_xVar  Y=$_yVar',
+          notes: variableLabelNote(l10n, ds, [_xVar!, _yVar!]),
         ),
       ],
     );
@@ -912,7 +917,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
               rows: r.items
                   .map((e) => [
-                        e.name,
+                        variableLabel(ds, e.name),
                         formatNum(e.mean),
                         formatNum(e.variance),
                         formatNum(e.itemTotalCorrelation),
@@ -921,6 +926,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                   .toList(),
             ),
           ],
+          notes: variableLabelNote(l10n, ds, _selectedVars),
         ),
       ],
     );
@@ -933,7 +939,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final bins = Frequencies.histogramBins(values);
     _report = AnalysisReport(
       title: l10n.histogramTitle,
-      subtitle: name,
+      subtitle: variableLabel(ds, name),
       sections: [
         ReportSection(
           heading: l10n.binFreq,
@@ -965,7 +971,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final fit = Regression.simple(x, y, xName: _xVar!, yName: _yVar!);
     _report = AnalysisReport(
       title: l10n.scatterTitle,
-      subtitle: '$_yVar ~ $_xVar',
+      subtitle:
+          '${variableLabel(ds, _yVar!)} ~ ${variableLabel(ds, _xVar!)}',
       sections: [
         ReportSection(
           heading: l10n.corrFit,
@@ -1047,7 +1054,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final r = meansTable(groups, layerVar: _groupVar!, valueVar: vName);
     _report = AnalysisReport(
       title: l10n.meansTitle,
-      subtitle: '$vName by ${_groupVar!}',
+      subtitle: '${variableLabel(ds, vName)} by '
+          '${variableLabel(ds, _groupVar!)}',
       sections: [
         ReportSection(
           heading: 'Means',
@@ -1094,7 +1102,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final r = normalityTest(v);
     _report = AnalysisReport(
       title: l10n.normalityTitle,
-      subtitle: name,
+      subtitle: variableLabel(ds, name),
       sections: [
         ReportSection(
           heading: l10n.resultWord,
@@ -1143,7 +1151,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final r = rocCurve(pos, neg);
     _report = AnalysisReport(
       title: l10n.rocTitle,
-      subtitle: '${_yVar!} (>=median) × ${_xVar!}',
+      subtitle: '${variableLabel(ds, _yVar!)} (>=median) × '
+          '${variableLabel(ds, _xVar!)}',
       sections: [
         ReportSection(
           heading: l10n.aucSection,
@@ -1180,7 +1189,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final pairs = tukeyHsd(anova);
     _report = AnalysisReport(
       title: l10n.tukeyTitle,
-      subtitle: 'Tukey HSD · $vName by ${_groupVar!}',
+      subtitle: 'Tukey HSD · ${variableLabel(ds, vName)} by '
+          '${variableLabel(ds, _groupVar!)}',
       sections: [
         ReportSection(
           heading: l10n.pairwise,
@@ -1212,7 +1222,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final r = factorPca(cols, names: _selectedVars, maxFactors: 3);
     _report = AnalysisReport(
       title: l10n.factorPcaTitle,
-      subtitle: 'PCA · ${_selectedVars.join(", ")}',
+      subtitle: 'PCA · '
+          '${_selectedVars.map((v) => variableLabel(ds, v)).join(", ")}',
       sections: [
         ReportSection(
           heading: l10n.eigenSection,
@@ -1238,13 +1249,14 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               rows: [
                 for (var v = 0; v < _selectedVars.length; v++)
                   [
-                    r.variables[v],
+                    variableLabel(ds, r.variables[v]),
                     for (final l in r.loadings[v]) formatNum(l),
                   ],
               ],
             ),
           ],
-          notes: l10n.factorPcaNote(formatNum(r.totalVarianceExplained)),
+          notes: mergeNotes(l10n.factorPcaNote(formatNum(r.totalVarianceExplained)),
+              variableLabelNote(l10n, ds, _selectedVars)),
         ),
       ],
     );
@@ -1262,7 +1274,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final r = logisticRegression(xs, ys, names: [_xVar!]);
     _report = AnalysisReport(
       title: l10n.logisticTitle,
-      subtitle: '${_yVar!} (>=median) ~ ${_xVar!}',
+      subtitle: '${variableLabel(ds, _yVar!)} (>=median) ~ '
+          '${variableLabel(ds, _xVar!)}',
       sections: [
         ReportSection(
           heading: l10n.modelWord,
@@ -1302,7 +1315,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final r = examine(ds.numericColumn(name));
     _report = AnalysisReport(
       title: 'EXAMINE',
-      subtitle: name,
+      subtitle: variableLabel(ds, name),
       sections: [
         ReportSection(
           heading: l10n.examineDesc,
@@ -1418,7 +1431,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
             nAll;
     _report = AnalysisReport(
       title: l10n.errorBarTitle,
-      subtitle: _groupVar == null ? name : '$name by ${_groupVar!}',
+      subtitle: _groupVar == null
+          ? variableLabel(ds, name)
+          : '${variableLabel(ds, name)} by ${variableLabel(ds, _groupVar!)}',
       sections: [
         ReportSection(
           heading: l10n.distSummary,
@@ -1478,7 +1493,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     }
     _report = AnalysisReport(
       title: l10n.boxplotTitle,
-      subtitle: name,
+      subtitle: variableLabel(ds, name),
       sections: [
         ReportSection(
           heading: l10n.distSummary,
@@ -1548,7 +1563,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final pts = normalQQPointsStandardized(ds.numericColumn(name));
     _report = AnalysisReport(
       title: l10n.qqTitle,
-      subtitle: name,
+      subtitle: variableLabel(ds, name),
       sections: [
         ReportSection(
           heading: l10n.qqSection,
@@ -1608,7 +1623,10 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               headers: [l10n.reportVar, 'KMO'],
               rows: [
                 for (var i = 0; i < r.kmo.names.length; i++)
-                  [r.kmo.names[i], formatNum(r.kmo.perVariable[i])],
+                  [
+                    variableLabel(ds, r.kmo.names[i]),
+                    formatNum(r.kmo.perVariable[i]),
+                  ],
               ],
             ),
           ],
@@ -1621,7 +1639,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               rows: [
                 for (var v = 0; v < _selectedVars.length; v++)
                   [
-                    _selectedVars[v],
+                    variableLabel(ds, _selectedVars[v]),
                     formatNum(r.communalities[v]),
                     for (var c = 0; c < 3; c++)
                       c < r.unrotated.loadings[v].length
@@ -1644,13 +1662,16 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                 rows: [
                   for (var v = 0; v < rot.length; v++)
                     [
-                      v < _selectedVars.length ? _selectedVars[v] : 'X${v + 1}',
+                      v < _selectedVars.length
+                          ? variableLabel(ds, _selectedVars[v])
+                          : 'X${v + 1}',
                       for (final l in rot[v]) formatNum(l),
                     ],
                 ],
               ),
             ],
-            notes: l10n.rotationNote(formatNum(r.rotationSS)),
+            notes: mergeNotes(l10n.rotationNote(formatNum(r.rotationSS)),
+                variableLabelNote(l10n, ds, _selectedVars)),
           ),
         ReportSection(
           heading: l10n.screePlot,
@@ -1698,7 +1719,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     );
     _report = AnalysisReport(
       title: l10n.logisticFullTitle,
-      subtitle: '${_yVar!} ~ ${_xVar!}',
+      subtitle: '${variableLabel(ds, _yVar!)} ~ '
+          '${variableLabel(ds, _xVar!)}',
       sections: [
         ReportSection(
           heading: l10n.waldCoefficients,
@@ -1708,7 +1730,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               rows: [
                 for (final c in r.coefficients)
                   [
-                    c.name,
+                    variableLabel(ds, c.name),
                     formatNum(c.beta),
                     formatNum(c.se),
                     formatNum(c.wald),
@@ -1719,6 +1741,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
             ),
           ],
+          notes: variableLabelNote(l10n, ds, [_yVar!, _xVar!]),
         ),
         ReportSection(
           heading: l10n.modelClassification,
@@ -1796,7 +1819,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         : glmTwoWay(cells, yName: vName);
     _report = AnalysisReport(
       title: aName == bName ? l10n.glmOneTitle : l10n.glmTwoTitle,
-      subtitle: vName,
+      subtitle: variableLabel(ds, vName),
       sections: [
         ReportSection(
           heading: l10n.betweenEffects,
@@ -1806,7 +1829,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               rows: [
                 for (final t in r.terms)
                   [
-                    t.name,
+                    variableLabel(ds, t.name),
                     formatNum(t.ss),
                     '${t.df}',
                     formatNum(t.ms),
@@ -1826,8 +1849,14 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
             ),
           ],
-          notes: l10n.glmNote(formatNum(r.r2), formatNum(r.adjR2),
-              formatNum(r.rmse), r.n),
+          notes: mergeNotes(
+            l10n.glmNote(formatNum(r.r2), formatNum(r.adjR2), formatNum(r.rmse), r.n),
+            variableLabelNote(l10n, ds, [
+              vName,
+              _groupVar!,
+              if (_factorB != null && _factorB!.isNotEmpty) _factorB!,
+            ]),
+          ),
         ),
       ],
     );
@@ -1880,7 +1909,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final pOne = r.extra['pOneTail'] as double?;
     _report = AnalysisReport(
       title: l10n.jtTitle,
-      subtitle: '$vName · ${_groupVar!}',
+      subtitle: '${variableLabel(ds, vName)} · '
+          '${variableLabel(ds, _groupVar!)}',
       sections: [
         ReportSection(
           heading: l10n.testResult,
@@ -1933,7 +1963,11 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
       // 规则 B：成对完整个案
       final (x, y) = MissingAware.pairs(ds, _selectedVars[0], _selectedVars[1]);
       final r = Permutation.pairedDifference(x, y, permutations: b);
-      _report = _permReport(_selectedVars[0], _selectedVars[1], r);
+      _report = _permReport(
+        variableLabel(ds, _selectedVars[0]),
+        variableLabel(ds, _selectedVars[1]),
+        r,
+      );
     } else {
       final vName = _selectedVars.isNotEmpty ? _selectedVars.first : null;
       if (vName == null || _groupVar == null) throw l10n.pleaseSelectGroup;
@@ -2059,8 +2093,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
     _report = AnalysisReport(
       title: l10n.ancovaTitle,
-      subtitle: '${r.yName} ~ ${r.factorNames.join(' * ')}'
-          '${r.covariateNames.isEmpty ? '' : ' + ${r.covariateNames.join(' + ')}'}',
+      subtitle: '${variableLabel(ds, r.yName)} ~ '
+          '${r.factorNames.map((n) => variableLabel(ds, n)).join(' * ')}'
+          '${r.covariateNames.isEmpty ? '' : ' + ${r.covariateNames.map((n) => variableLabel(ds, n)).join(' + ')}'}',
       sections: [
         ReportSection(
           heading: l10n.typeIiiSs,
@@ -2078,7 +2113,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               rows: [
                 for (final t in r.terms)
                   [
-                    t.isCovariate ? '${t.name} (cov)' : t.name,
+                    t.isCovariate
+                        ? '${variableLabel(ds, t.name)} (cov)'
+                        : variableLabel(ds, t.name),
                     formatNum(t.ss),
                     '${t.df}',
                     formatNum(t.ms),
@@ -2098,10 +2135,13 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
             ),
           ],
-          notes: l10n.ancovaNote(
-            formatNum(r.r2),
-            formatNum(r.adjR2),
-            r.n,
+          notes: mergeNotes(
+            l10n.ancovaNote(formatNum(r.r2), formatNum(r.adjR2), r.n),
+            variableLabelNote(l10n, ds, [
+              _yVar!,
+              _groupVar!,
+              if (_factorB != null && _factorB!.isNotEmpty) _factorB!,
+            ]),
           ),
         ),
         ReportSection(
@@ -2112,7 +2152,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               rows: [
                 for (final s in r.slopes)
                   [
-                    s.name,
+                    variableLabel(ds, s.name),
                     formatNum(s.b),
                     formatNum(s.se),
                     formatNum(s.t),
@@ -2205,7 +2245,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
     _report = AnalysisReport(
       title: l10n.multinomialTitle,
-      subtitle: '$_yVar! ~ ${_selectedVars.join(' + ')}',
+      subtitle: '${variableLabel(ds, _yVar!)} ~ '
+          '${_selectedVars.map((v) => variableLabel(ds, v)).join(' + ')}',
       sections: [
         ReportSection(
           heading: l10n.waldCoefficients,
@@ -2215,7 +2256,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               rows: [
                 for (final c in r.coefficients)
                   [
-                    '${c.level} · ${c.name}',
+                    '${c.level} · ${variableLabel(ds, c.name)}',
                     formatNum(c.beta),
                     formatNum(c.se),
                     formatNum(c.wald),
@@ -2226,10 +2267,13 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               ],
             ),
           ],
-          notes: l10n.multinomialNote(
-            r.reference,
-            formatNum(r.pseudoR2),
-            r.n,
+          notes: mergeNotes(
+            l10n.multinomialNote(
+              r.reference,
+              formatNum(r.pseudoR2),
+              r.n,
+            ),
+            variableLabelNote(l10n, ds, [_yVar!, ..._selectedVars]),
           ),
         ),
         ReportSection(
@@ -2286,11 +2330,13 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     );
     _report = AnalysisReport(
       title: l10n.stepwiseTitle,
-      subtitle: '${_yVar!} ~ stepwise',
+      subtitle: '${variableLabel(ds, _yVar!)} ~ stepwise',
       sections: [
         ReportSection(
           heading: l10n.enteredVars,
-          body: r.selected.isEmpty ? l10n.noneEntered : r.selected.join(', '),
+          body: r.selected.isEmpty
+              ? l10n.noneEntered
+              : r.selected.map((v) => variableLabel(ds, v)).join(', '),
           tables: [
             ReportTable(
               headers: [l10n.step, l10n.action, l10n.reportVar, 'R²', l10n.adjR2],
@@ -2299,7 +2345,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                   [
                     '${i + 1}',
                     r.steps[i].action == 'enter' ? l10n.enter : l10n.remove,
-                    r.steps[i].variable,
+                    variableLabel(ds, r.steps[i].variable),
                     formatNum(r.steps[i].r2),
                     formatNum(r.steps[i].adjR2),
                   ],
@@ -2333,7 +2379,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     );
     _report = AnalysisReport(
       title: l10n.ctablesTitle,
-      subtitle: '${_yVar!} × ${_xVar!}',
+      subtitle: '${variableLabel(ds, _yVar!)} × ${variableLabel(ds, _xVar!)}',
       sections: [
         ReportSection(
           heading: l10n.summaryCounts,

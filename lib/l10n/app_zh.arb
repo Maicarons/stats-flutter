@@ -92,6 +92,7 @@
   "importSuccess": "已导入 {cases} 个案 × {vars} 变量",
   "importFailed": "导入失败：{e}",
   "exportFailed": "导出失败：{e}",
+  "exporting": "正在生成文件…",
   "copied": "已复制",
   "editCase": "编辑个案 #{n}",
   "label": "标签",

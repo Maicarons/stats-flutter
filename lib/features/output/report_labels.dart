@@ -40,5 +40,7 @@ String? variableLabelNote(
     if (l != n) pairs.add('$l = $n');
   }
   if (pairs.isEmpty) return null;
-  return l10n.variableLabelNote(pairs.join('，'));
+  // 分隔符随界面语言：中文用全角逗号，英文用半角（英文界面出现「，」很怪）
+  final sep = l10n.localeName.startsWith('zh') ? '，' : ', ';
+  return l10n.variableLabelNote(pairs.join(sep));
 }

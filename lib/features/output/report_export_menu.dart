@@ -40,6 +40,9 @@ String reportFileBase(String title, {DateTime? at}) {
 
 /// 写文件 + 调起系统分享。[nameBase] 缺省用 [reportFileBase]（纯中文标题时
 /// 调用方传分析 id，避免文件名退化成 `stats-report-…` 都一样）。
+///
+/// PDF 要解析 2.3 MB 中文字体资产再排版（数百毫秒起），期间给一条进度提示，
+/// 否则点了菜单像是没反应。
 Future<void> exportReportFile(
   BuildContext context, {
   required AnalysisReport report,
@@ -47,7 +50,17 @@ Future<void> exportReportFile(
   String? nameBase,
 }) async {
   final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
   final base = nameBase ?? reportFileBase(report.title);
+  final showProgress = kind == ReportFileKind.pdf;
+  if (showProgress) {
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(l10n.exporting),
+        duration: const Duration(minutes: 1),
+      ),
+    );
+  }
   try {
     final dir = await getApplicationDocumentsDirectory();
     final file = File('${dir.path}/$base.${kind.extension}');
@@ -66,10 +79,11 @@ Future<void> exportReportFile(
         );
         await file.writeAsBytes(bytes, flush: true);
     }
+    if (showProgress) messenger.hideCurrentSnackBar();
     await Share.shareXFiles([XFile(file.path)], subject: report.title);
   } catch (e) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    if (showProgress) messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
       SnackBar(content: Text(l10n.exportFailed(e.toString()))),
     );
   }

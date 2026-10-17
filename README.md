@@ -55,11 +55,19 @@ COMPUTE · RECODE · COUNT · RANK · SORT CASES · SELECT IF · AGGREGATE · FL
 ### Syntax editor
 Executable subset: `DESCRIPTIVES` `FREQUENCIES` `T-TEST` `CORRELATIONS` `COMPUTE` `RECODE` `RANK` `SORT` `SELECT IF` `LIST` `HELP`
 
+Language layer: PSPP comment semantics (`*` / `COMMENT`), macros (`DEFINE`, positional & keyword arguments, `!LET` / `!IF` / `!DO`, `!CONCAT` …), `INCLUDE` with relative paths and cycle protection, per-command error locations, `.sps` round-trip (BOM stripping, invalid bytes → U+FFFD)
+
+### Output & export
+- Session output tree: one card per run, newest first, newest expanded
+- Per card: copy, share, delete, export; "Export all" merges every card of the procedure
+- **PDF** (bundled CJK subset font, running header, page x / y), **HTML**, **Markdown**
+- Shared table styling: numeric columns right-aligned, p-value stars and colours, variable / value labels
+
 ### Platform
 - i18n: English / 中文 (flutter gen-l10n)
 - Theme: light / dark / system + 8 seed colors
 - Unified brand logo (splash / launcher / docs)
-- Noto Sans SC via google_fonts
+- CJK text: bundled Noto Sans SC subset renamed `StatsSansSC` (OFL-1.1, reproducible via `tools/subset_cjk_font.py`); Latin uses Inter
 
 ## Stats kernel — `packages/statkit`
 
