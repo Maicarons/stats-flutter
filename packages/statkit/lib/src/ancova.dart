@@ -14,17 +14,31 @@ import 'distributions.dart';
 /// 方差分析表的一行（因子项或协变量项）
 @experimental
 class AnovaTerm {
+  /// 项名：因子名、`A×B` 交互，或协变量名
   final String name;
+
+  /// 类型 III 平方和（去掉该项、保留其余所有项后的残差平方和增量）
   final double ss;
+
+  /// 该项的自由度（因子为水平数 − 1，协变量为 1）
   final int df;
+
+  /// 均方 = ss / df
   final double ms;
+
+  /// F 值 = ms / msError
   final double f;
+
+  /// F 检验的 p 值
   final double p;
+
+  /// 偏 η² = ss / (ss + ssError)
   final double partialEta2;
 
   /// true 表示这一行是协变量（单项 df = 1）
   final bool isCovariate;
 
+  /// 构造方差分析表的一行（通常由 [ancova] 生成）
   const AnovaTerm({
     required this.name,
     required this.ss,
@@ -40,13 +54,28 @@ class AnovaTerm {
 /// 协变量斜率（原始尺度，未标准化：每增加 1 个单位因变量的变化）
 @experimental
 class AncovaSlope {
+  /// 协变量名
   final String name;
+
+  /// 斜率（原始尺度：协变量每增加 1 个单位，因变量的变化）
   final double b;
+
+  /// 斜率的标准误
   final double se;
+
+  /// 斜率显著性的 t 值
   final double t;
+
+  /// t 检验的 p 值
   final double p;
+
+  /// 斜率的 95% 置信区间下界
   final double ciLower95;
+
+  /// 斜率的 95% 置信区间上界
   final double ciUpper95;
+
+  /// 构造一条协变量斜率（通常由 [ancova] 生成）
   const AncovaSlope({
     required this.name,
     required this.b,
@@ -75,13 +104,19 @@ class AncovaMean {
   /// 未调整均值（同组原始均值，用于对照看出「剥离」了多少）
   final double raw;
 
+  /// 调整均值的标准误
   final double se;
+
+  /// 调整均值的 95% 置信区间下界
   final double ciLower95;
+
+  /// 调整均值的 95% 置信区间上界
   final double ciUpper95;
 
   /// 该格 / 该水平的样本数
   final int n;
 
+  /// 构造一条调整均值（通常由 [ancova] 生成）
   const AncovaMean({
     required this.factor,
     required this.level,
@@ -99,8 +134,14 @@ class AncovaMean {
 class AncovaResult {
   /// 因子项（A、可选 B、可选 A×B）+ 每个协变量一项
   final List<AnovaTerm> terms;
+
+  /// 误差平方和（残差平方和）
   final double ssError;
+
+  /// 误差自由度 = n − 参数个数（含截距）
   final int dfError;
+
+  /// 误差均方 = ssError / dfError
   final double msError;
 
   /// 校正总平方和 Σ(y − ȳ)²
@@ -109,16 +150,28 @@ class AncovaResult {
   /// 校正模型平方和 = ssTotal − ssError
   final double ssModel;
 
+  /// 模型 R² = ssModel / ssTotal
   final double r2;
+
+  /// 调整 R²（按参数个数校正）
   final double adjR2;
+
+  /// 残差标准误 √msError
   final double rmse;
+
+  /// 进入模型的观测数
   final int n;
 
   /// 参数个数（含截距），dfError = n − 参数个数
   final int nParams;
 
+  /// 因变量名
   final String yName;
+
+  /// 因子名（只有 A 时一项，A 与 B 时两项）
   final List<String> factorNames;
+
+  /// 协变量名
   final List<String> covariateNames;
 
   /// 协变量斜率（与 terms 里的协变量项一一对应）
@@ -130,6 +183,7 @@ class AncovaResult {
   /// 各协变量的均值（EMM 就是在这一点上求值的）
   final Map<String, double> covariateMeans;
 
+  /// 构造协方差分析结果（通常由 [ancova] 生成）
   const AncovaResult({
     required this.terms,
     required this.ssError,

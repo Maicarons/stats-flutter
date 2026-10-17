@@ -152,6 +152,7 @@ double chiSquareSf(double x, int df) {
   return upperIncGamma(df / 2.0, x / 2.0);
 }
 
+/// 卡方分布的概率密度（df 为自由度）
 double chiSquarePdf(double x, int df) {
   if (x <= 0) return 0;
   final k = df / 2.0;
@@ -253,6 +254,7 @@ double lnGamma(double x) {
       math.log(a);
 }
 
+/// Gamma 函数 Γ(x)（由 [lnGamma] 取指数，避免中间量溢出）
 double gammaFn(double x) => math.exp(lnGamma(x));
 
 /// 下不完全 gamma P(s,x)（正则化，返回 0..1）

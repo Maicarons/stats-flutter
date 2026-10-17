@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.5.1
+
+Packaging patch: pub.dev no longer rejects the metadata, the package ships a
+runnable example, and the v0.5.0 additions are documented. **No number that any
+procedure computes changes.**
+
+### Fixed
+- `pubspec.yaml` description shortened to 163 characters. pub.dev's analysis
+  (Pana) rejects descriptions over 180 with *"The package description is too
+  long"*, which cost 10 of 160 pub points. The new wording still covers more
+  entry points than the old one (t / ANOVA / ANCOVA, correlation, regression,
+  nonparametric tests, reliability, clustering, PCA, ROC, logistic
+  regression).
+
+### Added
+- `example/statkit_example.dart` — a runnable tour, `dart run
+  example/statkit_example.dart`, covering descriptives, one-sample and
+  independent-samples t tests, one-way ANOVA with Levene, correlation and
+  simple regression, chi-square, Mann-Whitney U, a permutation test, the
+  Lilliefors-corrected normality test, Cronbach alpha and k-means. pub.dev
+  awards 10 pub points for a package example.
+
+### Docs
+- dartdoc for the v0.5.0 API that was still undocumented — `AnovaTerm`,
+  `AncovaSlope`, `AncovaMean`, `AncovaResult`, `PermutationResult`,
+  `NparExtended`, `chiSquarePdf` and `gammaFn` (40 public members). The
+  documented share of the public API rises from 21.2 % to 26.6 %, which keeps
+  the pub.dev documentation check at 10/10 with headroom.
+
 ## 0.5.0
 
 Statistical capability upgrade: ordered-alternative and permutation tests,

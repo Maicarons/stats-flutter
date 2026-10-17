@@ -13,7 +13,7 @@ ROC, PCA and logistic regression (binary and multinomial).
 
 ```yaml
 dependencies:
-  statkit: ^0.5.0
+  statkit: ^0.5.1
 ```
 
 ## Quick start
@@ -33,6 +33,17 @@ void main() {
   final r = Regression.simple([1.0, 2, 3, 4, 5], [2.0, 4, 6, 8, 10]);
   print('R²=${r.r2}  slope=${r.coefficients[1].beta}');
 }
+```
+
+## Example
+
+[`example/statkit_example.dart`](example/statkit_example.dart) is a runnable
+tour of the kernel — descriptives, t tests, one-way ANOVA with Levene,
+correlation, regression, chi-square, Mann-Whitney U, a permutation test,
+normality, Cronbach alpha and k-means:
+
+```bash
+dart run example/statkit_example.dart
 ```
 
 ## API overview
@@ -80,7 +91,8 @@ has stabilised.
 
 This repository's app depends on statkit by path, so an app release and the
 statkit version it shipped are listed together in the app's release notes
-(currently statkit `0.5.0` ↔ app `1.4.0`).
+(app `1.4.0` shipped statkit `0.5.0`; `0.5.1` is the packaging patch that
+followed it).
 
 ## Testing
 

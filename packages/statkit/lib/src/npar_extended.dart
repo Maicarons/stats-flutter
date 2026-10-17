@@ -12,6 +12,10 @@ import 'distributions.dart';
 import 'exact_tests.dart';
 import 'nonparametric.dart';
 
+/// v0.2 起加入的一批非参数过程：二项、Kendall、McNemar、Friedman、Cochran 与
+/// Median 检验；v0.5 又加了 Jonckheere-Terpstra 有序备择趋势检验。
+///
+/// 所有入口都是静态方法，返回统一的结果对象，便于应用层以同一套代码渲染报告。
 class NparExtended {
   /// 二项检验（可 exact）
   static NonparametricResult binomial(

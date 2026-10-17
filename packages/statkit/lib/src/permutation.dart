@@ -36,11 +36,19 @@ class PermutationResult {
   /// 随机抽样的种子；完全枚举时为 0
   final int seed;
 
+  /// 置换分布中统计量的均值
   final double meanPermuted;
+
+  /// 置换分布中统计量的标准差
   final double sdPermuted;
+
+  /// 置换分布中统计量的最小值
   final double minPermuted;
+
+  /// 置换分布中统计量的最大值
   final double maxPermuted;
 
+  /// 构造置换检验结果（由 [Permutation] 的各方法生成）
   const PermutationResult({
     required this.observed,
     required this.pTwoTail,
@@ -59,6 +67,7 @@ class PermutationResult {
   double get z =>
       sdPermuted > 0 ? (observed - meanPermuted) / sdPermuted : 0.0;
 
+  /// 序列化为 JSON（键名与字段名一致），便于报告导出。
   Map<String, dynamic> toJson() => {
         'observed': observed,
         'pTwoTail': pTwoTail,
