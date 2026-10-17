@@ -480,6 +480,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get saveSps => '保存 .sps';
 
   @override
+  String get spsSaveAs => '另存为 .sps…';
+
+  @override
+  String get spsDecodeReplaced => '文件含非法 UTF-8 字节，读入时已替换为占位字符。';
+
+  @override
   String get run => '运行';
 
   @override
@@ -487,6 +493,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get syntaxHint => '输入 SPSS 风格语法，语句以句点结尾…';
+
+  @override
+  String syntaxCursor(int line, int col) {
+    return '第 $line 行，第 $col 列';
+  }
+
+  @override
+  String syntaxAtLine(int line) {
+    return '第 $line 行';
+  }
 
   @override
   String get outputHere => '输出将显示在这里';

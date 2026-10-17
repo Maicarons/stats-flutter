@@ -190,9 +190,24 @@
   "syntaxTitle": "Syntax editor",
   "openSps": "Open .sps",
   "saveSps": "Save .sps",
+  "spsSaveAs": "Save .sps as…",
+  "spsDecodeReplaced": "The file had invalid UTF-8 bytes; they were replaced when reading.",
   "run": "Run",
   "runSyntax": "Run syntax",
   "syntaxHint": "Enter SPSS-style syntax; statements end with a period…",
+  "syntaxCursor": "Ln {line}, Col {col}",
+  "@syntaxCursor": {
+    "placeholders": {
+      "line": {"type": "int"},
+      "col": {"type": "int"}
+    }
+  },
+  "syntaxAtLine": "Line {line}",
+  "@syntaxAtLine": {
+    "placeholders": {
+      "line": {"type": "int"}
+    }
+  },
   "outputHere": "Output will appear here",
   "syntaxDone": "Done: {ok} ok, {fail} failed",
   "@syntaxDone": {

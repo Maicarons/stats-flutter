@@ -151,9 +151,13 @@
   "syntaxTitle": "语法编辑器",
   "openSps": "打开 .sps",
   "saveSps": "保存 .sps",
+  "spsSaveAs": "另存为 .sps…",
+  "spsDecodeReplaced": "文件含非法 UTF-8 字节，读入时已替换为占位字符。",
   "run": "运行",
   "runSyntax": "运行语法",
   "syntaxHint": "输入 SPSS 风格语法，语句以句点结尾…",
+  "syntaxCursor": "第 {line} 行，第 {col} 列",
+  "syntaxAtLine": "第 {line} 行",
   "outputHere": "输出将显示在这里",
   "syntaxDone": "完成: {ok} 成功, {fail} 失败",
 

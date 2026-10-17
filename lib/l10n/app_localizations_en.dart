@@ -487,6 +487,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveSps => 'Save .sps';
 
   @override
+  String get spsSaveAs => 'Save .sps as…';
+
+  @override
+  String get spsDecodeReplaced =>
+      'The file had invalid UTF-8 bytes; they were replaced when reading.';
+
+  @override
   String get run => 'Run';
 
   @override
@@ -495,6 +502,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get syntaxHint =>
       'Enter SPSS-style syntax; statements end with a period…';
+
+  @override
+  String syntaxCursor(int line, int col) {
+    return 'Ln $line, Col $col';
+  }
+
+  @override
+  String syntaxAtLine(int line) {
+    return 'Line $line';
+  }
 
   @override
   String get outputHere => 'Output will appear here';

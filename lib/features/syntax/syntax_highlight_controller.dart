@@ -3,26 +3,36 @@ library;
 
 import 'package:flutter/material.dart';
 
-/// 语句起始命令关键字
-const _commands = {
-  'DESCRIPTIVES', 'FREQUENCIES', 'T-TEST', 'CORRELATIONS', 'COMPUTE',
-  'RECODE', 'RANK', 'SORT', 'SORT CASES', 'SELECT IF', 'LIST', 'HELP',
-  'WEIGHT', 'WEIGHT BY', 'SPLIT FILE', 'VALUE LABELS', 'VARIABLE LABELS',
-  'MEANS', 'ONEWAY', 'EXAMINE', 'REGRESSION', 'LOGISTIC REGRESSION',
-  'CROSSTABS', 'NPAR TESTS', 'AGGREGATE', 'COUNT', 'AUTORECODE',
-  'MATCH FILES', 'ADD FILES', 'GET', 'SAVE', 'TEMPORARY', 'DO IF',
-  'END IF', 'LOOP', 'END LOOP', 'VECTOR', 'IF', 'BREAK',
+import '../../core/syntax/syntax_engine.dart';
+
+/// 行首命令字：动词表直接取执行器**已实现**的动词，避免高亮与引擎漂移；
+/// 再补上两个「行首构造」（宏定义与 COMMENT 注释）。
+final _commands = <String>{
+  ...implementedVerbs,
+  'DEFINE',
+  'COMMENT',
 };
 
 /// 行内子命令 / 逻辑关键字
 const _keywords = {
   'BY', 'WITH', 'INTO', 'FROM', 'TO', 'ALL', 'AND', 'OR', 'NOT', 'ELSE',
   'TESTVAL', 'VARIABLES', 'PAIRED', 'MISSING', 'OPTIONS', 'STATISTICS',
-  'ES', 'CRITERIA', 'MISSING=',
+  'FILES', 'TABLE', 'GROUP', 'BY=', 'VARIABLES=',
 };
+
+/// 宏名 / 宏函数（`!NAME`）的颜色（两种主题下都可读）
+const macroHighlightColor = Color(0xFF8E44AD);
 
 class SyntaxHighlightController extends TextEditingController {
   SyntaxHighlightController({super.text});
+
+  /// 行首命令字：单个记号（`T-TEST` 这类连字符算同一个记号），
+  /// 后面可以跟空白、`.`、`/` 或行尾。
+  static final _cmdRe =
+      RegExp(r'^\s*([A-Za-z][A-Za-z0-9\-_]*)(?=\s|\.|/|$)');
+
+  /// `COMMENT` 开头的注释行
+  static final _commentRe = RegExp(r'^COMMENT(\s|\.|$)', caseSensitive: false);
 
   @override
   TextSpan buildTextSpan({
@@ -41,6 +51,7 @@ class SyntaxHighlightController extends TextEditingController {
     final kwStyle = base.copyWith(color: scheme.tertiary);
     final numStyle = base.copyWith(color: scheme.secondary);
     final strStyle = base.copyWith(color: const Color(0xFF2E9E5B));
+    final macroStyle = base.copyWith(color: macroHighlightColor);
     final commentStyle = base.copyWith(
       color: scheme.outline,
       fontStyle: FontStyle.italic,
@@ -48,27 +59,30 @@ class SyntaxHighlightController extends TextEditingController {
 
     for (final line in text.split('\n')) {
       final trimmed = line.trimLeft();
-      // 注释行：* 开头
-      if (trimmed.startsWith('*') && !trimmed.startsWith('*.')) {
+      // 注释行：`* …`（`*.` 除外，那是乘法）或 `/* … */`
+      if ((trimmed.startsWith('*') && !trimmed.startsWith('*.')) ||
+          trimmed.startsWith('/*') ||
+          _commentRe.hasMatch(trimmed)) {
         children.add(TextSpan(text: '$line\n', style: commentStyle));
         continue;
       }
       var rest = line;
       // 行首命令字
-      final cmdMatch =
-          RegExp(r'^\s*([A-Z][A-Z0-9\- ]*[A-Z0-9])(?=\s|$)').firstMatch(line);
+      final cmdMatch = _cmdRe.firstMatch(line);
       if (cmdMatch != null) {
-        final cand = cmdMatch.group(1)!.trim();
+        final cand = cmdMatch.group(1)!.toUpperCase();
         if (_commands.contains(cand)) {
-          final idx = line.indexOf(cand);
+          final idx = line.indexOf(cmdMatch.group(1)!, cmdMatch.start);
           if (idx > 0) {
             children.add(TextSpan(text: line.substring(0, idx), style: base));
           }
-          children.add(TextSpan(text: cand, style: cmdStyle));
+          children.add(TextSpan(text: line.substring(idx, idx + cand.length),
+              style: cmdStyle));
           rest = line.substring(idx + cand.length);
         }
       }
-      _highlightRest(rest, base, kwStyle, numStyle, strStyle, children);
+      _highlightRest(rest, base, kwStyle, numStyle, strStyle, macroStyle,
+          commentStyle, children);
       children.add(const TextSpan(text: '\n'));
     }
     // split('\n') 会让最后一行多出一个换行；若原文不以 \n 结尾则去掉
@@ -91,6 +105,8 @@ class SyntaxHighlightController extends TextEditingController {
     TextStyle kwStyle,
     TextStyle numStyle,
     TextStyle strStyle,
+    TextStyle macroStyle,
+    TextStyle commentStyle,
     List<TextSpan> out,
   ) {
     final buf = StringBuffer();
@@ -99,7 +115,9 @@ class SyntaxHighlightController extends TextEditingController {
       if (buf.isEmpty) return;
       final word = buf.toString();
       TextStyle st = base;
-      if (_keywords.contains(word)) {
+      if (word.startsWith('!')) {
+        st = macroStyle;
+      } else if (_keywords.contains(word.toUpperCase())) {
         st = kwStyle;
       } else if (double.tryParse(word) != null) {
         st = numStyle;
@@ -122,7 +140,16 @@ class SyntaxHighlightController extends TextEditingController {
         out.add(TextSpan(text: s.substring(start, i), style: strStyle));
         continue;
       }
-      if (RegExp(r'[A-Za-z0-9_.]').hasMatch(ch)) {
+      // 行内块注释：/* … */（到行尾结束也算）
+      if (ch == '/' && i + 1 < s.length && s[i + 1] == '*') {
+        flush();
+        final close = s.indexOf('*/', i + 2);
+        final end = close < 0 ? s.length : close + 2;
+        out.add(TextSpan(text: s.substring(i, end), style: commentStyle));
+        i = end;
+        continue;
+      }
+      if (RegExp(r'[A-Za-z0-9_.!]').hasMatch(ch)) {
         buf.write(ch);
       } else {
         flush();

@@ -992,6 +992,18 @@ abstract class AppLocalizations {
   /// **'Save .sps'**
   String get saveSps;
 
+  /// No description provided for @spsSaveAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Save .sps as…'**
+  String get spsSaveAs;
+
+  /// No description provided for @spsDecodeReplaced.
+  ///
+  /// In en, this message translates to:
+  /// **'The file had invalid UTF-8 bytes; they were replaced when reading.'**
+  String get spsDecodeReplaced;
+
   /// No description provided for @run.
   ///
   /// In en, this message translates to:
@@ -1009,6 +1021,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter SPSS-style syntax; statements end with a period…'**
   String get syntaxHint;
+
+  /// No description provided for @syntaxCursor.
+  ///
+  /// In en, this message translates to:
+  /// **'Ln {line}, Col {col}'**
+  String syntaxCursor(int line, int col);
+
+  /// No description provided for @syntaxAtLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Line {line}'**
+  String syntaxAtLine(int line);
 
   /// No description provided for @outputHere.
   ///

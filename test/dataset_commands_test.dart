@@ -1322,7 +1322,8 @@ void main() {
         [1],
         [2],
       ]);
-      final rs = SyntaxExecutor.run('* 说明行\nCOMPUTE x = score + 1.', d,
+      // PSPP 语义：`*` 注释到「行尾句点」结束，所以注释行末必须加 `.`
+      final rs = SyntaxExecutor.run('* 说明行.\nCOMPUTE x = score + 1.', d,
           messages: SyntaxMessages.en);
       expect(rs.single.ok, isTrue);
       expect(_numCol(d, 'x'), [2, 3]);
@@ -1330,7 +1331,7 @@ void main() {
 
     test('.sps 例：附加数据集后追加 + 按键匹配（可复现）', () {
       const sps = '''
-* v1.4.0 M2.5 可复现例：把 b 表按名追加进来，再按 id 匹配班级表。
+* v1.4.0 M2.5 可复现例：把 b 表按名追加进来，再按 id 匹配班级表.
 ADD FILES /FILE=* /IN=src /FILE='b.sav'.
 MATCH FILES /FILE=* /TABLE='classes.sav' /BY id.
 LIST.

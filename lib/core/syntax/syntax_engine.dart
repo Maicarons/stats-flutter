@@ -8,25 +8,76 @@ import '../models/mrset.dart';
 import '../transforms/combine_files.dart';
 import '../transforms/transforms.dart';
 import 'package:statkit/statkit.dart';
+import 'syntax_macro.dart';
+import 'syntax_preprocess.dart';
+
+/// `INCLUDE` 的文件读取回调：给出脚本里写的文件名，返回文件内容；
+/// 读取失败返回 `null`。相对路径以调用方决定的基准目录为准。
+typedef SyntaxIncludeResolver = String? Function(String path);
 
 class SyntaxCommand {
   final String verb;
   final List<String> args;
   final String raw;
-  SyntaxCommand(this.verb, this.args, this.raw);
+
+  /// 命令在**原始源文本**里的起止偏移（注释剥离与宏展开后仍指回原位置）。
+  final int start;
+  final int end;
+
+  SyntaxCommand(this.verb, this.args, this.raw, {this.start = 0, this.end = 0});
 }
 
 class SyntaxResult {
   final String command;
   final String output;
   final bool ok;
-  final Dataset? newDataset;
+
+  /// 定位信息（1-based）；预处理期的问题同样带位置。
+  final int? line;
+  final int? column;
+
+  /// 原始源文本里的偏移区间，供语法编辑器点击跳转。
+  final int? start;
+  final int? end;
+
+  /// `INCLUDE` 引入的文件路径（主脚本为 `null`）。
+  final String? file;
+
+  /// 提示（非错误）：例如注释未以句点结束。
+  final bool hint;
+
   const SyntaxResult({
     required this.command,
     required this.output,
     required this.ok,
-    this.newDataset,
+    this.line,
+    this.column,
+    this.start,
+    this.end,
+    this.file,
+    this.hint = false,
   });
+
+  /// 补上位置信息（执行结果本身不带位置，由执行器统一附加）。
+  SyntaxResult at({
+    int? line,
+    int? column,
+    int? start,
+    int? end,
+    String? file,
+    bool? hint,
+  }) =>
+      SyntaxResult(
+        command: command,
+        output: output,
+        ok: ok,
+        line: line ?? this.line,
+        column: column ?? this.column,
+        start: start ?? this.start,
+        end: end ?? this.end,
+        file: file ?? this.file,
+        hint: hint ?? this.hint,
+      );
 }
 
 /// 语法执行器的界面文案（中/英）。命令关键字与数值输出保持语言中立，
@@ -47,6 +98,42 @@ class SyntaxMessages {
   /// 源变量数与目标变量数不一致
   final String Function(int, int) autorecodeCountMismatch;
 
+  /// 宏未定义
+  final String Function(String) macroUndefined;
+
+  /// 明确未支持的宏构造（本版不做）
+  final String Function(String) macroUnsupported;
+
+  /// `!LET` / `!IF` / `!DO` / 宏函数出现在宏体之外
+  final String Function(String) macroOutsideBody;
+
+  /// `DEFINE` 本身写错
+  final String Function(String) macroBadDefinition;
+
+  /// 宏递归过深
+  final String macroRecursion;
+
+  /// `*` / `COMMENT` 注释吞掉了后续行（提示，非错误；参数是被吞掉的行文本）
+  final String Function(String) commentSwallowed;
+
+  /// `INCLUDE` 用法提示
+  final String includeSyntax;
+
+  /// 当前环境没有提供文件读取器
+  final String includeUnavailable;
+
+  /// 无法读取被包含的文件
+  final String Function(String) includeNotFound;
+
+  /// 循环包含
+  final String Function(String) includeCycle;
+
+  /// 包含层级过深
+  final String includeTooDeep;
+
+  /// 成功包含：`path` 与其中执行的命令数
+  final String Function(String, int) includeSummary;
+
   const SyntaxMessages({
     required this.unsupportedCommand,
     required this.error,
@@ -60,6 +147,18 @@ class SyntaxMessages {
     required this.mrsetsSyntax,
     required this.combineSyntax,
     required this.autorecodeCountMismatch,
+    required this.macroUndefined,
+    required this.macroUnsupported,
+    required this.macroOutsideBody,
+    required this.macroBadDefinition,
+    required this.macroRecursion,
+    required this.commentSwallowed,
+    required this.includeSyntax,
+    required this.includeUnavailable,
+    required this.includeNotFound,
+    required this.includeCycle,
+    required this.includeTooDeep,
+    required this.includeSummary,
   });
 
   static const zh = SyntaxMessages(
@@ -82,6 +181,18 @@ class SyntaxMessages {
         '[/RENAME=(旧=新)] [/IN=指示变量] [/BY 变量] [/KEEP=变量] [/DROP=变量]；'
         'MATCH FILES /FILE=* /TABLE=文件名 /BY 变量（文件名需先在语法编辑器里附加）',
     autorecodeCountMismatch: _zhArcCountMismatch,
+    macroUndefined: _zhMacroUndefined,
+    macroUnsupported: _zhMacroUnsupported,
+    macroOutsideBody: _zhMacroOutsideBody,
+    macroBadDefinition: _zhMacroBadDefinition,
+    macroRecursion: '宏展开递归过深（可能是宏调用自身）',
+    commentSwallowed: _zhCommentSwallowed,
+    includeSyntax: 'INCLUDE 语法: INCLUDE [FILE=]\'文件名\' [ENCODING=\'编码\']',
+    includeUnavailable: 'INCLUDE 需要调用方提供文件读取器（当前环境未提供）',
+    includeNotFound: _zhIncludeNotFound,
+    includeCycle: _zhIncludeCycle,
+    includeTooDeep: 'INCLUDE 嵌套层数过深（上限 16 层）',
+    includeSummary: _zhIncludeSummary,
   );
 
   static const en = SyntaxMessages(
@@ -104,6 +215,19 @@ class SyntaxMessages {
         '[/RENAME=(old=new)] [/IN=indicator] [/BY vars] [/KEEP=vars] [/DROP=vars]; '
         'MATCH FILES /FILE=* /TABLE=name /BY vars (attach the file in the syntax editor first)',
     autorecodeCountMismatch: _enArcCountMismatch,
+    macroUndefined: _enMacroUndefined,
+    macroUnsupported: _enMacroUnsupported,
+    macroOutsideBody: _enMacroOutsideBody,
+    macroBadDefinition: _enMacroBadDefinition,
+    macroRecursion: 'Macro expansion is too deeply nested (self-recursive call?)',
+    commentSwallowed: _enCommentSwallowed,
+    includeSyntax: 'INCLUDE syntax: INCLUDE [FILE=\'name\'] [ENCODING=\'enc\']',
+    includeUnavailable:
+        'INCLUDE needs a file reader supplied by the caller (none in this environment)',
+    includeNotFound: _enIncludeNotFound,
+    includeCycle: _enIncludeCycle,
+    includeTooDeep: 'INCLUDE nesting is too deep (limit 16 levels)',
+    includeSummary: _enIncludeSummary,
   );
 }
 
@@ -115,6 +239,63 @@ String _enError(String e) => 'Error: $e';
 String _zhArcCountMismatch(int a, int b) => '源变量数（$a）与目标变量数（$b）不一致';
 String _enArcCountMismatch(int a, int b) =>
     'Source variable count ($a) does not match target variable count ($b)';
+
+String _zhMacroUndefined(String name) => '未定义的宏: !$name';
+String _enMacroUndefined(String name) => 'Undefined macro: !$name';
+String _zhMacroUnsupported(String name) =>
+    '本版未支持的宏构造: !$name（!ENCLOSE、!DO … !IN、!OFFEXPAND/!ONEXPAND/!NOEXPAND 等暂不支持）';
+String _enMacroUnsupported(String name) =>
+    'Unsupported macro construct: !$name (!ENCLOSE, !DO … !IN, '
+    '!OFFEXPAND/!ONEXPAND/!NOEXPAND are not supported yet)';
+String _zhMacroOutsideBody(String name) => '宏构造 !$name 只能出现在宏体内';
+String _enMacroOutsideBody(String name) =>
+    'Macro construct !$name is only valid inside a macro body';
+String _zhMacroBadDefinition(String name) =>
+    'DEFINE 定义有误: ${name.isEmpty ? '(缺少宏名)' : '!$name'}';
+String _enMacroBadDefinition(String name) =>
+    'Malformed DEFINE: ${name.isEmpty ? '(missing macro name)' : '!$name'}';
+String _zhIncludeNotFound(String path) => '无法读取被包含的文件: $path';
+String _enIncludeNotFound(String path) => 'Cannot read included file: $path';
+String _zhIncludeCycle(String path) => '循环包含: $path';
+String _enIncludeCycle(String path) => 'Circular INCLUDE: $path';
+String _zhIncludeSummary(String path, int count) =>
+    'INCLUDE $path  （执行 $count 条命令）';
+String _enIncludeSummary(String path, int count) =>
+    'INCLUDE $path  ($count commands)';
+String _zhCommentSwallowed(String detail) => detail.isEmpty
+    ? '提示：`*` / COMMENT 注释一直到文件末尾都没有行尾句点，'
+        '其后内容都被当作注释文本了'
+    : '提示：`*` / COMMENT 注释按 PSPP 规则持续到「行尾句点」，'
+        '已吞掉后续行「$detail」；只想注释一行时请在注释文字末尾加 `.`';
+String _enCommentSwallowed(String detail) => detail.isEmpty
+    ? 'Hint: this `*` / COMMENT comment never reached a dot at end of line, '
+        'so the rest of the file was treated as comment text'
+    : 'Hint: this `*` / COMMENT comment runs to a dot at the end of a line '
+        '(PSPP rule) and swallowed the following line "$detail"; add `.` at the '
+        'end of the comment text to end it after one line';
+
+/// 语法执行器**已实现**的命令动词（与 `_execute` 的分支一一对应）。
+///
+/// 高亮表与帮助文档都从这里取，避免与实现漂移；`commandVerbs` 是它的超集。
+const implementedVerbs = <String>{
+  'ADD', 'AUTORECODE', 'COMPUTE', 'CORR', 'CORRELATIONS', 'DESCRIPTIVE',
+  'DESCRIPTIVES', 'DISPLAY', 'FREQUENCIES', 'HELP', 'INCLUDE', 'LIST', 'MATCH',
+  'MRSETS', 'RANK', 'RECODE', 'SAMPLE', 'SELECT', 'SHOW', 'SORT', 'T-TEST',
+  'TTEST',
+};
+
+/// 命令动词表：用于识别「注释吞掉了后续命令」这类误用（提示用）。
+///
+/// 比 [implementedVerbs] 多——被注释吞掉的也可能是本版尚未实现的 SPSS 命令，
+/// 这时给出提示同样有用。
+const commandVerbs = <String>{
+  'ADD', 'MATCH', 'COMPUTE', 'RECODE', 'RANK', 'AUTORECODE', 'SAMPLE', 'MRSETS',
+  'SORT', 'SELECT', 'DESCRIPTIVES', 'DESCRIPTIVE', 'FREQUENCIES', 'T-TEST',
+  'TTEST', 'CORRELATIONS', 'CORR', 'LIST', 'DISPLAY', 'SHOW', 'HELP', 'INCLUDE',
+  'DEFINE', 'CTABLES', 'FACTOR', 'REGRESSION', 'MEANS', 'ONEWAY', 'UNIANOVA',
+  'GLM', 'LOGISTIC', 'NONPAR', 'EXAMINE', 'PROCESS', 'TABLES', 'VALUE',
+  'MISSING', 'WEIGHT', 'SPLIT', 'USE', 'DATASET', 'SAVE', 'GET', 'OUTPUT',
+};
 
 const _zhHelp = '''
 支持的命令（子集）:
@@ -134,8 +315,12 @@ const _zhHelp = '''
   T-TEST /TESTVAL=0 /VARIABLES=var.
   CORRELATIONS /VARIABLES=v1 v2.
   LIST.
-  DISPLAY.
+  DISPLAY 或 SHOW.
+  INCLUDE '文件名.sps'.
+  DEFINE !名字(!参数 !TOKENS(1)) … !ENDDEFINE.    !名字(取值).
   HELP.
+注释: `* 文字.` 与 `COMMENT 文字.` 到行尾句点或空行结束；行内用 /* 注释 */。
+宏支持 !LET、!IF/!THEN/!ELSE/!ENDIF、!DO … !TO !BY … !DOEND。
 表达式支持 + - * / ( ) 与 abs sqrt ln exp log10 sin cos tan round trunc''';
 
 const _enHelp = '''
@@ -156,36 +341,71 @@ Supported commands (subset):
   T-TEST /TESTVAL=0 /VARIABLES=var.
   CORRELATIONS /VARIABLES=v1 v2.
   LIST.
-  DISPLAY.
+  DISPLAY or SHOW.
+  INCLUDE 'file.sps'.
+  DEFINE !name(!arg !TOKENS(1)) … !ENDDEFINE.    !name(value).
   HELP.
+Comments: `* text.` and `COMMENT text.` end at a dot at end of line or a blank
+  line; inline comments use /* … */.
+Macros support !LET, !IF/!THEN/!ELSE/!ENDIF and !DO … !TO !BY … !DOEND.
 Expressions support + - * / ( ) and abs sqrt ln exp log10 sin cos tan round trunc''';
 
+/// 一条命令在**预处理后文本**里的位置（偏移以干净文本计）。
+class SyntaxCommandSpan {
+  const SyntaxCommandSpan(this.text, this.start, this.end);
+
+  final String text;
+  final int start;
+  final int end;
+}
+
 class SyntaxParser {
-  static List<String> splitCommands(String source) {
-    // 以句点结尾分割（SPSS 风格），忽略字符串内句点与数字里的小数点
-    // （否则 `SAMPLE 0.4.` 或 `COMPUTE x = 1.5.` 会被拆开）。
-    final out = <String>[];
+  /// 按句点切分命令（字符串内句点与数字小数点不算终止符），
+  /// 同时给出每条命令在干净文本里的偏移区间。
+  static List<SyntaxCommandSpan> splitCommandSpans(String source) {
+    final out = <SyntaxCommandSpan>[];
     final buf = StringBuffer();
+    var bufStart = 0;
     var inStr = false;
+    var quote = '';
     for (var i = 0; i < source.length; i++) {
       final ch = source[i];
-      if (ch == '"' || ch == "'") inStr = !inStr;
       final decimal = ch == '.' &&
           i > 0 &&
           i + 1 < source.length &&
           _digit(source[i - 1]) &&
           _digit(source[i + 1]);
       if (ch == '.' && !inStr && !decimal) {
-        final s = buf.toString().trim();
-        if (s.isNotEmpty) out.add(s);
+        _emit(out, buf, bufStart);
         buf.clear();
-      } else {
-        buf.write(ch);
+        bufStart = i + 1;
+        continue;
       }
+      if (!inStr && (ch == '"' || ch == "'")) {
+        inStr = true;
+        quote = ch;
+      } else if (inStr && ch == quote) {
+        inStr = false;
+      }
+      if (buf.isEmpty) bufStart = i;
+      buf.write(ch);
     }
-    final last = buf.toString().trim();
-    if (last.isNotEmpty) out.add(last);
+    _emit(out, buf, bufStart);
     return out;
+  }
+
+  static List<String> splitCommands(String source) =>
+      [for (final span in splitCommandSpans(source)) span.text];
+
+  static void _emit(
+      List<SyntaxCommandSpan> out, StringBuffer buf, int bufStart) {
+    if (buf.isEmpty) return;
+    final raw = buf.toString();
+    final text = raw.trim();
+    if (text.isEmpty) return;
+    final left = raw.length - raw.trimLeft().length;
+    final start = bufStart + left;
+    out.add(SyntaxCommandSpan(text, start, start + text.length));
   }
 
   static bool _digit(String c) {
@@ -193,22 +413,26 @@ class SyntaxParser {
     return u >= 0 && u <= 9;
   }
 
-  static SyntaxCommand? parse(String cmd) {
-    final lines = cmd
-        .split('\n')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty && !e.startsWith('*'))
-        .toList();
-    if (lines.isEmpty) return null;
-    // 丢掉注释行后再取动词与参数，否则前面有 `* 注释` 时参数会带上注释文字
-    final body = lines.join('\n');
-    final first = lines.first.toUpperCase();
-    final verb = first.split(RegExp(r'\s+')).first;
+  /// [start]/[end] 是命令在原始源文本里的偏移（由调用方从预处理映射得到）。
+  static SyntaxCommand? parse(String cmd, {int start = 0, int end = 0}) {
+    final body = cmd.trim();
+    if (body.isEmpty) return null;
+    final first = RegExp(r'^\S+').firstMatch(body);
+    if (first == null) return null;
+    final verb = first.group(0)!.toUpperCase();
+    // 预处理已剥离注释；直接调用 [parse] 时仍把行首 `*` 当注释丢弃
+    if (verb.startsWith('*')) return null;
     // 只有动词、没有参数时（如 `LIST`）不允许 substring(-1)
     final ws = body.indexOf(RegExp(r'\s+'));
     final rest = ws < 0 ? '' : body.substring(ws).trim();
     final args = _splitArgs(rest);
-    return SyntaxCommand(verb, args, body);
+    return SyntaxCommand(
+      verb,
+      args,
+      body,
+      start: start,
+      end: end == 0 ? start + body.length : end,
+    );
   }
 
   static List<String> _splitArgs(String s) {
@@ -231,20 +455,227 @@ class SyntaxParser {
   }
 }
 
+/// 一次执行（含 `INCLUDE` 嵌套）的共享上下文：宏表与包含栈在其中延续。
+class _RunContext {
+  _RunContext({
+    required this.messages,
+    required this.files,
+    required this.macros,
+    required this.include,
+  });
+
+  final SyntaxMessages messages;
+  final Map<String, Dataset> files;
+  final MacroTable macros;
+  final SyntaxIncludeResolver? include;
+  final Set<String> includeStack = {};
+  int includeDepth = 0;
+}
+
+/// 结果 + 它在原始源文本里的偏移 + 稳定排序用的序号。
+class _Entry {
+  _Entry(this.offset, this.seq, this.result);
+
+  final int offset;
+  final int seq;
+  final SyntaxResult result;
+}
+
 class SyntaxExecutor {
+  /// 执行脚本。
+  ///
+  /// [macros] 可在多次调用之间复用（宏定义跨次运行保留，与 PSPP 会话一致）；
+  /// [include] 提供 `INCLUDE` 的文件读取能力，缺省时 `INCLUDE` 明确报错。
   static List<SyntaxResult> run(
     String source,
     Dataset ds, {
     SyntaxMessages messages = SyntaxMessages.zh,
     Map<String, Dataset> files = const {},
+    MacroTable? macros,
+    SyntaxIncludeResolver? include,
   }) {
-    final results = <SyntaxResult>[];
-    for (final raw in SyntaxParser.splitCommands(source)) {
-      final cmd = SyntaxParser.parse(raw);
-      if (cmd == null) continue;
-      results.add(_execute(cmd, ds, messages, files));
+    final ctx = _RunContext(
+      messages: messages,
+      files: files,
+      macros: macros ?? MacroTable(),
+      include: include,
+    );
+    return _runSource(source, ds, ctx, null);
+  }
+
+  /// 执行一段脚本：注释剥离 → 宏展开 → 逐条命令执行，结果带回原始位置。
+  ///
+  /// `INCLUDE` 之后会**重新预处理**余下部分：这样被包含文件里 `DEFINE` 的宏
+  /// 立刻对后面的命令生效（与 PSPP 的解析顺序一致）。
+  static List<SyntaxResult> _runSource(
+      String source, Dataset ds, _RunContext ctx, String? file) {
+    final entries = <_Entry>[];
+    var seq = 0;
+    var consumed = 0;
+
+    while (true) {
+      final pre = SyntaxPreprocessor.process(
+        source.substring(consumed),
+        macros: ctx.macros,
+        commandVerbs: commandVerbs,
+        offsetShift: consumed,
+        fullSource: source,
+      );
+
+      for (final issue in pre.issues) {
+        final (line, column) = pre.lineColumn(issue.offset);
+        entries.add(_Entry(
+          issue.offset,
+          seq++,
+          _issueResult(issue, ctx.messages, pre, line, column, file),
+        ));
+      }
+
+      var restart = false;
+      var stop = false;
+      for (final span in SyntaxParser.splitCommandSpans(pre.text)) {
+        final (start, end) = pre.toSourceRange(span.start, span.end);
+        final cmd = SyntaxParser.parse(span.text, start: start, end: end);
+        if (cmd == null) continue;
+        final (line, column) = pre.lineColumn(start);
+
+        if (cmd.verb == 'INCLUDE') {
+          final (marker, nested) = _include(cmd, ds, ctx, line, column, file);
+          entries.add(_Entry(start, seq++, marker));
+          for (final r in nested) {
+            entries.add(_Entry(start, seq++, r));
+          }
+          if (!marker.ok) {
+            stop = true; // 被包含文件出错 → 停止后续命令（PSPP）
+            break;
+          }
+          consumed = end;
+          restart = true;
+          // 被包含文件之前的这次预处理看不到它的宏定义，余下部分的
+          // 问题（如「未定义的宏」）丢弃，下一轮重新预处理后再报。
+          entries.removeWhere((e) => e.offset >= end);
+          break;
+        }
+
+        final r = _execute(cmd, ds, ctx.messages, ctx.files);
+        entries.add(_Entry(
+          start,
+          seq++,
+          r.at(line: line, column: column, start: start, end: end, file: file),
+        ));
+        // 被包含文件内出错 → 停止该文件后续命令（PSPP），主脚本保持宽松
+        if (!r.ok && file != null) {
+          stop = true;
+          break;
+        }
+      }
+
+      if (stop || !restart) break;
     }
-    return results;
+
+    entries.sort((a, b) {
+      final c = a.offset.compareTo(b.offset);
+      return c != 0 ? c : a.seq.compareTo(b.seq);
+    });
+    return [for (final e in entries) e.result];
+  }
+
+  /// 预处理期问题（宏未定义、注释未结束等）转成结果。
+  static SyntaxResult _issueResult(MacroIssue issue, SyntaxMessages messages,
+      SyntaxSource pre, int line, int column, String? file) {
+    var ok = false;
+    var hint = false;
+    final String output;
+    switch (issue.kind) {
+      case MacroIssueKind.undefined:
+        output = messages.macroUndefined(issue.name);
+      case MacroIssueKind.unsupported:
+        output = messages.macroUnsupported(issue.name);
+      case MacroIssueKind.constructOutsideBody:
+        output = messages.macroOutsideBody(issue.name);
+      case MacroIssueKind.badDefinition:
+        output = messages.macroBadDefinition(issue.name);
+      case MacroIssueKind.recursion:
+        output = messages.macroRecursion;
+      case MacroIssueKind.unterminatedComment:
+      case MacroIssueKind.swallowedCommand:
+        output = messages.commentSwallowed(issue.name);
+        ok = true;
+        hint = true;
+    }
+    final text = pre.lineText(line);
+    return SyntaxResult(
+      command: text.trim(),
+      ok: ok,
+      output: output,
+      line: line,
+      column: column,
+      start: pre.lineStartOffset(line),
+      end: pre.lineStartOffset(line) + text.length,
+      file: file,
+      hint: hint,
+    );
+  }
+
+  /// `INCLUDE`：读取被包含文件并递归执行，返回（INCLUDE 结果, 嵌套结果）。
+  static (SyntaxResult, List<SyntaxResult>) _include(SyntaxCommand cmd,
+      Dataset ds, _RunContext ctx, int line, int column, String? fromFile) {
+    SyntaxResult fail(String msg) => SyntaxResult(
+          command: cmd.raw,
+          ok: false,
+          output: msg,
+          line: line,
+          column: column,
+          start: cmd.start,
+          end: cmd.end,
+          file: fromFile,
+        );
+
+    final path = _includePath(cmd);
+    if (path == null) return (fail(ctx.messages.includeSyntax), const []);
+    if (ctx.include == null) {
+      return (fail(ctx.messages.includeUnavailable), const []);
+    }
+    final key = path.toLowerCase();
+    if (ctx.includeStack.contains(key)) {
+      return (fail(ctx.messages.includeCycle(path)), const []);
+    }
+    if (ctx.includeDepth >= 16) {
+      return (fail(ctx.messages.includeTooDeep), const []);
+    }
+    final text = ctx.include!(path);
+    if (text == null) {
+      return (fail(ctx.messages.includeNotFound(path)), const []);
+    }
+    ctx.includeStack.add(key);
+    ctx.includeDepth++;
+    final nested = _runSource(text, ds, ctx, path);
+    ctx.includeDepth--;
+    ctx.includeStack.remove(key);
+    final marker = SyntaxResult(
+      command: cmd.raw,
+      ok: nested.every((r) => r.ok),
+      output: ctx.messages.includeSummary(path, nested.length),
+      line: line,
+      column: column,
+      start: cmd.start,
+      end: cmd.end,
+      file: fromFile,
+    );
+    return (marker, nested);
+  }
+
+  /// `INCLUDE [FILE=]'名字' [ENCODING='…']`：取引号里的名字，或 `FILE=` 后的裸记号。
+  static String? _includePath(SyntaxCommand cmd) {
+    final rest = cmd.raw.replaceFirst(
+        RegExp(r'^\s*INCLUDE\b', caseSensitive: false), '');
+    final quoted = RegExp('''['"]([^'"]+)['"]''').firstMatch(rest);
+    if (quoted != null) return quoted.group(1);
+    final bare = RegExp(r'(?:FILE\s*=\s*)?(\S+)', caseSensitive: false)
+        .firstMatch(rest.trim());
+    final v = bare?.group(1);
+    if (v == null || v.isEmpty || v.toUpperCase() == 'FILE') return null;
+    return v;
   }
 
   static SyntaxResult _execute(SyntaxCommand cmd, Dataset ds,
@@ -277,10 +708,8 @@ class SyntaxExecutor {
         case 'MRSETS':
           return _mrsets(cmd, ds, messages);
         case 'SORT':
-        case 'SORT CASES':
           return _sort(cmd, ds);
         case 'SELECT':
-        case 'SELECT IF':
           return _select(cmd, ds);
         case 'DESCRIPTIVES':
         case 'DESCRIPTIVE':
@@ -294,7 +723,7 @@ class SyntaxExecutor {
         case 'CORR':
           return _corr(cmd, ds, messages);
         case 'LIST':
-          return _list(ds);
+          return _list(cmd, ds);
         case 'DISPLAY':
         case 'SHOW':
           return SyntaxResult(
@@ -306,7 +735,7 @@ class SyntaxExecutor {
           );
         case 'HELP':
           return SyntaxResult(
-            command: 'HELP',
+            command: cmd.raw,
             ok: true,
             output: messages.helpText,
           );
@@ -886,7 +1315,7 @@ class SyntaxExecutor {
     return SyntaxResult(command: cmd.raw, ok: true, output: buf.toString());
   }
 
-  static SyntaxResult _list(Dataset ds) {
+  static SyntaxResult _list(SyntaxCommand cmd, Dataset ds) {
     final buf = StringBuffer('LIST  (${ds.nCases} cases)\n');
     buf.writeln(ds.variables.map((v) => v.name.padLeft(10)).join());
     for (var i = 0; i < ds.nCases && i < 50; i++) {
@@ -895,7 +1324,7 @@ class SyntaxExecutor {
           .join());
     }
     if (ds.nCases > 50) buf.writeln('... ${ds.nCases - 50} more');
-    return SyntaxResult(command: 'LIST.', ok: true, output: buf.toString());
+    return SyntaxResult(command: cmd.raw, ok: true, output: buf.toString());
   }
 
   static List<String> _varList(String s) {
