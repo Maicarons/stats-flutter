@@ -599,11 +599,11 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     _report = reportDescriptives(l10n, map, datasetName: ds.name);
     final wName = ds.weightVariable;
     if (wName != null && wName.isNotEmpty) {
-      final w = ds.numericColumn(wName);
       final notes = StringBuffer('WEIGHT CASES: ');
       notes.writeln(wName);
       for (final name in _selectedVars) {
-        final v = ds.numericColumn(name);
+        // 规则 C：值与权重都非缺失的个案才进入加权统计
+        final (v, w) = MissingAware.weighted(ds, name, wName);
         final ww = WeightedDescriptives.compute(v, w);
         notes.writeln(
             '$name  weighted mean=${ww.mean.toStringAsFixed(4)}  N_w=${ww.nWeighted}');
@@ -644,10 +644,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runTTestPaired() {
     if (_selectedVars.length < 2) throw l10n.pleaseSelectPaired;
-    final a = ds.numericColumn(_selectedVars[0]);
-    final b = ds.numericColumn(_selectedVars[1]);
-    final n = a.length < b.length ? a.length : b.length;
-    final r = TTest.paired(a.sublist(0, n), b.sublist(0, n));
+    // 规则 B：成对完整个案（两变量都不缺失）
+    final (a, b) = MissingAware.pairs(ds, _selectedVars[0], _selectedVars[1]);
+    final r = TTest.paired(a, b);
     _report = reportTTest(
         l10n, r,
         label: l10n.pairedLabel(_selectedVars[0], _selectedVars[1]));
@@ -668,9 +667,6 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runCorrelation() {
     if (_selectedVars.length < 2) throw l10n.needTwoVars;
-    final cols = {
-      for (final n in _selectedVars) n: ds.numericColumn(n),
-    };
     final matrix = <String, Map<String, CorrelationResult>>{};
     for (final a in _selectedVars) {
       matrix[a] = {};
@@ -678,7 +674,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         final fn = _corMethod == 'Spearman'
             ? Correlation.spearman
             : Correlation.pearson;
-        matrix[a]![b] = fn(cols[a]!, cols[b]!);
+        // 规则 B（成对删除，PSPP / SPSS 默认）：每一对单独取两者都有效的个案
+        final (x, y) = MissingAware.pairs(ds, a, b);
+        matrix[a]![b] = fn(x, y);
       }
     }
     _report = reportCorrelation(l10n, matrix, method: _corMethod);
@@ -686,19 +684,17 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runRegression() {
     if (_yVar == null || _xVar == null) throw l10n.pleaseSelectXY;
-    final y = ds.numericColumn(_yVar!);
-    final x = ds.numericColumn(_xVar!);
-    final n = x.length < y.length ? x.length : y.length;
-    final r = Regression.simple(
-        x.sublist(0, n), y.sublist(0, n),
-        xName: _xVar!, yName: _yVar!);
+    // 规则 B：成对完整个案
+    final (x, y) = MissingAware.pairs(ds, _xVar!, _yVar!);
+    final r = Regression.simple(x, y, xName: _xVar!, yName: _yVar!);
     _report = reportRegression(l10n, r, yName: _yVar!);
   }
 
   void _runCrosstabs() {
     if (_yVar == null || _xVar == null) throw l10n.pleaseSelectRowCol;
-    final rowVals = ds.rawColumn(_yVar!);
-    final colVals = ds.rawColumn(_xVar!);
+    // 规则 E：用户缺失值不计入类别（记为缺失）
+    final rowVals = MissingAware.raw(ds, _yVar!);
+    final colVals = MissingAware.raw(ds, _xVar!);
     final rowCats = <Object>{};
     final colCats = <Object>{};
     for (var i = 0; i < rowVals.length && i < colVals.length; i++) {
@@ -725,9 +721,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runKmeans() {
     if (_yVar == null || _xVar == null) throw l10n.pleaseSelectTwoVars;
-    final x = ds.numericColumn(_xVar!);
-    final y = ds.numericColumn(_yVar!);
-    final n = x.length < y.length ? x.length : y.length;
+    // 规则 B：成对完整个案
+    final (x, y) = MissingAware.pairs(ds, _xVar!, _yVar!);
+    final n = x.length;
     final pts = List.generate(n, (i) => [x[i], y[i]]);
     final r = KMeans.cluster(pts,
         k: _kClusters, seed: 42, variableNames: [_xVar!, _yVar!]);
@@ -791,10 +787,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runWilcoxon() {
     if (_selectedVars.length < 2) throw l10n.pleaseSelectTwoVars;
-    final a = ds.numericColumn(_selectedVars[0]);
-    final b = ds.numericColumn(_selectedVars[1]);
-    final n = a.length < b.length ? a.length : b.length;
-    final r = Nonparametric.wilcoxon(a.sublist(0, n), b.sublist(0, n));
+    // 规则 B：成对完整个案
+    final (a, b) = MissingAware.pairs(ds, _selectedVars[0], _selectedVars[1]);
+    final r = Nonparametric.wilcoxon(a, b);
     _report = _nonparamReport(r);
   }
 
@@ -808,9 +803,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runReliability() {
     if (_selectedVars.length < 2) throw l10n.pleaseSelectItems;
-    final cols = _selectedVars.map((n) => ds.numericColumn(n)).toList();
-    final n = cols.map((c) => c.length).reduce((a, b) => a < b ? a : b);
-    final items = cols.map((c) => c.sublist(0, n)).toList();
+    // 规则 B：完全案例，列与列之间按个案对齐
+    final items = MissingAware.alignedNumeric(ds, _selectedVars);
     final r = Reliability.cronbachAlpha(items, names: _selectedVars);
     _report = AnalysisReport(
       title: l10n.reliabilityTitle,
@@ -879,13 +873,11 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runScatter() {
     if (_xVar == null || _yVar == null) throw l10n.pleaseSelectXYShort;
-    final x = ds.numericColumn(_xVar!);
-    final y = ds.numericColumn(_yVar!);
-    final n = x.length < y.length ? x.length : y.length;
-    final r = Correlation.pearson(
-        x.sublist(0, n), y.sublist(0, n));
-    final fit = Regression.simple(x.sublist(0, n), y.sublist(0, n),
-        xName: _xVar!, yName: _yVar!);
+    // 规则 B：成对完整个案
+    final (x, y) = MissingAware.pairs(ds, _xVar!, _yVar!);
+    final n = x.length;
+    final r = Correlation.pearson(x, y);
+    final fit = Regression.simple(x, y, xName: _xVar!, yName: _yVar!);
     _report = AnalysisReport(
       title: l10n.scatterTitle,
       subtitle: '$_yVar ~ $_xVar',
@@ -920,7 +912,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   void _runBar() {
     final name = _selectedVars.isNotEmpty ? _selectedVars.first : null;
     if (name == null) throw l10n.pleaseSelectVar;
-    final raw = ds.rawColumn(name);
+    final raw = MissingAware.raw(ds, name);
     final freq = Frequencies.compute(raw, variableName: name);
     _report = AnalysisReport(
       title: l10n.barTitle,
@@ -1122,7 +1114,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runFactor() {
     if (_selectedVars.length < 2) throw l10n.needTwoVars;
-    final cols = [for (final n in _selectedVars) ds.numericColumn(n)];
+    // 规则 B：完全案例，列与列之间按个案对齐
+    final cols = MissingAware.alignedNumeric(ds, _selectedVars);
     final r = factorPca(cols, names: _selectedVars, maxFactors: 3);
     _report = AnalysisReport(
       title: l10n.factorPcaTitle,
@@ -1166,13 +1159,12 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runLogistic() {
     if (_yVar == null || _xVar == null) throw l10n.pleaseSelectDepVar;
-    final y = ds.numericColumn(_yVar!);
-    final x = ds.numericColumn(_xVar!);
-    final n = x.length < y.length ? x.length : y.length;
-    final med = percentile(List.of(y.sublist(0, n))..sort(), 50);
-    final xs = [x.sublist(0, n)];
+    // 规则 B：成对完整个案
+    final (x, y) = MissingAware.pairs(ds, _xVar!, _yVar!);
+    final med = percentile(List.of(y)..sort(), 50);
+    final xs = [x];
     final ys = [
-      for (var i = 0; i < n; i++) y[i] >= med ? 1 : 0,
+      for (final v in y) v >= med ? 1 : 0,
     ];
     final r = logisticRegression(xs, ys, names: [_xVar!]);
     _report = AnalysisReport(
@@ -1495,7 +1487,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runFactorFull() {
     if (_selectedVars.length < 2) throw l10n.needTwoVars;
-    final cols = [for (final n in _selectedVars) ds.numericColumn(n)];
+    // 规则 B：完全案例，列与列之间按个案对齐
+    final cols = MissingAware.alignedNumeric(ds, _selectedVars);
     final r = factorAnalyze(cols, names: _selectedVars, maxFactors: 3, rotate: true);
     final rot = r.rotatedLoadings;
     final kept = r.unrotated.eigenvalues;
@@ -1602,13 +1595,12 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runLogisticFull() {
     if (_yVar == null || _xVar == null) throw l10n.pleaseSelectDepVar;
-    final y = ds.numericColumn(_yVar!);
-    final x = ds.numericColumn(_xVar!);
-    final n = x.length < y.length ? x.length : y.length;
-    final med = percentile(List.of(y.sublist(0, n))..sort(), 50);
+    // 规则 B：成对完整个案
+    final (x, y) = MissingAware.pairs(ds, _xVar!, _yVar!);
+    final med = percentile(List.of(y)..sort(), 50);
     final r = logisticRegressionFull(
-      [x.sublist(0, n)],
-      [for (var i = 0; i < n; i++) y[i] >= med ? 1 : 0],
+      [x],
+      [for (final v in y) v >= med ? 1 : 0],
       names: [_xVar!],
     );
     _report = AnalysisReport(
@@ -1691,12 +1683,18 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     if (gi < 0 || vi < 0) throw l10n.varNotFound;
     final cells = <(String, String), List<double>>{};
     for (final row in ds.cases) {
-      final a = gi < row.length ? ds.variables[gi].displayValue(row[gi]) : null;
-      final b = bi >= 0 && bi < row.length
-          ? ds.variables[bi].displayValue(row[bi])
-          : '—';
+      final aRaw = gi < row.length ? row[gi] : null;
+      final bRaw = bi >= 0 && bi < row.length ? row[bi] : null;
       final raw = vi < row.length ? row[vi] : null;
-      if (a == null || raw is! num) continue;
+      // 规则 A / D：分析变量与因子缺失（含用户缺失值）的个案整行剔除
+      if (ds.variables[vi].isMissing(raw) ||
+          ds.variables[gi].isMissing(aRaw) ||
+          (bi >= 0 && ds.variables[bi].isMissing(bRaw))) {
+        continue;
+      }
+      if (raw is! num) continue;
+      final a = ds.variables[gi].displayValue(aRaw);
+      final b = bi >= 0 ? ds.variables[bi].displayValue(bRaw) : '—';
       cells.putIfAbsent((a, b), () => []).add(raw.toDouble());
     }
     if (cells.isEmpty) throw l10n.noValidData;
@@ -1759,7 +1757,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     for (final row in ds.cases) {
       if (vi >= row.length) continue;
       final raw = row[vi];
-      if (raw == null) continue;
+      if (v.isMissing(raw)) continue; // 规则 D：用户缺失值不算水平
       if (raw is num && v.valueLabels.containsKey(raw)) continue;
       rest.add(raw);
     }
@@ -1839,11 +1837,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     const b = 9999;
     if (_permPaired) {
       if (_selectedVars.length < 2) throw l10n.pleaseSelectVars;
-      final r = Permutation.pairedDifference(
-        MissingAware.numeric(ds, _selectedVars[0]),
-        MissingAware.numeric(ds, _selectedVars[1]),
-        permutations: b,
-      );
+      // 规则 B：成对完整个案
+      final (x, y) = MissingAware.pairs(ds, _selectedVars[0], _selectedVars[1]);
+      final r = Permutation.pairedDifference(x, y, permutations: b);
       _report = _permReport(_selectedVars[0], _selectedVars[1], r);
     } else {
       final vName = _selectedVars.isNotEmpty ? _selectedVars.first : null;
@@ -2186,13 +2182,12 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   void _runStepwise() {
     if (_selectedVars.length < 2) throw l10n.pleaseSelectPredictors;
     if (_yVar == null) throw l10n.pleaseSelectDepVar;
-    final y = ds.numericColumn(_yVar!);
     final names = List<String>.from(_selectedVars);
-    final xs = [for (final n in names) ds.numericColumn(n)];
-    final n = y.length < xs.first.length ? y.length : xs.first.length;
+    // 规则 B：完全案例（因变量 + 全部自变量按个案对齐）
+    final cols = MissingAware.alignedNumeric(ds, [...names, _yVar!]);
     final r = stepwiseRegression(
-      [for (final col in xs) col.sublist(0, n)],
-      y.sublist(0, n),
+      cols.sublist(0, names.length),
+      cols.last,
       names: names,
       method: StepwiseMethod.both,
     );
@@ -2225,8 +2220,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
 
   void _runCtables() {
     if (_yVar == null || _xVar == null) throw l10n.pleaseSelectRowCol;
-    final rowKeys = ds.rawColumn(_yVar!);
-    final colKeys = ds.rawColumn(_xVar!);
+    // 规则 E：用户缺失值不计入类别（记为缺失）
+    final rowKeys = MissingAware.raw(ds, _yVar!);
+    final colKeys = MissingAware.raw(ds, _xVar!);
     final r = crosstabSummary(
       rowKeys: rowKeys,
       colKeys: colKeys,
@@ -2307,23 +2303,12 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     );
   }
 
+  /// 按分组变量拆组（规则 D + 规则 A：分组变量或分析变量缺失的个案不入任何组）
   Map<String, List<double>> _splitByGroup(String valueVar, String groupVar) {
     final vi = ds.indexOf(valueVar);
     final gi = ds.indexOf(groupVar);
     if (vi < 0 || gi < 0) throw l10n.varNotFound;
-    final out = <String, List<double>>{};
-    for (final row in ds.cases) {
-      final gRaw = gi < row.length ? row[gi] : null;
-      final vRaw = vi < row.length ? row[vi] : null;
-      if (gRaw == null || vRaw == null) continue;
-      final v = vRaw is num
-          ? vRaw.toDouble()
-          : double.tryParse(vRaw.toString());
-      if (v == null) continue;
-      final label = ds.variables[gi].displayValue(gRaw);
-      out.putIfAbsent(label, () => []).add(v);
-    }
-    return out;
+    return MissingAware.groups(ds, valueVar, groupVar);
   }
 }
 

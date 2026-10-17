@@ -2,6 +2,7 @@
 library;
 
 
+import '../io/missing_aware.dart';
 import '../models/dataset.dart';
 import '../models/mrset.dart';
 import '../transforms/combine_files.dart';
@@ -835,7 +836,7 @@ class SyntaxExecutor {
     final names = _varList(cmd.args.join(' '));
     final buf = StringBuffer('Frequencies\n');
     for (final n in names) {
-      final f = Frequencies.compute(ds.rawColumn(n), variableName: n);
+      final f = Frequencies.compute(MissingAware.raw(ds, n), variableName: n);
       buf.writeln('$n  Valid=${f.nValid}  Missing=${f.nMissing}');
       for (final r in f.rows.take(15)) {
         buf.writeln('  ${r.label}: ${r.frequency}  ${formatNum(r.validPercent, digits: 1)}%');
@@ -867,12 +868,19 @@ class SyntaxExecutor {
       return SyntaxResult(
           command: cmd.raw, ok: false, output: messages.corrNeedsTwo);
     }
-    final cols = [for (final n in names) ds.numericColumn(n)];
-    final m = Correlation.matrix(cols);
+    // 规则 B（成对删除，PSPP / SPSS 默认）：每一对单独取两者都有效的个案
     final buf = StringBuffer('Correlation Matrix\n');
     buf.writeln(names.map((n) => n.padLeft(10)).join(''));
     for (var i = 0; i < names.length; i++) {
-      final row = [for (final r in m[i]) formatNum(r).padLeft(10)];
+      final row = <String>[];
+      for (var j = 0; j < names.length; j++) {
+        if (i == j) {
+          row.add(formatNum(1).padLeft(10));
+          continue;
+        }
+        final (x, y) = MissingAware.pairs(ds, names[i], names[j]);
+        row.add(formatNum(Correlation.pearson(x, y).r).padLeft(10));
+      }
       buf.writeln('${names[i].padRight(10)}${row.join()}');
     }
     return SyntaxResult(command: cmd.raw, ok: true, output: buf.toString());

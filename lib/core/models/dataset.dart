@@ -222,6 +222,10 @@ class Dataset {
   }
 
   /// 提取原始向量（保留缺失标记为 null）
+  ///
+  /// 这里只把「真正为空」的取值记为 null；用户声明的缺失值照原样返回，
+  /// 由调用方决定口径 —— 分析过程的统一口径（规则 E）用
+  /// `MissingAware.raw`（把用户缺失值也记为 null）。
   List<Object?> rawColumn(String name) {
     final i = indexOf(name);
     return i < 0 ? [] : column(i);
