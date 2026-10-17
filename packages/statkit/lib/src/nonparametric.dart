@@ -56,6 +56,14 @@ class NonparametricResult {
 
 class Nonparametric {
   /// Mann-Whitney U（独立两样本）
+  ///
+  /// 与 PSPP 2.1.2 一致（`src/language/commands/mann-whitney.c`）：
+  /// - 统计量取 `min(U1, U2)`，与 PSPP「U 大于 n1·n2/2 时换成 n1·n2 − U」等价；
+  /// - 方差含**结校正**：`σ² = n1·n2·[(n+1)/12 − Σ(t³−t)/(12·n·(n−1))]`，
+  ///   与 PSPP 的 `(n³−n)/12 − Σ(t³−t)/12` 缩放后相同（同 SPSS / R）；
+  /// - p 用 `2·Φ(z)`（PSPP 的 “Asymp. Sig. (2-tailed)”，不做连续性校正）；
+  ///   连续性校正后的 z / p 放在 `extra['zContinuityCorrected']` /
+  ///   `extra['pContinuityCorrected']`（SPSS / R 的 `correct = TRUE` 口径）。
   static NonparametricResult mannWhitney(List<double> a, List<double> b) {
     final n1 = a.length, n2 = b.length;
     final all = [...a, ...b];
@@ -66,21 +74,42 @@ class Nonparametric {
     final u2 = r2 - n2 * (n2 + 1) / 2;
     final u = math.min(u1, u2);
     final mu = n1 * n2 / 2;
-    final sigma = math.sqrt(n1 * n2 * (n1 + n2 + 1) / 12);
+    final n = n1 + n2;
+    // 结校正项 Σ(t³ − t)/12（t 为同一取值的个案数）
+    final counts = <double, int>{};
+    for (final v in all) {
+      counts[v] = (counts[v] ?? 0) + 1;
+    }
+    double ties = 0;
+    for (final t in counts.values) {
+      if (t > 1) ties += (t * t * t - t) / 12.0;
+    }
+    final base =
+        (n + 1) / 12.0 - (n > 1 ? ties / (n * (n - 1)) : 0.0);
+    final varU = n1 * n2 * base;
+    final sigma = math.sqrt(varU);
     final z = sigma > 0 ? (u - mu) / sigma : 0.0;
+    // 连续性校正：把绝对离差朝原假设方向挪 0.5，因此符号与 z 一致
     final zc = sigma > 0
-        ? ((u - mu).abs() - 0.5) / sigma * (u > mu ? -1 : 1)
+        ? ((u - mu).abs() - 0.5) / sigma * ((u - mu) < 0 ? -1 : 1)
         : 0.0;
     return NonparametricResult(
       testName: 'Mann-Whitney U',
       statistic: u,
       statisticName: 'U',
       z: z,
-      p: normTwoTail(zc.isFinite ? zc : z),
+      p: normTwoTail(z),
       n1: n1,
       n2: n2,
       meanRank1: n1 > 0 ? r1 / n1 : double.nan,
       meanRank2: n2 > 0 ? r2 / n2 : double.nan,
+      extra: {
+        'rankSum1': r1,
+        'rankSum2': r2,
+        'tieTerm': ties,
+        'zContinuityCorrected': zc,
+        'pContinuityCorrected': normTwoTail(zc.isFinite ? zc : z),
+      },
     );
   }
 

@@ -62,6 +62,18 @@ in [README.md](README.md) for what that promises.
   On PSPP's `oneway.at` example this changes F from 0.1176 to 0.0917
   (PSPP prints `.09`), which also feeds the equal/unequal-variance choice of
   `TTest.independentSamples`.
+- `Nonparametric.mannWhitney`: the asymptotic variance of the *U* statistic
+  ignored ties, so Z and p were wrong whenever the pooled sample had repeated
+  values (`σ² = n1·n2·(n+1)/12` instead of
+  `n1·n2·[(n+1)/12 − Σ(t³−t)/(12·n·(n−1))]`, which is PSPP's
+  `(n³−n)/12 − Σ(t³−t)/12` after scaling, and what SPSS and R use). On PSPP's
+  `npar.at` Mann-Whitney example the corrected Z is −0.6020 (PSPP prints
+  `-.6020`, p `.547`) where the old variance gave −0.6014. `p` is now
+  `2·Φ(z)` with no continuity correction — PSPP's "Asymp. Sig. (2-tailed)" —
+  and the continuity-corrected `Z` / `p` (SPSS, R `correct = TRUE`) moved to
+  `extra['zContinuityCorrected']` / `extra['pContinuityCorrected']`; the
+  reported `z` and `p` are now consistent with each other. `extra` also gains
+  `rankSum1`, `rankSum2` and `tieTerm`.
 
 ### Changed
 - `normalityTest` now decides on the Lilliefors p, i.e. a strictly more

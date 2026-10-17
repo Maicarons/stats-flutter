@@ -984,4 +984,54 @@ void main() {
       expect(r.leveneP, closeTo(direct.p, 1e-12));
     });
   });
+
+  group('Mann-Whitney U：含结校正、p 不做连续性校正（PSPP 口径）', () {
+    // PSPP tests/language/commands/npar.at「NPAR TESTS Mann-Whitney」：
+    // height BY sex (0,1)，40 个个案里 sex=4/5 的 4 个被组说明排除，剩 15 + 15。
+    const g0 = [
+      88.0, 99.0, 55.0, 69.0, 91.0, 201.0, 88.0, 75.0,
+      99.0, 81.0, 80.0, 82.0, 76.0, 65.0, 85.0, //
+    ];
+    const g1 = [
+      201.0, 84.0, 83.0, 94.0, 86.0, 79.0, 88.0, 85.0,
+      82.0, 72.0, 89.0, 92.0, 76.0, 145.0, 24.0, //
+    ];
+
+    test('U / 秩和 / Z / p 与 PSPP 期望输出一致（Z = -.6020, p = .547）', () {
+      final r = Nonparametric.mannWhitney(g0, g1);
+      expect(r.n1, 15);
+      expect(r.n2, 15);
+      expect(r.statistic, 98.0); // Mann-Whitney U
+      expect(r.meanRank1! * r.n1, closeTo(218.0, 1e-9)); // Wilcoxon W
+      expect(r.meanRank2! * r.n2, closeTo(247.0, 1e-9));
+      expect(r.meanRank1, closeTo(14.5333, 0.0001));
+      expect(r.meanRank2, closeTo(16.4667, 0.0001));
+      // 结校正后的 σ 才能得到 PSPP 的 Z：不做结校正是 -.6014
+      expect(r.z, closeTo(-0.6020, 0.0001));
+      expect(r.p, closeTo(0.547, 0.001));
+      // 连续性校正（SPSS / R correct=TRUE）另存，不覆盖 PSPP 口径
+      expect(r.extra['zContinuityCorrected'] as double, closeTo(-0.5815, 0.001));
+      expect(r.extra['pContinuityCorrected'] as double, closeTo(0.561, 0.001));
+      expect(r.extra['tieTerm'] as double, closeTo(4.5, 1e-12));
+    });
+
+    test('结校正项：A=[5,5] B=[5,5,7] → U = 2，与 PSPP 的 min(U1,U2) 一致', () {
+      final r = Nonparametric.mannWhitney([5.0, 5.0], [5.0, 5.0, 7.0]);
+      expect(r.statistic, 2.0); // 教科书 U 同样是 2（不存在 1.5 的别名）
+      expect(r.extra['rankSum1'] as double, closeTo(5.0, 1e-12));
+      expect(r.extra['rankSum2'] as double, closeTo(10.0, 1e-12));
+      // 四个 5 结：σ² = 2·3·[(5+1)/12 − (4³−4)/(12·5·4)] = 2·3·0.25 = 1.5
+      expect(r.z, closeTo((2.0 - 3.0) / math.sqrt(1.5), 1e-12));
+      expect(r.p, closeTo(2 * normCdf(-0.8164965809277261), 1e-12));
+    });
+
+    test('无结时与教科书公式一致：σ² = n1·n2·(n+1)/12', () {
+      const a = [1.0, 2.0, 3.0];
+      const b = [4.0, 5.0, 6.0];
+      final r = Nonparametric.mannWhitney(a, b);
+      expect(r.statistic, 0.0);
+      final sigma = math.sqrt(3 * 3 * 7 / 12);
+      expect(r.z, closeTo((0.0 - 4.5) / sigma, 1e-12));
+    });
+  });
 }
