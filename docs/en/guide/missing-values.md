@@ -39,7 +39,7 @@ PSPP also excludes user-missing values by default but offers a per-procedure `MI
 
 Everything else follows PSPP 2.1.2, and `test/pspp_parity_test.dart` checks it against expectations shipped with PSPP itself (AUTORECODE, RANK, ONEWAY, pairwise CORRELATIONS, NPAR TESTS Mann-Whitney) on every CI run.
 
-## Two statistical conventions fixed in v1.4.0
+## Defect and conventions fixed in v1.4.0
 
 The review and the parity work turned up one alignment defect and two convention mismatches — all of the "the numbers do not match the textbook / PSPP" kind:
 

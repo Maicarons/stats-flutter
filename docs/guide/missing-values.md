@@ -39,7 +39,7 @@ PSPP 默认同样把用户缺失值排除在分析之外，但提供了逐过程
 
 其余口径与 PSPP 2.1.2 一致，`test/pspp_parity_test.dart` 用 PSPP 自带测试的期望输出做对拍（AUTORECODE、RANK、ONEWAY、CORRELATIONS 成对删除、NPAR TESTS Mann-Whitney），并在 CI 上执行。
 
-## v1.4.0 顺带修正的两处统计口径
+## v1.4.0 顺带修正的口径（一处缺陷 + 两处口径差异）
 
 对拍与复核过程中发现并修正了一处错位缺陷与两处统计口径差异（都属于「结果和教科书 / PSPP 对不上」的类别）：
 
