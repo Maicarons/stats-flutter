@@ -218,6 +218,33 @@
   },
 
   "exportHtml": "Export HTML",
+  "exportMarkdown": "Export Markdown",
+  "exportPdf": "Export PDF",
+  "exportReport": "Export report",
+  "copyReport": "Copy plain text",
+  "exportAllOutput": "Export all output",
+  "shareAllOutput": "Share all output",
+  "outputTitle": "Output",
+  "outputCount": "{n} results",
+  "@outputCount": {
+    "placeholders": {"n": {"type": "int"}}
+  },
+  "clearOutput": "Clear output",
+  "clearOutputTitle": "Clear all output?",
+  "clearOutputMessage": "This removes every report card on this page. Files you already exported are not affected.",
+  "expandReport": "Expand",
+  "collapseReport": "Collapse",
+  "deleteReport": "Delete",
+  "pdfPageOf": "Page {page} / {total}",
+  "@pdfPageOf": {
+    "placeholders": {"page": {"type": "int"}, "total": {"type": "int"}}
+  },
+  "pdfFooterNote": "Stats-flutter · report",
+  "variableLabelNote": "Note: {pairs} (label = variable name); tables show the label.",
+  "@variableLabelNote": {
+    "placeholders": {"pairs": {"type": "String"}}
+  },
+  "crossTable": "Crosstabulation",
   "varY": "Variable Y",
   "varX": "Variable X",
   "notImplementedTitle": "Not implemented yet",

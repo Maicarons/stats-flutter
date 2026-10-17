@@ -516,6 +516,66 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportHtml => '导出 HTML';
 
   @override
+  String get exportMarkdown => '导出 Markdown';
+
+  @override
+  String get exportPdf => '导出 PDF';
+
+  @override
+  String get exportReport => '导出报告';
+
+  @override
+  String get copyReport => '复制纯文本';
+
+  @override
+  String get exportAllOutput => '导出全部输出';
+
+  @override
+  String get shareAllOutput => '分享全部输出';
+
+  @override
+  String get outputTitle => '输出';
+
+  @override
+  String outputCount(int n) {
+    return '$n 条输出';
+  }
+
+  @override
+  String get clearOutput => '清空输出';
+
+  @override
+  String get clearOutputTitle => '清空全部输出？';
+
+  @override
+  String get clearOutputMessage => '这会移除本页所有报告卡片，已导出的文件不受影响。';
+
+  @override
+  String get expandReport => '展开';
+
+  @override
+  String get collapseReport => '收起';
+
+  @override
+  String get deleteReport => '删除';
+
+  @override
+  String pdfPageOf(int page, int total) {
+    return '第 $page / $total 页';
+  }
+
+  @override
+  String get pdfFooterNote => 'Stats-flutter · 统计报告';
+
+  @override
+  String variableLabelNote(String pairs) {
+    return '注：$pairs（标签 = 变量名），表中显示标签。';
+  }
+
+  @override
+  String get crossTable => '交叉表';
+
+  @override
   String get varY => '变量 Y';
 
   @override

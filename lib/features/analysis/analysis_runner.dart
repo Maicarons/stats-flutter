@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math' as math;
 
 // 应用是 statkit 的同仓第一消费者：应用发布与 statkit 版本绑定（当前
@@ -7,8 +6,6 @@ import 'dart:math' as math;
 // ignore_for_file: experimental_member_use
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:statkit/statkit.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
@@ -19,9 +16,11 @@ import '../../core/theme/design_tokens.dart';
 import '../../shared/dataset_store.dart';
 import '../../shared/ui/charts/charts.dart';
 import '../../shared/ui/ui.dart';
+import '../output/output_store.dart';
+import '../output/output_tree.dart';
 import '../output/report_builder.dart';
-import '../output/report_export.dart';
-import '../output/section_export_menu.dart';
+import '../output/report_export_menu.dart';
+import '../output/report_labels.dart';
 
 class AnalysisRunner extends StatefulWidget {
   final String analysisId;
@@ -46,7 +45,23 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   bool _permPaired = false;
   int _kClusters = 3;
   final _muCtrl = TextEditingController(text: '0');
-  AnalysisReport? _report;
+
+  /// 输出树：同一分析连跑多次会累积（会话内保留，最新在最前）。
+  List<AnalysisReport> _reports = const [];
+
+  /// 最近一次运行的报告（null = 还没跑过）。
+  AnalysisReport? get _report => _reports.isEmpty ? null : _reports.first;
+
+  /// 分析实现统一用 `_report = …` 落结果：写进输出树，最新在最前。
+  /// `_report = null` 仍然表示「清空输出」（目前只有测试与清空按钮会用到）。
+  set _report(AnalysisReport? r) {
+    if (r == null) {
+      OutputStore.clear(widget.analysisId);
+    } else {
+      OutputStore.add(widget.analysisId, r);
+    }
+  }
+
   Widget? _chart;
 
   /// 与 [_chart] 配套的图例（每次运行前清空，避免串味）。
@@ -63,6 +78,13 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
       .toList();
 
   @override
+  void initState() {
+    super.initState();
+    // 输出树按分析页存在静态存储里：切页面再回来结果还在（重启即空）。
+    _reports = OutputStore.of(widget.analysisId);
+  }
+
+  @override
   void dispose() {
     _muCtrl.dispose();
     super.dispose();
@@ -75,18 +97,32 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
       appBar: AppBar(
         title: Text(widget.title),
         actions: [
-          if (_report != null)
+          if (_reports.isNotEmpty)
             IconButton(
-              tooltip: l10n.shareReport,
+              tooltip: l10n.shareAllOutput,
               icon: const Icon(Icons.share),
-              onPressed: () => Share.share(_report!.toPlainText(),
-                  subject: _report!.title),
+              onPressed: () =>
+                  Share.share(_allText(), subject: widget.title),
             ),
-          if (_report != null)
-            IconButton(
-              tooltip: l10n.exportHtml,
-              icon: const Icon(Icons.html),
-              onPressed: () => _exportHtml(),
+          if (_reports.isNotEmpty)
+            PopupMenuButton<ReportFileKind>(
+              tooltip: l10n.exportAllOutput,
+              icon: const Icon(Icons.download_outlined),
+              onSelected: _exportAll,
+              itemBuilder: (ctx) => [
+                PopupMenuItem(
+                  value: ReportFileKind.pdf,
+                  child: Text(l10n.exportPdf),
+                ),
+                PopupMenuItem(
+                  value: ReportFileKind.html,
+                  child: Text(l10n.exportHtml),
+                ),
+                PopupMenuItem(
+                  value: ReportFileKind.markdown,
+                  child: Text(l10n.exportMarkdown),
+                ),
+              ],
             ),
         ],
       ),
@@ -115,9 +151,15 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                   : const Icon(Icons.play_arrow),
               label: Text(_busy ? l10n.running : l10n.runAnalysis),
             ),
-            if (_report != null) ...[
+            if (_reports.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.x5),
-              _ReportView(report: _report!),
+              OutputTree(
+                reports: _reports,
+                nameBase: reportFileBase(widget.analysisId),
+                onDelete: (r) =>
+                    setState(() => OutputStore.remove(widget.analysisId, r)),
+                onClear: _clearOutput,
+              ),
             ],
             if (_chart != null) ...[
               const SizedBox(height: AppSpacing.x4),
@@ -435,29 +477,45 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     );
   }
 
-  Future<void> _exportHtml() async {
-    final r = _report;
-    if (r == null) return;
-    final html = reportToHtml(r);
-    try {
-      final dir = await getApplicationDocumentsDirectory();
-      final f = File('${dir.path}/${r.title.replaceAll(RegExp(r"\s+"), "_")}.html');
-      await f.writeAsString(html);
-      await Share.shareXFiles([XFile(f.path)], subject: r.title);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.exportFailed(e.toString()))),
-        );
-      }
-    }
+  /// 全部输出拼成一份（最新在前）；只跑过一次就是那一份本身。
+  AnalysisReport get _combined => combinedReport(
+        _reports,
+        title: widget.title,
+        createdAt: _reports.isEmpty ? null : _reports.first.createdAt,
+      );
+
+  /// 全部输出的纯文本（分享用，最新在前）。
+  String _allText() => _reports.map((r) => r.toPlainText()).join('\n');
+
+  /// 导出全部输出（HTML / Markdown / PDF）。
+  Future<void> _exportAll(ReportFileKind kind) => exportReportFile(
+        context,
+        report: _combined,
+        kind: kind,
+        nameBase: reportFileBase(widget.analysisId),
+      );
+
+  /// 清空本页输出（危险操作，二次确认）。
+  Future<void> _clearOutput() async {
+    if (_reports.isEmpty) return;
+    final ok = await showConfirmDialog(
+      context,
+      title: l10n.clearOutputTitle,
+      message: l10n.clearOutputMessage,
+      confirmLabel: l10n.clearOutput,
+      danger: true,
+      icon: Icons.delete_sweep_outlined,
+    );
+    if (!ok || !mounted) return;
+    setState(() => OutputStore.clear(widget.analysisId));
   }
 
   Future<void> _run() async {
     setState(() {
       _busy = true;
       _error = null;
-      _report = null;
+      // 输出树刻意不清空：同一分析连跑多次要累积成多张卡片
+      // （要清空走「清空输出」按钮）。
       _chart = null;
       _legend = const [];
     });
@@ -596,7 +654,13 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
       map[name] = Descriptives.compute(MissingAware.numeric(ds, name));
     }
     if (map.isEmpty) throw l10n.pleaseSelectVars;
-    _report = reportDescriptives(l10n, map, datasetName: ds.name);
+    _report = reportDescriptives(
+      l10n,
+      map,
+      datasetName: ds.name,
+      labels: variableLabels(ds, _selectedVars),
+      labelNote: variableLabelNote(l10n, ds, _selectedVars),
+    );
     final wName = ds.weightVariable;
     if (wName != null && wName.isNotEmpty) {
       final notes = StringBuffer('WEIGHT CASES: ');
@@ -627,7 +691,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final r = TTest.oneSample(ds.numericColumn(name), mu0: mu);
     _report = reportTTest(
         l10n, r,
-        label: l10n.oneSampleLabel(name, mu.toString()));
+        label: l10n.oneSampleLabel(variableLabel(ds, name), mu.toString()));
   }
 
   void _runTTestInd() {
@@ -639,7 +703,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final r = TTest.independentSamples(groups[keys[0]]!, groups[keys[1]]!);
     _report = reportTTest(
         l10n, r,
-        label: '$vName by $_groupVar (${keys[0]} vs ${keys[1]})');
+        label:
+            '${variableLabel(ds, vName)} by ${variableLabel(ds, _groupVar!)} (${keys[0]} vs ${keys[1]})');
   }
 
   void _runTTestPaired() {
@@ -649,7 +714,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final r = TTest.paired(a, b);
     _report = reportTTest(
         l10n, r,
-        label: l10n.pairedLabel(_selectedVars[0], _selectedVars[1]));
+        label: l10n.pairedLabel(
+            variableLabel(ds, _selectedVars[0]),
+            variableLabel(ds, _selectedVars[1])));
   }
 
   void _runAnova() {
@@ -662,7 +729,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
       labels: labels,
     );
     _report = reportAnova(l10n, r,
-        title: l10n.anovaOfLabel(vName, _groupVar!));
+        title: l10n.anovaOfLabel(
+            variableLabel(ds, vName), variableLabel(ds, _groupVar!)));
   }
 
   void _runCorrelation() {
@@ -679,7 +747,13 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
         matrix[a]![b] = fn(x, y);
       }
     }
-    _report = reportCorrelation(l10n, matrix, method: _corMethod);
+    _report = reportCorrelation(
+      l10n,
+      matrix,
+      method: _corMethod,
+      labels: variableLabels(ds, _selectedVars),
+      labelNote: variableLabelNote(l10n, ds, _selectedVars),
+    );
   }
 
   void _runRegression() {
@@ -687,7 +761,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     // 规则 B：成对完整个案
     final (x, y) = MissingAware.pairs(ds, _xVar!, _yVar!);
     final r = Regression.simple(x, y, xName: _xVar!, yName: _yVar!);
-    _report = reportRegression(l10n, r, yName: _yVar!);
+    _report = reportRegression(l10n, r, yName: variableLabel(ds, _yVar!));
   }
 
   void _runCrosstabs() {
@@ -715,8 +789,19 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
       table[rowList.indexOf(a)][colList.indexOf(b)] += 1;
     }
     final r = ChiSquareTest.independence(table);
-    _report = reportChiSquare(l10n, r,
-        title: '${l10n.chiSquareTitle}: ${_yVar!} × ${_xVar!}');
+    final rowVar = ds.variables[ds.indexOf(_yVar!)];
+    final colVar = ds.variables[ds.indexOf(_xVar!)];
+    _report = reportChiSquare(
+      l10n,
+      r,
+      title: '${l10n.chiSquareTitle}: '
+          '${variableLabel(ds, _yVar!)} × ${variableLabel(ds, _xVar!)}',
+      rowVar: variableLabel(ds, _yVar!),
+      colVar: variableLabel(ds, _xVar!),
+      rowLabels: [for (final c in rowList) rowVar.displayValue(c)],
+      colLabels: [for (final c in colList) colVar.displayValue(c)],
+      labelNote: variableLabelNote(l10n, ds, [_yVar!, _xVar!]),
+    );
   }
 
   void _runKmeans() {
@@ -913,10 +998,15 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final name = _selectedVars.isNotEmpty ? _selectedVars.first : null;
     if (name == null) throw l10n.pleaseSelectVar;
     final raw = MissingAware.raw(ds, name);
-    final freq = Frequencies.compute(raw, variableName: name);
+    // 值标签：频数表与条形图的类别都显示标签（如 1 → 男）
+    final freq = Frequencies.compute(
+      raw,
+      variableName: name,
+      valueLabels: valueLabelsOf(ds, name),
+    );
     _report = AnalysisReport(
       title: l10n.barTitle,
-      subtitle: name,
+      subtitle: variableLabel(ds, name),
       sections: [
         ReportSection(
           heading: l10n.freqTable,
@@ -937,7 +1027,10 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                   .toList(),
             ),
           ],
-          notes: l10n.freqNote(freq.nValid, freq.nMissing),
+          notes: mergeNotes(
+            l10n.freqNote(freq.nValid, freq.nMissing),
+            variableLabelNote(l10n, ds, [name]),
+          ),
         ),
       ],
     );
@@ -2343,349 +2436,5 @@ class _Dropdown extends StatelessWidget {
   }
 }
 
-class _ReportView extends StatelessWidget {
-  final AnalysisReport report;
-  const _ReportView({required this.report});
 
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-
-    return SelectionArea(
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.x4),
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerLow,
-          borderRadius: AppRadius.rLg,
-          border: Border.all(color: scheme.outlineVariant),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        report.title,
-                        style: text.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      if (report.subtitle.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text(
-                            report.subtitle,
-                            style: text.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  tooltip: l10n.shareReport,
-                  icon: const Icon(Icons.copy_all_outlined, size: 18),
-                  onPressed: () async {
-                    await Clipboard.setData(
-                      ClipboardData(text: report.toPlainText()),
-                    );
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(l10n.copiedToClipboard),
-                        duration: const Duration(milliseconds: 1200),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-            const Divider(height: AppSpacing.x5),
-            for (final (i, s) in report.sections.indexed)
-              _SectionBlock(
-                section: s,
-                reportTitle: report.title,
-                index: i,
-              ),
-            Text(
-              l10n.generatedAt(report.createdAt.toLocal().toIso8601String()),
-              style: TextStyle(
-                color: scheme.onSurfaceVariant,
-                fontSize: AppFontSize.caption,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 报告分区：标题 + 可选复制 + 正文 + 表格 + 注释。
-class _SectionBlock extends StatelessWidget {
-  final ReportSection section;
-
-  /// 所属报告标题（分区导出时作为一级标题与文件名的一部分）。
-  final String reportTitle;
-
-  /// 分区序号（纯中文标题回退为 `section-N`）。
-  final int index;
-
-  const _SectionBlock({
-    required this.section,
-    required this.reportTitle,
-    required this.index,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 3,
-              height: 14,
-              decoration: BoxDecoration(
-                color: scheme.primary,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.x2),
-            Expanded(
-              child: Text(
-                section.heading,
-                style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-              ),
-            ),
-            SectionExportMenu(
-              section: section,
-              reportTitle: reportTitle,
-              index: index,
-            ),
-          ],
-        ),
-        if (section.body != null)
-          Padding(
-            padding: const EdgeInsets.only(
-              bottom: AppSpacing.x2,
-              top: AppSpacing.x1,
-            ),
-            child: Text(
-              section.body!,
-              style: text.bodyMedium?.copyWith(height: 1.6),
-            ),
-          ),
-        for (final t in section.tables) ...[
-          const SizedBox(height: AppSpacing.x2),
-          _TableWidget(table: t),
-        ],
-        if (section.notes != null) ...[
-          const SizedBox(height: AppSpacing.x2),
-          Text(
-            section.notes!,
-            style: text.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-              height: 1.5,
-            ),
-          ),
-        ],
-        const SizedBox(height: AppSpacing.x5),
-      ],
-    );
-  }
-}
-
-class _TableWidget extends StatelessWidget {
-  final ReportTable table;
-  const _TableWidget({required this.table});
-
-  static final RegExp _numericRe = RegExp(r'^-?[0-9][0-9,.\s]*%?$');
-  static final RegExp _starRe = RegExp(r'^(.*?)\s*(\*{1,3})$');
-  static final RegExp _pHeaderRe = RegExp(
-    r'^(p\b|p值|sig\.?\b|显著性)',
-    caseSensitive: false,
-  );
-
-  /// 从 `.023` / `<.001` / `0.023` 解析 p 值；无法解析返回 null。
-  static double? _parseP(String s) {
-    final t = s.trim();
-    if (t.isEmpty || t == '—' || t == '-') return null;
-    if (t.startsWith('<') || t.startsWith('≤')) {
-      final v = _toDouble(t.substring(1).trim());
-      return v == null ? null : v / 2;
-    }
-    return _toDouble(t);
-  }
-
-  static double? _toDouble(String t) {
-    final v = t.startsWith('.') ? '0$t' : t;
-    return double.tryParse(v.replaceAll(',', ''));
-  }
-
-  static String _starsFor(double p) =>
-      p < 0.001 ? '***' : (p < 0.01 ? '**' : (p < 0.05 ? '*' : ''));
-
-  static double _pForStars(String stars) => switch (stars.length) {
-        >= 3 => 0.0005,
-        2 => 0.005,
-        _ => 0.03,
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final cols = table.headers.length;
-
-    // 全列数值 → 右对齐（首列除外）
-    final numericCol = <bool>[
-      for (var c = 0; c < cols; c++)
-        c > 0 &&
-            table.rows.any((r) => c < r.length && r[c].trim().isNotEmpty) &&
-            table.rows
-                .where((r) => c < r.length && r[c].trim().isNotEmpty)
-                .every((r) => _numericRe.hasMatch(r[c].trim())),
-    ];
-
-    // p 值列：着色 + 星级（颜色与文字冗余表达，色盲友好）
-    final pCol = <bool>[
-      for (final h in table.headers) _pHeaderRe.hasMatch(h.trim()),
-    ];
-
-    Widget cell(String s, int c, {required bool header}) {
-      final numeric = !header && numericCol[c];
-      var label = s;
-      var stars = '';
-      double? p;
-      if (!header && s.trim().isNotEmpty) {
-        if (c < pCol.length && pCol[c]) {
-          p = _parseP(s);
-          if (p != null) stars = _starsFor(p);
-        } else {
-          // 相关系数等单元格自带星号，如 "0.62 **"
-          final m = _starRe.firstMatch(s.trim());
-          if (m != null && m.group(1)!.trim().isNotEmpty) {
-            label = m.group(1)!.trim();
-            stars = m.group(2)!;
-            p = _pForStars(stars);
-          }
-        }
-      }
-      final color = (header || p == null)
-          ? null
-          : (stars.isEmpty ? scheme.onSurfaceVariant : pValueColor(context, p));
-
-      return Container(
-        constraints: BoxConstraints(minWidth: c == 0 ? 112 : 76),
-        padding: EdgeInsets.symmetric(
-          horizontal: AppSpacing.x3,
-          vertical: header ? AppSpacing.x2 : AppSpacing.x1 + 3,
-        ),
-        alignment: numeric ? Alignment.centerRight : Alignment.centerLeft,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: header
-                    ? FontWeight.w700
-                    : (stars.isEmpty ? FontWeight.w400 : FontWeight.w600),
-                fontFeatures: const [FontFeature.tabularFigures()],
-                color: header
-                    ? scheme.onSurface
-                    : (color ?? scheme.onSurfaceVariant),
-              ),
-            ),
-            if (stars.isNotEmpty) ...[
-              const SizedBox(width: 4),
-              SignificanceBadge(text: stars, p: p, small: true),
-            ],
-          ],
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: AppRadius.rMd,
-          border: Border.all(color: scheme.outlineVariant),
-        ),
-        child: ClipRRect(
-          borderRadius: AppRadius.rMd,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (table.caption != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.x3,
-                    AppSpacing.x2,
-                    AppSpacing.x3,
-                    0,
-                  ),
-                  child: Text(
-                    table.caption!,
-                    style: TextStyle(
-                      color: scheme.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              Container(
-                color: scheme.surfaceContainerHigh,
-                child: Row(
-                  children: [
-                    for (var c = 0; c < cols; c++)
-                      cell(c < table.headers.length ? table.headers[c] : '', c,
-                          header: true),
-                  ],
-                ),
-              ),
-              for (var r = 0; r < table.rows.length; r++)
-                Container(
-                  decoration: BoxDecoration(
-                    color: r.isOdd
-                        ? scheme.surfaceContainerLow.withValues(alpha: 0.5)
-                        : null,
-                    border: Border(
-                      top: BorderSide(
-                        color: scheme.outlineVariant.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      for (var c = 0; c < cols; c++)
-                        cell(
-                          c < table.rows[r].length ? table.rows[r][c] : '',
-                          c,
-                          header: false,
-                        ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 

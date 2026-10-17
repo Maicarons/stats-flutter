@@ -107,12 +107,56 @@ class ReportTable {
   }
 }
 
+/// 把多份报告拼成一份（最新在前），用于「导出全部」。
+///
+/// 只有一份时直接返回它本身（避免多出一层合成标题）；多份时每份报告先起一个
+/// 分隔小节（`标题 · 生成时间`，slug 为 `run-N`），再展开它原有的分区。
+AnalysisReport combinedReport(
+  List<AnalysisReport> reports, {
+  required String title,
+  DateTime? createdAt,
+}) {
+  if (reports.isEmpty) {
+    throw ArgumentError.value(reports, 'reports', '至少需要一份报告');
+  }
+  final first = reports.first;
+  if (reports.length == 1) return first;
+  return AnalysisReport(
+    title: title,
+    subtitle: first.subtitle,
+    createdAt: createdAt,
+    sections: [
+      for (final (i, r) in reports.indexed) ...[
+        ReportSection(
+          heading: '${r.title} · ${stampOf(r.createdAt)}',
+          slug: 'run-${i + 1}',
+        ),
+        ...r.sections,
+      ],
+    ],
+  );
+}
+
+/// `2026-10-17 10:33`（本地时间）。
+String stampOf(DateTime dt) {
+  final l = dt.toLocal();
+  String two(int v) => v.toString().padLeft(2, '0');
+  return '${l.year}-${two(l.month)}-${two(l.day)} '
+      '${two(l.hour)}:${two(l.minute)}';
+}
+
 /// 把描述统计渲染为报告
+///
+/// [labels] 是「变量名 → 变量标签」映射（有标签的变量在表里显示标签）；
+/// [labelNote] 是「标签 = 变量名」对应关系注释（见 `report_labels.dart`）。
 AnalysisReport reportDescriptives(
   AppLocalizations l10n,
   Map<String, Descriptives> byVar, {
   String datasetName = '',
+  Map<String, String> labels = const {},
+  String? labelNote,
 }) {
+  String disp(String name) => labels[name] ?? name;
   return AnalysisReport(
     title: l10n.descriptivesTitle,
     subtitle: datasetName,
@@ -128,7 +172,7 @@ AnalysisReport reportDescriptives(
             ],
             rows: byVar.entries
                 .map((e) => [
-                      e.key,
+                      disp(e.key),
                       '${e.value.n}',
                       formatNum(e.value.mean),
                       formatNum(e.value.sd),
@@ -148,7 +192,7 @@ AnalysisReport reportDescriptives(
             ],
             rows: byVar.entries
                 .map((e) => [
-                      e.key,
+                      disp(e.key),
                       formatNum(e.value.q1),
                       formatNum(e.value.median),
                       formatNum(e.value.q3),
@@ -160,10 +204,19 @@ AnalysisReport reportDescriptives(
                 .toList(),
           ),
         ],
-        notes: l10n.ciNote,
+        notes: mergeNotes(l10n.ciNote, labelNote),
       ),
     ],
   );
+}
+
+/// 分区注释 + 变量标签注释：两个都有时空行分隔，只有一个时用它自己。
+String mergeNotes(String? note, String? labelNote) {
+  final a = note?.trim() ?? '';
+  final b = labelNote?.trim() ?? '';
+  if (a.isEmpty) return b;
+  if (b.isEmpty) return a;
+  return '$a\n$b';
 }
 
 AnalysisReport reportTTest(AppLocalizations l10n, TTestResult r,
@@ -306,11 +359,14 @@ AnalysisReport reportCorrelation(
   AppLocalizations l10n,
   Map<String, Map<String, CorrelationResult>> matrix, {
   String method = 'Pearson',
+  Map<String, String> labels = const {},
+  String? labelNote,
 }) {
+  String disp(String name) => labels[name] ?? name;
   final names = matrix.keys.toList();
   final rows = <List<String>>[];
   for (final a in names) {
-    final row = <String>[a];
+    final row = <String>[disp(a)];
     for (final b in names) {
       final r = matrix[a]![b]!;
       if (a == b) {
@@ -323,7 +379,7 @@ AnalysisReport reportCorrelation(
   }
   final pRows = <List<String>>[];
   for (final a in names) {
-    final row = <String>[a];
+    final row = <String>[disp(a)];
     for (final b in names) {
       row.add(a == b ? '—' : formatP(matrix[a]![b]!.p));
     }
@@ -336,14 +392,14 @@ AnalysisReport reportCorrelation(
       ReportSection(
         heading: l10n.corrCoef,
         tables: [
-          ReportTable(headers: ['', ...names], rows: rows),
+          ReportTable(headers: ['', ...names.map(disp)], rows: rows),
           ReportTable(
             caption: l10n.sigTwoTail,
-            headers: ['', ...names],
+            headers: ['', ...names.map(disp)],
             rows: pRows,
           ),
         ],
-        notes: l10n.corrStars,
+        notes: mergeNotes(l10n.corrStars, labelNote),
       ),
     ],
   );
@@ -436,8 +492,24 @@ AnalysisReport reportRegression(AppLocalizations l10n, RegressionResult r,
   );
 }
 
-AnalysisReport reportChiSquare(AppLocalizations l10n, ChiSquareResult r,
-    {String? title}) {
+AnalysisReport reportChiSquare(
+  AppLocalizations l10n,
+  ChiSquareResult r, {
+  String? title,
+  String? rowVar,
+  String? colVar,
+  List<String> rowLabels = const [],
+  List<String> colLabels = const [],
+  String? labelNote,
+}) {
+  final rows = r.observed.length;
+  final cols = rows == 0 ? 0 : r.observed.first.length;
+  // 没有值标签时用序号兜底，交叉表照样可读
+  String rowLabel(int i) =>
+      i < rowLabels.length ? rowLabels[i] : '${i + 1}';
+  String colLabel(int j) =>
+      j < colLabels.length ? colLabels[j] : '${j + 1}';
+
   return AnalysisReport(
     title: title ?? l10n.chiSquareTitle,
     subtitle: 'Pearson χ²',
@@ -468,23 +540,48 @@ AnalysisReport reportChiSquare(AppLocalizations l10n, ChiSquareResult r,
             ),
         ],
       ),
+      if (rows > 0 && cols > 0)
+        ReportSection(
+          heading: l10n.crossTable,
+          tables: [
+            ReportTable(
+              caption: l10n.observed,
+              headers: [
+                rowVar ?? '',
+                for (var j = 0; j < cols; j++) colLabel(j),
+              ],
+              rows: [
+                for (var i = 0; i < rows; i++)
+                  [
+                    rowLabel(i),
+                    for (var j = 0; j < cols; j++)
+                      formatNum(r.observed[i][j], digits: 0),
+                  ],
+              ],
+            ),
+          ],
+        ),
       ReportSection(
         heading: l10n.cellsObsExp,
         tables: [
           ReportTable(
-            headers: ['#', l10n.observed, l10n.expected, l10n.residual, l10n.stdResidual],
-            rows: List.generate(
-              r.cells.length,
-              (i) => [
-                '${i + 1}',
-                formatNum(r.cells[i].observed),
-                formatNum(r.cells[i].expected),
-                formatNum(r.cells[i].residual),
-                formatNum(r.cells[i].stdResidual),
-              ],
-            ),
+            headers: [
+              colVar == null ? '' : '$rowVar · $colVar',
+              l10n.observed, l10n.expected, l10n.residual, l10n.stdResidual,
+            ],
+            rows: [
+              for (var i = 0; i < r.cells.length; i++)
+                [
+                  '${rowLabel(i ~/ cols)} · ${colLabel(i % cols)}',
+                  formatNum(r.cells[i].observed),
+                  formatNum(r.cells[i].expected),
+                  formatNum(r.cells[i].residual),
+                  formatNum(r.cells[i].stdResidual),
+                ],
+            ],
           ),
         ],
+        notes: labelNote,
       ),
     ],
   );

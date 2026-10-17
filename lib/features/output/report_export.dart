@@ -3,45 +3,7 @@
 library;
 
 import '../output/report_builder.dart';
-
-/// 判断某列是否为纯数值列（除首列外），用于右对齐。
-bool _numericColumn(ReportTable t, int c) {
-  if (c == 0) return false;
-  final re = RegExp(r'^-?[0-9][0-9,.\s]*%?$');
-  var seen = false;
-  for (final r in t.rows) {
-    if (c >= r.length) continue;
-    final s = r[c].trim();
-    if (s.isEmpty) continue;
-    seen = true;
-    if (!re.hasMatch(s)) return false;
-  }
-  return seen;
-}
-
-/// 判断某列是否为 p 值列（用于显著性标注）。
-final RegExp _pHeaderRe = RegExp(
-  r'^(p\b|p值|sig\.?\b|显著性)',
-  caseSensitive: false,
-);
-
-double? _parseP(String s) {
-  final t = s.trim();
-  if (t.isEmpty || t == '—' || t == '-') return null;
-  if (t.startsWith('<') || t.startsWith('≤')) {
-    final v = _toDouble(t.substring(1).trim());
-    return v == null ? null : v / 2;
-  }
-  return _toDouble(t);
-}
-
-double? _toDouble(String t) {
-  final v = t.startsWith('.') ? '0$t' : t;
-  return double.tryParse(v.replaceAll(',', ''));
-}
-
-String _stars(double p) =>
-    p < 0.001 ? '***' : (p < 0.01 ? '**' : (p < 0.05 ? '*' : ''));
+import '../output/report_style.dart';
 
 String reportToHtml(AnalysisReport report, {String title = 'StatLab Report'}) {
   final b = StringBuffer();
@@ -109,12 +71,7 @@ void _writeSectionHtml(StringBuffer b, ReportSection s) {
     if (t.caption != null) {
       b.writeln('<div class="cap">${_esc(t.caption!)}</div>');
     }
-    final numeric = [
-      for (var c = 0; c < t.headers.length; c++) _numericColumn(t, c),
-    ];
-    final isP = [
-      for (final h in t.headers) _pHeaderRe.hasMatch(h.trim()),
-    ];
+    final style = ReportTableStyle.of(t);
     b.writeln('<div class="scroll"><table><thead><tr>');
     for (final h in t.headers) {
       b.writeln('<th>${_esc(h)}</th>');
@@ -123,18 +80,15 @@ void _writeSectionHtml(StringBuffer b, ReportSection s) {
     for (final r in t.rows) {
       b.writeln('<tr>');
       for (var i = 0; i < t.headers.length; i++) {
-        var html = _esc(i < r.length ? r[i] : '');
-        var cls = numeric[i] ? 'num' : '';
-        if (isP[i]) {
-          final p = _parseP(i < r.length ? r[i] : '');
-          if (p != null) {
-            final st = _stars(p);
-            if (st.isNotEmpty) {
-              html = '$html<span class="stars">$st</span>';
-              cls = cls.isEmpty ? 'sig' : '$cls sig';
-            }
-          }
+        final cell = styleBodyCell(style, i < r.length ? r[i] : '', i);
+        var html = _esc(cell.label);
+        if (cell.stars.isNotEmpty) {
+          html = '$html<span class="stars">${cell.stars}</span>';
         }
+        final cls = [
+          if (cell.numeric) 'num',
+          if (cell.significant) 'sig',
+        ].join(' ');
         b.writeln('<td${cls.isEmpty ? '' : ' class="$cls"'}>$html</td>');
       }
       b.writeln('</tr>');

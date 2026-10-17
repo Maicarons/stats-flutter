@@ -1052,6 +1052,114 @@ abstract class AppLocalizations {
   /// **'Export HTML'**
   String get exportHtml;
 
+  /// No description provided for @exportMarkdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Markdown'**
+  String get exportMarkdown;
+
+  /// No description provided for @exportPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Export PDF'**
+  String get exportPdf;
+
+  /// No description provided for @exportReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export report'**
+  String get exportReport;
+
+  /// No description provided for @copyReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy plain text'**
+  String get copyReport;
+
+  /// No description provided for @exportAllOutput.
+  ///
+  /// In en, this message translates to:
+  /// **'Export all output'**
+  String get exportAllOutput;
+
+  /// No description provided for @shareAllOutput.
+  ///
+  /// In en, this message translates to:
+  /// **'Share all output'**
+  String get shareAllOutput;
+
+  /// No description provided for @outputTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Output'**
+  String get outputTitle;
+
+  /// No description provided for @outputCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} results'**
+  String outputCount(int n);
+
+  /// No description provided for @clearOutput.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear output'**
+  String get clearOutput;
+
+  /// No description provided for @clearOutputTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all output?'**
+  String get clearOutputTitle;
+
+  /// No description provided for @clearOutputMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes every report card on this page. Files you already exported are not affected.'**
+  String get clearOutputMessage;
+
+  /// No description provided for @expandReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand'**
+  String get expandReport;
+
+  /// No description provided for @collapseReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse'**
+  String get collapseReport;
+
+  /// No description provided for @deleteReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteReport;
+
+  /// No description provided for @pdfPageOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {page} / {total}'**
+  String pdfPageOf(int page, int total);
+
+  /// No description provided for @pdfFooterNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Stats-flutter · report'**
+  String get pdfFooterNote;
+
+  /// No description provided for @variableLabelNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note: {pairs} (label = variable name); tables show the label.'**
+  String variableLabelNote(String pairs);
+
+  /// No description provided for @crossTable.
+  ///
+  /// In en, this message translates to:
+  /// **'Crosstabulation'**
+  String get crossTable;
+
   /// No description provided for @varY.
   ///
   /// In en, this message translates to:

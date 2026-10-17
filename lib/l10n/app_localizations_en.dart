@@ -525,6 +525,67 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportHtml => 'Export HTML';
 
   @override
+  String get exportMarkdown => 'Export Markdown';
+
+  @override
+  String get exportPdf => 'Export PDF';
+
+  @override
+  String get exportReport => 'Export report';
+
+  @override
+  String get copyReport => 'Copy plain text';
+
+  @override
+  String get exportAllOutput => 'Export all output';
+
+  @override
+  String get shareAllOutput => 'Share all output';
+
+  @override
+  String get outputTitle => 'Output';
+
+  @override
+  String outputCount(int n) {
+    return '$n results';
+  }
+
+  @override
+  String get clearOutput => 'Clear output';
+
+  @override
+  String get clearOutputTitle => 'Clear all output?';
+
+  @override
+  String get clearOutputMessage =>
+      'This removes every report card on this page. Files you already exported are not affected.';
+
+  @override
+  String get expandReport => 'Expand';
+
+  @override
+  String get collapseReport => 'Collapse';
+
+  @override
+  String get deleteReport => 'Delete';
+
+  @override
+  String pdfPageOf(int page, int total) {
+    return 'Page $page / $total';
+  }
+
+  @override
+  String get pdfFooterNote => 'Stats-flutter · report';
+
+  @override
+  String variableLabelNote(String pairs) {
+    return 'Note: $pairs (label = variable name); tables show the label.';
+  }
+
+  @override
+  String get crossTable => 'Crosstabulation';
+
+  @override
   String get varY => 'Variable Y';
 
   @override
