@@ -17,12 +17,14 @@
 | 逻辑回归 | `logisticRegression` / `logisticRegressionFull`（二元）、`multinomialLogistic`（多分类） |
 | 因子 | `factorPca` |
 | 卡方 | `ChiSquareTest.goodnessOfFit` / `independence` |
-| 非参数 | `Nonparametric.mannWhitney` / `wilcoxon` / `kruskalWallis` / `jonckheereTerpstra` / `lillieforsP` |
+| 非参数 | `Nonparametric.mannWhitney` / `wilcoxon` / `kruskalWallis` / `jonckheereTerpstra` / `lillieforsP`、`NparExtended.kendallW` / `ksExact` / `exactKolmogorovCdf` |
 | 信度 | `Reliability.cronbachAlpha` |
 | 聚类 | `KMeans.cluster` |
 | ROC | `rocCurve` |
 | 正态性 | `normalityTest` |
 | 均值表 | `meansTable` |
+
+statkit **0.6.0** 新增：`NparExtended.kendallW`（Kendall 一致性系数 W，Friedman χ² 的规范化形式）与 `NparExtended.ksExact` / `exactKolmogorovCdf`（单样本 KS **精确** p，Marsaglia–Tsang–Wang 2003 Durbin 矩阵法，适用于完全指定的连续分布；参数由样本估计时仍用 Lilliefors）。
 
 statkit **0.5.0** 新增的过程（Jonckheere-Terpstra 有序趋势检验、置换检验、Lilliefors 校正、多项 logistic 回归、ANCOVA）标注为 `@experimental`：接口可能在次版本里调整。
 
@@ -48,4 +50,4 @@ statkit **0.5.0** 新增的过程（Jonckheere-Terpstra 有序趋势检验、置
 cd packages/statkit && dart test
 ```
 
-91 个用例覆盖描述、分布、t、ANOVA / ANCOVA、相关、回归、logistic、非参数与置换、信度、K-Means 等。与 PSPP 2.1.2 的对拍用例在应用侧 `test/pspp_parity_test.dart`，随 CI 一同运行。
+111 个用例覆盖描述、分布、t、ANOVA / ANCOVA、相关、回归、logistic、非参数与置换、信度、K-Means 等。与 PSPP 2.1.2 的对拍用例在应用侧 `test/pspp_parity_test.dart`，随 CI 一同运行。

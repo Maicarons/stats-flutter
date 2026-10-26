@@ -58,6 +58,14 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     if (r == null) {
       OutputStore.clear(widget.analysisId);
     } else {
+      if (_splitPrefix != null) {
+        r = AnalysisReport(
+          title: '${r.title} · ${_splitPrefix!}',
+          subtitle: r.subtitle,
+          sections: r.sections,
+          createdAt: r.createdAt,
+        );
+      }
       OutputStore.add(widget.analysisId, r);
     }
   }
@@ -69,7 +77,13 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   bool _busy = false;
   String? _error;
 
-  Dataset get ds => datasetStore.data;
+  /// SPLIT FILE 生效时的组内数据（null = 用完整活动数据集）。
+  Dataset? _dsOverride;
+
+  /// 当前分组的标签（如 "gender = 1"），写进报告卡片标题。
+  String? _splitPrefix;
+
+  Dataset get ds => _dsOverride ?? datasetStore.data;
   AppLocalizations get l10n => AppLocalizations.of(context);
 
   List<String> get _numericVars => ds.variables
@@ -102,7 +116,8 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               tooltip: l10n.shareAllOutput,
               icon: const Icon(Icons.share),
               onPressed: () =>
-                  Share.share(_allText(), subject: widget.title),
+                  SharePlus.instance.share(
+                      ShareParams(text: _allText(), subject: widget.title)),
             ),
           if (_reports.isNotEmpty)
             PopupMenuButton<ReportFileKind>(
@@ -520,6 +535,75 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
       _legend = const [];
     });
     try {
+      final spec = datasetStore.data.splitVariable;
+      if (spec != null && spec.isNotEmpty) {
+        _runSplitAll(spec);
+      } else {
+        _dispatch();
+      }
+    } catch (e) {
+      _error = e.toString();
+    }
+    _dsOverride = null;
+    _splitPrefix = null;
+    if (mounted) setState(() => _busy = false);
+  }
+
+  /// SPLIT FILE 语义：按拆分变量（逗号分隔，可多个）的组合分组，逐组以
+  /// 组内数据运行当前分析；每组一张报告卡片，标题带组标签（PSPP 风格
+  /// 「var = value」）。个别组内出错不中断其余组；全部失败才向上抛。
+  void _runSplitAll(String spec) {
+    final names = spec
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final base = datasetStore.data;
+    final idxs = <int>[];
+    for (final n in names) {
+      final i = base.indexOf(n);
+      if (i < 0) throw 'SPLIT FILE: unknown variable: $n';
+      idxs.add(i);
+    }
+    final keys = <String>[];
+    final groups = <String, List<List<Object?>>>{};
+    for (final row in base.cases) {
+      final parts = <String>[];
+      for (final i in idxs) {
+        final raw = i < row.length ? row[i] : null;
+        parts.add(
+            '${base.variables[i].name} = ${base.variables[i].displayValue(raw)}');
+      }
+      final key = parts.join(', ');
+      if (!groups.containsKey(key)) {
+        keys.add(key);
+        groups[key] = [];
+      }
+      groups[key]!.add(row);
+    }
+    Object? firstError;
+    var ranAny = false;
+    for (final key in keys) {
+      final g = Dataset(
+        name: base.name,
+        variables: base.variables.map((v) => v.copy()).toList(),
+        cases: [for (final r in groups[key]!) List<Object?>.of(r)],
+      )
+        ..weightVariable = base.weightVariable
+        ..mrSets = base.mrSets;
+      _dsOverride = g;
+      _splitPrefix = key;
+      try {
+        _dispatch();
+        ranAny = true;
+      } catch (e) {
+        firstError ??= e;
+      }
+    }
+    if (!ranAny && firstError != null) throw firstError;
+  }
+
+  void _dispatch() {
       switch (widget.analysisId) {
         case 'descriptives':
           _runDescriptives();
@@ -642,10 +726,6 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
             ],
           );
       }
-    } catch (e) {
-      _error = e.toString();
-    }
-    if (mounted) setState(() => _busy = false);
   }
 
   void _runDescriptives() {

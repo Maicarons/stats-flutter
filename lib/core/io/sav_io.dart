@@ -103,7 +103,7 @@ class SavReader {
           final llen = bd.getInt32(pos, Endian.little);
           pos += 4;
           final padded = ((llen + 3) ~/ 4) * 4;
-          label = ascii.decode(bytes.sublist(pos, pos + llen), allowInvalid: true).trim();
+          label = utf8.decode(bytes.sublist(pos, pos + llen), allowMalformed: true).trim();
           pos += padded;
         }
         final miss = <double>[];
@@ -133,7 +133,7 @@ class SavReader {
           pos += 8;
           final len = bytes[pos];
           pos += 1;
-          final s = ascii.decode(bytes.sublist(pos, pos + len), allowInvalid: true);
+          final s = utf8.decode(bytes.sublist(pos, pos + len), allowMalformed: true);
           pos += len;
           final pad = (8 - (len + 1) % 8) % 8;
           pos += pad;

@@ -204,6 +204,72 @@ class NparExtended {
   static NonparametricResult friedman(List<List<double>> treatments) =>
       Nonparametric.friedman(treatments);
 
+  /// Kendall 一致性系数 W：评委×对象排序的一致性（Friedman χ² 的规范化形式，
+  /// W = χ²/(n(k−1))），p 与 Friedman 相同（χ²(k−1) 渐近）。
+  ///
+  /// [treatments] 每个内层列表是一个「对象」在 k 位评委处的打分（列），
+  /// 与 [Nonparametric.friedman] 的行语义一致。结的校正由 Friedman 的
+  /// 平均秩口径带入 χ²。
+  static NonparametricResult kendallW(List<List<double>> treatments) {
+    final f = Nonparametric.friedman(treatments);
+    final k = treatments.length;
+    final b = treatments.isNotEmpty ? treatments[0].length : 0;
+    final w =
+        (k < 2 || b == 0 || k == 1) ? 0.0 : f.statistic / (b * (k - 1));
+    return NonparametricResult(
+      testName: 'Kendall W',
+      statistic: w.clamp(0.0, 1.0),
+      statisticName: 'W',
+      p: f.p,
+      n1: b,
+      n2: k,
+      extra: {
+        'chiSquare': f.statistic,
+        'k': k,
+        'n': b,
+        if (f.extra['meanRanks'] != null) 'meanRanks': f.extra['meanRanks'],
+      },
+    );
+  }
+
+  /// 单样本 KS 检验的**精确** p（F 完全指定，参数不由样本估计）。
+  ///
+  /// [cdf] 是完全指定的连续分布函数；统计量 D_n 用标准双面口径
+  /// max_i( (i+1)/n − F(x_i), F(x_i) − i/n )，p = 1 − P(D_n < D)
+  /// 由 [exactKolmogorovCdf]（Marsaglia–Tsang–Wang 矩阵法）给出。
+  /// 参数由样本估计时应改用 Lilliefors 口径（`Nonparametric.kolmogorovSmirnov`）。
+  static NonparametricResult ksExact(
+      List<double> data, double Function(double) cdf) {
+    final xs = data.where((x) => x.isFinite).toList()..sort();
+    final n = xs.length;
+    if (n == 0) {
+      return NonparametricResult(
+        testName: 'One-Sample KS (exact)',
+        statistic: 0,
+        statisticName: 'D',
+        p: 1,
+        n1: 0,
+      );
+    }
+    var d = 0.0;
+    for (var i = 0; i < n; i++) {
+      final f = cdf(xs[i]);
+      d = math.max(d, math.max((i + 1) / n - f, f - i / n));
+    }
+    final pExact = (1 - exactKolmogorovCdf(n, d)).clamp(0.0, 1.0);
+    final z = math.sqrt(n) * d;
+    return NonparametricResult(
+      testName: 'One-Sample KS (exact)',
+      statistic: d,
+      statisticName: 'D',
+      z: z,
+      p: pExact,
+      pExact: pExact,
+      n1: n,
+      extra: {'pAsymptotic': normTwoTail(z)},
+    );
+  }
+
   /// Jonckheere-Terpstra 有序备择趋势检验。
   ///
   /// [groups] 必须按备择假设的方向给出：组序号越大、取值越大 → J 偏大 →

@@ -92,6 +92,38 @@ MATCH FILES /FILE=* /TABLE=lookup /BY id.
 - dictionaries are merged with PSPP's `merge_dictionaries` rules: the first file that defines a variable wins, later files only fill gaps, string width takes the maximum and a type conflict is an error; with `MATCH FILES` a duplicate key keeps the first case;
 - "Attach dataset" in the syntax editor adds another `.sav` or project file, and `*` stands for the current dataset; the Data menu also offers a dialog-driven "Merge datasets…".
 
+## SAVE: write an SPSS system file (.sav)
+
+```text
+SAVE OUTFILE='results.sav' [FILELABEL='label'].
+```
+
+- Writes the current dataset as an **uncompressed `.sav` system file**
+  (`$FL2`, UTF-8) that PSPP / SPSS open directly;
+- variable names longer than 8 characters go into a long-names record
+  (7/13); numeric / string variables, variable labels, numeric value
+  labels and discrete & range missing values are all written back;
+- relative paths resolve against the directory of the current `.sps`
+  file;
+- the Data menu's "Export data" also offers a graphical `.sav` export
+  (written to the app documents directory, shareable).
+
+## SPLIT FILE: repeat analyses per group
+
+```text
+SPLIT FILE BY gender.
+DESCRIPTIVES post.
+SPLIT FILE OFF.
+```
+
+- after `SPLIT FILE BY vars…`, analyses run **once per combination of
+  the split variables**; each group produces its own report card titled
+  with the group label (e.g. `gender = Male`, honouring value labels);
+- multiple split variables group by value combinations; an error inside
+  one group does not stop the others;
+- `SPLIT FILE OFF.` clears the split; the Data menu's "Split file…" is
+  the graphical entry to the same state.
+
 ## Syntax editor
 
 A syntax subset runner is available from the Data menu:
@@ -106,6 +138,8 @@ RECODE gender (1=0) (2=1) INTO sex.
 AUTORECODE VARIABLES=city /INTO=city_n.
 RANK VARIABLES=post (A) /RANK /NTILES(4).
 SAMPLE 0.5 /SEED=20261016.
+SAVE OUTFILE='results.sav'.
+SPLIT FILE BY gender.
 MRSETS /MDGROUP NAME=$m VARIABLES=a b VALUE=1.
 ADD FILES /FILE=* /FILE=other.
 MATCH FILES /FILE=* /TABLE=lookup /BY id.
@@ -124,6 +158,6 @@ Comment semantics, macros, `INCLUDE`, error locations and the `.sps` round-trip 
 The Data menu also offers:
 
 - **Weight cases** (WEIGHT CASES)
-- **Split file** (SPLIT FILE)
+- **Split file** (SPLIT FILE — analyses repeat per group, see above)
 - **Find cases**
-- CSV import / export
+- CSV import / export, **SPSS `.sav` export** (uncompressed system file, readable by PSPP / SPSS)

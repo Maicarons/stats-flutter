@@ -67,10 +67,10 @@ class SectionExportMenu extends StatelessWidget {
       final dir = await getApplicationDocumentsDirectory();
       final f = File('${dir.path}/$name');
       await f.writeAsString(content(html: html));
-      await Share.shareXFiles(
-        [XFile(f.path)],
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(f.path)],
         subject: '$reportTitle — ${section.heading}',
-      );
+      ));
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.6.0
+
+Nonparametric completion (v1.6.0 M3) and exact Kolmogorov distribution.
+
+### Added
+- `NparExtended.kendallW` — Kendall's coefficient of concordance W for
+  judge × object rankings, the normalized form of the Friedman χ²
+  (W = χ²/(n(k−1))); ties handled through Friedman's average-rank
+  correction. Returns W, the underlying χ², and the χ²(k−1) p-value.
+- `NparExtended.ksExact` — one-sample Kolmogorov–Smirnov test with an
+  **exact** p-value for a fully specified continuous distribution, via
+  `exactKolmogorovCdf` (Marsaglia–Tsang–Wang 2003 Durbin matrix method,
+  with the authors' right-tail shortcut). Use Lilliefors
+  (`Nonparametric.kolmogorovSmirnov`) when parameters are estimated from
+  the sample; this entry is for completely specified F.
+- `exactKolmogorovCdf(n, d)` — exact P(D_n < d), validated against the
+  n = 1 closed form K(1,d) = 2d − 1 and the critical-value table entry
+  K(10, 0.40925) = 0.95.
+
+# Changelog
+
 ## 0.5.1
 
 Packaging patch: pub.dev no longer rejects the metadata, the package ships a

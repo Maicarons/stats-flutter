@@ -80,7 +80,8 @@ Future<void> exportReportFile(
         await file.writeAsBytes(bytes, flush: true);
     }
     if (showProgress) messenger.hideCurrentSnackBar();
-    await Share.shareXFiles([XFile(file.path)], subject: report.title);
+    await SharePlus.instance.share(
+        ShareParams(files: [XFile(file.path)], subject: report.title));
   } catch (e) {
     if (showProgress) messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
@@ -104,7 +105,8 @@ Future<void> copyReportText(BuildContext context, AnalysisReport report) async {
 
 /// 分享纯文本报告。
 Future<void> shareReportText(BuildContext context, AnalysisReport report) =>
-    Share.share(report.toPlainText(), subject: report.title);
+    SharePlus.instance.share(ShareParams(
+        text: report.toPlainText(), subject: report.title));
 
 /// 单份报告的导出菜单（输出树每张卡片右上角）。
 class ReportExportMenu extends StatelessWidget {

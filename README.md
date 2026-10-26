@@ -37,7 +37,7 @@ Learn / Quiz / Settings are **global**. Data / Analysis / Transform live **insid
 - Variable view: type, measure, label, decimals
 - **Value-label CRUD**, missing values
 - Value labels **hidden by default** (toggle in toolbar)
-- CSV import/export, weight cases, split file, find
+- CSV import/export, **SPSS `.sav` export** (uncompressed system file, readable by PSPP / SPSS), weight cases, split file, find
 
 ### Transforms
 COMPUTE · RECODE · COUNT · RANK · SORT CASES · SELECT IF · AGGREGATE · FLIP
@@ -56,6 +56,8 @@ COMPUTE · RECODE · COUNT · RANK · SORT CASES · SELECT IF · AGGREGATE · FL
 Executable subset: `DESCRIPTIVES` `FREQUENCIES` `T-TEST` `CORRELATIONS` `COMPUTE` `RECODE` `RANK` `SORT` `SELECT IF` `LIST` `HELP`
 
 Language layer: PSPP comment semantics (`*` / `COMMENT`), macros (`DEFINE`, positional & keyword arguments, `!LET` / `!IF` / `!DO`, `!CONCAT` …), `INCLUDE` with relative paths and cycle protection, per-command error locations, `.sps` round-trip (BOM stripping, invalid bytes → U+FFFD)
+
+New in v1.6.0: `SAVE OUTFILE='x.sav'` writes an SPSS system file; `SPLIT FILE BY …` / `OFF` repeats every analysis per split-variable combination (one report card per group)
 
 ### Output & export
 - Session output tree: one card per run, newest first, newest expanded

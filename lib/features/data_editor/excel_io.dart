@@ -17,14 +17,18 @@ Future<void> importExcelInteractive(
     BuildContext context, AppLocalizations l10n) async {
   final messenger = ScaffoldMessenger.of(context);
   try {
-    final result = await FilePicker.platform.pickFiles(
+    final f = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['xlsx'],
-      withData: true,
     );
-    if (result == null || result.files.isEmpty) return;
-    final f = result.files.first;
-    await importExcelBytes(messenger, l10n, f.name, f.bytes, path: f.path);
+    if (f == null) return;
+    Uint8List bytes;
+    try {
+      bytes = await f.readAsBytes();
+    } catch (_) {
+      return;
+    }
+    await importExcelBytes(messenger, l10n, f.name, bytes, path: f.path);
   } catch (e) {
     messenger.showSnackBar(
         SnackBar(content: Text(l10n.importFailed(e.toString()))));

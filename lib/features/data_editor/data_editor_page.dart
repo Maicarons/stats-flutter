@@ -171,7 +171,7 @@ class _DataEditorPageState extends State<DataEditorPage>
               const SizedBox(width: AppSpacing.x2),
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () => _onMenu('export', l10n),
+                  onPressed: () => _pickExport(l10n),
                   icon: const Icon(Icons.save_alt, size: 18),
                   label: Text(l10n.exportData),
                 ),
@@ -218,6 +218,36 @@ class _DataEditorPageState extends State<DataEditorPage>
     );
   }
 
+  /// 导出格式选择：CSV 或 SPSS 系统文件（.sav）。
+  Future<void> _pickExport(AppLocalizations l10n) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.table_chart),
+              title: Text(l10n.exportCsv),
+              onTap: () => Navigator.pop(ctx, 'csv'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.table_rows),
+              title: Text(l10n.exportSav),
+              onTap: () => Navigator.pop(ctx, 'sav'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'csv') {
+      await exportCsvInteractive(context, l10n);
+    } else if (choice == 'sav') {
+      await exportSavInteractive(context, l10n);
+    }
+  }
+
   Future<void> _onMenu(String v, AppLocalizations l10n) async {
     switch (v) {
       case 'demo':
@@ -231,6 +261,9 @@ class _DataEditorPageState extends State<DataEditorPage>
         break;
       case 'export':
         await exportCsvInteractive(context, l10n);
+        break;
+      case 'export_sav':
+        await exportSavInteractive(context, l10n);
         break;
       case 'addvar':
         _addVar(l10n);

@@ -15,6 +15,9 @@ import 'syntax_preprocess.dart';
 /// 读取失败返回 `null`。相对路径以调用方决定的基准目录为准。
 typedef SyntaxIncludeResolver = String? Function(String path);
 
+/// `SAVE OUTFILE` 的写出回调：把活动数据集写成文件；返回是否成功。
+typedef SyntaxSaver = bool Function(String path, Dataset ds);
+
 class SyntaxCommand {
   final String verb;
   final List<String> args;
@@ -134,6 +137,24 @@ class SyntaxMessages {
   /// 成功包含：`path` 与其中执行的命令数
   final String Function(String, int) includeSummary;
 
+  /// `SAVE` 用法提示
+  final String saveSyntax;
+
+  /// 当前环境没有提供文件写出器
+  final String saveUnavailable;
+
+  /// 写出失败
+  final String saveFailed;
+
+  /// 成功写出：路径、个案数、变量数
+  final String Function(String, int, int) saveSuccess;
+
+  /// `SPLIT FILE` 用法提示
+  final String splitSyntax;
+
+  /// 拆分变量不存在
+  final String Function(String) splitUnknownVar;
+
   const SyntaxMessages({
     required this.unsupportedCommand,
     required this.error,
@@ -159,6 +180,12 @@ class SyntaxMessages {
     required this.includeCycle,
     required this.includeTooDeep,
     required this.includeSummary,
+    required this.saveSyntax,
+    required this.saveUnavailable,
+    required this.saveFailed,
+    required this.saveSuccess,
+    required this.splitSyntax,
+    required this.splitUnknownVar,
   });
 
   static const zh = SyntaxMessages(
@@ -193,6 +220,12 @@ class SyntaxMessages {
     includeCycle: _zhIncludeCycle,
     includeTooDeep: 'INCLUDE 嵌套层数过深（上限 16 层）',
     includeSummary: _zhIncludeSummary,
+    saveSyntax: "SAVE 语法: SAVE OUTFILE='文件名.sav' [FILELABEL='标签']",
+    saveUnavailable: 'SAVE 需要调用方提供文件写出器（当前环境未提供）',
+    saveFailed: '写出失败: 路径不可写或被占用',
+    saveSuccess: _zhSaveSuccess,
+    splitSyntax: 'SPLIT FILE 语法: SPLIT FILE BY 变量1 变量2 … 或 SPLIT FILE OFF',
+    splitUnknownVar: _zhSplitUnknown,
   );
 
   static const en = SyntaxMessages(
@@ -228,6 +261,13 @@ class SyntaxMessages {
     includeCycle: _enIncludeCycle,
     includeTooDeep: 'INCLUDE nesting is too deep (limit 16 levels)',
     includeSummary: _enIncludeSummary,
+    saveSyntax: "SAVE syntax: SAVE OUTFILE='file.sav' [FILELABEL='label']",
+    saveUnavailable:
+        'SAVE needs a file writer supplied by the caller (none in this environment)',
+    saveFailed: 'Write failed: path is not writable',
+    saveSuccess: _enSaveSuccess,
+    splitSyntax: 'SPLIT FILE syntax: SPLIT FILE BY var1 var2 … or SPLIT FILE OFF',
+    splitUnknownVar: _enSplitUnknown,
   );
 }
 
@@ -236,6 +276,12 @@ String _enUnsupported(String verb) =>
     'Unsupported command: $verb\nType HELP for the supported list';
 String _zhError(String e) => '错误: $e';
 String _enError(String e) => 'Error: $e';
+String _zhSaveSuccess(String path, int cases, int vars) =>
+    '已写出 .sav 文件: $path（$cases 个个案 × $vars 个变量，未压缩）';
+String _enSaveSuccess(String path, int cases, int vars) =>
+    'Wrote .sav file: $path ($cases cases × $vars variables, uncompressed)';
+String _zhSplitUnknown(String name) => 'SPLIT FILE: 变量不存在: $name';
+String _enSplitUnknown(String name) => 'SPLIT FILE: unknown variable: $name';
 String _zhArcCountMismatch(int a, int b) => '源变量数（$a）与目标变量数（$b）不一致';
 String _enArcCountMismatch(int a, int b) =>
     'Source variable count ($a) does not match target variable count ($b)';
@@ -280,8 +326,8 @@ String _enCommentSwallowed(String detail) => detail.isEmpty
 const implementedVerbs = <String>{
   'ADD', 'AUTORECODE', 'COMPUTE', 'CORR', 'CORRELATIONS', 'DESCRIPTIVE',
   'DESCRIPTIVES', 'DISPLAY', 'FREQUENCIES', 'HELP', 'INCLUDE', 'LIST', 'MATCH',
-  'MRSETS', 'RANK', 'RECODE', 'SAMPLE', 'SELECT', 'SHOW', 'SORT', 'T-TEST',
-  'TTEST',
+  'MRSETS', 'RANK', 'RECODE', 'SAMPLE', 'SELECT', 'SHOW', 'SORT', 'SPLIT',
+  'T-TEST', 'TTEST', 'SAVE',
 };
 
 /// 命令动词表：用于识别「注释吞掉了后续命令」这类误用（提示用）。
@@ -318,6 +364,8 @@ const _zhHelp = '''
   DISPLAY 或 SHOW.
   INCLUDE '文件名.sps'.
   DEFINE !名字(!参数 !TOKENS(1)) … !ENDDEFINE.    !名字(取值).
+  SAVE OUTFILE='文件名.sav' [FILELABEL='标签'].
+  SPLIT FILE BY 变量 …  /  SPLIT FILE OFF.
   HELP.
 注释: `* 文字.` 与 `COMMENT 文字.` 到行尾句点或空行结束；行内用 /* 注释 */。
 宏支持 !LET、!IF/!THEN/!ELSE/!ENDIF、!DO … !TO !BY … !DOEND。
@@ -344,6 +392,8 @@ Supported commands (subset):
   DISPLAY or SHOW.
   INCLUDE 'file.sps'.
   DEFINE !name(!arg !TOKENS(1)) … !ENDDEFINE.    !name(value).
+  SAVE OUTFILE='file.sav' [FILELABEL='label'].
+  SPLIT FILE BY vars …  /  SPLIT FILE OFF.
   HELP.
 Comments: `* text.` and `COMMENT text.` end at a dot at end of line or a blank
   line; inline comments use /* … */.
@@ -462,12 +512,14 @@ class _RunContext {
     required this.files,
     required this.macros,
     required this.include,
+    required this.saver,
   });
 
   final SyntaxMessages messages;
   final Map<String, Dataset> files;
   final MacroTable macros;
   final SyntaxIncludeResolver? include;
+  final SyntaxSaver? saver;
   final Set<String> includeStack = {};
   int includeDepth = 0;
 }
@@ -493,12 +545,14 @@ class SyntaxExecutor {
     Map<String, Dataset> files = const {},
     MacroTable? macros,
     SyntaxIncludeResolver? include,
+    SyntaxSaver? saver,
   }) {
     final ctx = _RunContext(
       messages: messages,
       files: files,
       macros: macros ?? MacroTable(),
       include: include,
+      saver: saver,
     );
     return _runSource(source, ds, ctx, null);
   }
@@ -557,7 +611,7 @@ class SyntaxExecutor {
           break;
         }
 
-        final r = _execute(cmd, ds, ctx.messages, ctx.files);
+        final r = _execute(cmd, ds, ctx.messages, ctx.files, saver: ctx.saver);
         entries.add(_Entry(
           start,
           seq++,
@@ -679,7 +733,8 @@ class SyntaxExecutor {
   }
 
   static SyntaxResult _execute(SyntaxCommand cmd, Dataset ds,
-      SyntaxMessages messages, Map<String, Dataset> files) {
+      SyntaxMessages messages, Map<String, Dataset> files,
+      {SyntaxSaver? saver}) {
     try {
       switch (cmd.verb) {
         case 'ADD':
@@ -739,6 +794,10 @@ class SyntaxExecutor {
             ok: true,
             output: messages.helpText,
           );
+        case 'SAVE':
+          return _save(cmd, ds, messages, saver: saver);
+        case 'SPLIT':
+          return _split(cmd, ds, messages);
         default:
           return SyntaxResult(
             command: cmd.raw,
@@ -753,6 +812,71 @@ class SyntaxExecutor {
         output: messages.error('$e'),
       );
     }
+  }
+
+  /// `SAVE OUTFILE='path' [FILELABEL='label']`：经调用方的写出器写成 .sav。
+  static SyntaxResult _save(SyntaxCommand cmd, Dataset ds, SyntaxMessages messages,
+      {SyntaxSaver? saver}) {
+    final rest = cmd.raw.replaceFirst(
+        RegExp(r'^\s*SAVE\b', caseSensitive: false), '');
+    final outMatch =
+        RegExp(r'''OUTFILE\s*=\s*['"]([^'"]+)['"]''', caseSensitive: false)
+            .firstMatch(rest);
+    final quoted = RegExp('''['"]([^'"]+)['"]''').firstMatch(rest);
+    final path = outMatch?.group(1) ?? quoted?.group(1);
+    if (path == null || path.isEmpty) {
+      return SyntaxResult(command: cmd.raw, ok: false,
+          output: messages.saveSyntax);
+    }
+    if (saver == null) {
+      return SyntaxResult(command: cmd.raw, ok: false,
+          output: messages.saveUnavailable);
+    }
+    final ok = saver(path, ds);
+    if (!ok) {
+      return SyntaxResult(command: cmd.raw, ok: false,
+          output: messages.saveFailed);
+    }
+    return SyntaxResult(command: cmd.raw, ok: true,
+        output: messages.saveSuccess(path, ds.nCases, ds.nVars));
+  }
+
+  /// `SPLIT FILE BY v1 v2 …` / `SPLIT FILE OFF`：设置活动数据集的拆分变量。
+  ///
+  /// 存为逗号分隔的名字（模型沿用单一字符串字段），分析层负责按组合分组。
+  static SyntaxResult _split(
+      SyntaxCommand cmd, Dataset ds, SyntaxMessages messages) {
+    final rest = cmd.raw.replaceFirst(
+        RegExp(r'^\s*SPLIT\s+FILE\b', caseSensitive: false), '').trim();
+    if (RegExp(r'^OFF\b', caseSensitive: false).hasMatch(rest)) {
+      ds.splitVariable = null;
+      return SyntaxResult(command: cmd.raw, ok: true,
+          output: 'SPLIT FILE OFF');
+    }
+    final by = rest.replaceFirst(
+        RegExp(r'^BY\b', caseSensitive: false), '').trim();
+    if (by.isEmpty) {
+      return SyntaxResult(command: cmd.raw, ok: false,
+          output: messages.splitSyntax);
+    }
+    final names = by
+        .split(RegExp(r'[\s,]+'))
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (names.isEmpty) {
+      return SyntaxResult(command: cmd.raw, ok: false,
+          output: messages.splitSyntax);
+    }
+    for (final n in names) {
+      if (ds.indexOf(n) < 0) {
+        return SyntaxResult(command: cmd.raw, ok: false,
+            output: messages.splitUnknownVar(n));
+      }
+    }
+    ds.splitVariable = names.join(',');
+    return SyntaxResult(command: cmd.raw, ok: true,
+        output: 'SPLIT FILE BY ${names.join(", ")} '
+            '(${ds.nCases} cases)');
   }
 
   static SyntaxResult _compute(

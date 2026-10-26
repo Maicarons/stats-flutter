@@ -63,6 +63,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importCsv => '导入 CSV…';
 
   @override
+  String get exportSav => '导出为 SPSS (.sav)';
+
+  @override
   String get exportCsv => '导出 CSV';
 
   @override

@@ -1,7 +1,6 @@
 /// SPSS .sav 导入
 library;
 
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -14,18 +13,17 @@ import '../../shared/dataset_store.dart';
 Future<void> importSavInteractive(BuildContext context) async {
   final l10n = AppLocalizations.of(context);
   try {
-    final result = await FilePicker.platform.pickFiles(
+    final f = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['sav'],
-      withData: true,
     );
-    if (result == null || result.files.isEmpty) return;
-    final f = result.files.first;
-    Uint8List? bytes = f.bytes;
-    if (bytes == null && f.path != null) {
-      bytes = await File(f.path!).readAsBytes();
+    if (f == null) return;
+    Uint8List bytes;
+    try {
+      bytes = await f.readAsBytes();
+    } catch (_) {
+      return;
     }
-    if (bytes == null) return;
     final info = SavReader.readBytes(bytes, name: f.name.replaceAll('.sav', ''));
     datasetStore.replace(info.dataset);
     if (context.mounted) {

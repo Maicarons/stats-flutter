@@ -18,6 +18,7 @@
   "variableName": "Variable name",
   "loadDemo": "Load demo data",
   "importCsv": "Import CSV…",
+  "exportSav": "Export as SPSS (.sav)",
   "exportCsv": "Export CSV",
   "showValueLabels": "Show value labels",
   "cancel": "Cancel",

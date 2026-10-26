@@ -91,6 +91,29 @@ MATCH FILES /FILE=* /TABLE=查表文件 /BY 编号.
 - 字典按 PSPP `merge_dictionaries` 的规则对齐：先出现的文件定义的变量胜出，后面的文件只补空缺；字符串宽度取最大；类型冲突报错；`MATCH TABLES` 里重复键取先出现的个案；
 - 语法编辑器顶部可「附加数据集」把另一个 `.sav` / 工程文件挂进来，命令行里的 `*` 代表当前数据集；数据页菜单也提供图形化的「合并数据集…」。
 
+## SAVE：写出 SPSS 系统文件（.sav）
+
+```text
+SAVE OUTFILE='结果.sav' [FILELABEL='标签'].
+```
+
+- 把当前数据集写成**未压缩的 `.sav` 系统文件**（`$FL2`、UTF-8 编码），PSPP / SPSS 可直接打开；
+- 变量名超过 8 字符时写长名记录（7/13）；数值 / 字符串变量、变量标签、值标签（数值型）、离散与范围缺失值一并写回；
+- 相对路径按当前 `.sps` 文件所在目录解析；
+- 数据页菜单的「导出数据」也提供图形化的 `.sav` 导出（写到应用文档目录，可分享）。
+
+## SPLIT FILE：按组重复分析
+
+```text
+SPLIT FILE BY gender.
+DESCRIPTIVES post.
+SPLIT FILE OFF.
+```
+
+- `SPLIT FILE BY 变量…` 后运行的分析会**按拆分变量取值组合分组，逐组输出**；每组一张报告卡片，标题带组标签（如 `gender = 男`，取值显示沿用值标签）；
+- 支持多个拆分变量（按取值组合分组）；个别组内出错不影响其余组；
+- `SPLIT FILE OFF.` 取消拆分；数据页菜单的「拆分文件…」是同一状态的图形入口。
+
 ## 语法编辑器
 
 入口：数据页菜单 →「语法编辑器…」
@@ -107,6 +130,8 @@ RECODE gender (1=0) (2=1) INTO sex.
 AUTORECODE VARIABLES=city /INTO=city_n.
 RANK VARIABLES=post (A) /RANK /NTILES(4).
 SAMPLE 0.5 /SEED=20261016.
+SAVE OUTFILE='结果.sav'.
+SPLIT FILE BY gender.
 MRSETS /MDGROUP NAME=$m VARIABLES=a b VALUE=1.
 ADD FILES /FILE=* /FILE=其它文件.
 MATCH FILES /FILE=* /TABLE=查表文件 /BY 编号.
@@ -125,6 +150,6 @@ HELP.
 数据页菜单还提供：
 
 - **加权个案** WEIGHT CASES
-- **拆分文件** SPLIT FILE
+- **拆分文件** SPLIT FILE（分析结果按组重复输出，见上文）
 - **查找个案**
-- CSV 导入 / 导出
+- CSV 导入 / 导出、**SPSS `.sav` 导出**（未压缩系统文件，PSPP / SPSS 可读）

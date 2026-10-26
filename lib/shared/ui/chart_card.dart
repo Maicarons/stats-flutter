@@ -173,7 +173,7 @@ abstract final class ChartStyle {
                     return const SizedBox.shrink();
                   }
                   return SideTitleWidget(
-                    axisSide: meta.axisSide,
+                    meta: meta,
                     child: Text(
                       bottomLabels[i],
                       style: style,

@@ -36,7 +36,7 @@
 - 双击/长按编辑，Enter / Tab / Esc 导航
 - **值标签增删改**、缺失值
 - 表格**默认不显示值标签**
-- CSV 导入导出、加权、拆分、查找
+- CSV 导入导出、**SPSS `.sav` 导出**（未压缩系统文件，PSPP / SPSS 可读）、加权、拆分、查找
 
 ### 数据变换
 COMPUTE · RECODE · COUNT · RANK · SORT CASES · SELECT IF · AGGREGATE · FLIP
@@ -55,6 +55,8 @@ COMPUTE · RECODE · COUNT · RANK · SORT CASES · SELECT IF · AGGREGATE · FL
 可执行子集：`DESCRIPTIVES` `T-TEST` `COMPUTE` `RECODE` `SORT` `SELECT IF` `LIST` `HELP`
 
 语法层：PSPP 注释语义（`*` / `COMMENT`）、宏（`DEFINE`、位置与关键字参数、`!LET` / `!IF` / `!DO`、`!CONCAT` …）、`INCLUDE`（相对路径 + 循环保护）、逐命令错误定位、`.sps` 往返（剥 BOM、非法字节替换为 U+FFFD）
+
+v1.6.0 新增：`SAVE OUTFILE='x.sav'` 写出 SPSS 系统文件；`SPLIT FILE BY …` / `OFF` 使所有分析按拆分变量组合逐组输出（每组一张报告卡片）
 
 ### 输出与导出
 - 会话级输出树：每个分析每次运行一张卡片，最新在前、默认只展开最新一张

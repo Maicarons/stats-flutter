@@ -18,6 +18,7 @@
   "variableName": "变量名",
   "loadDemo": "加载示例数据",
   "importCsv": "导入 CSV…",
+  "exportSav": "导出为 SPSS (.sav)",
   "exportCsv": "导出 CSV",
   "showValueLabels": "显示值标签",
   "cancel": "取消",

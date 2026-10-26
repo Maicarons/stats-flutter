@@ -14,10 +14,12 @@ Computation lives in the pure-Dart package `statkit` (no Flutter dependency).
 - `logisticRegression` / `logisticRegressionFull` (binary), `multinomialLogistic`
 - `factorPca`
 - `ChiSquareTest.goodnessOfFit` / `independence`
-- `Nonparametric.*` (Mann-Whitney, Wilcoxon, Kruskal-Wallis, Jonckheere-Terpstra, Lilliefors, …)
+- `Nonparametric.*` (Mann-Whitney, Wilcoxon, Kruskal-Wallis, Jonckheere-Terpstra, Lilliefors, …) and `NparExtended.kendallW` / `ksExact` / `exactKolmogorovCdf`
 - `Reliability.cronbachAlpha`
 - `KMeans.cluster`
 - Distribution helpers: `normCdf`, `tTwoTail`, `chiSquareSf`, `fSf`, …
+
+statkit **0.6.0** adds `NparExtended.kendallW` (Kendall's coefficient of concordance W, the normalized form of the Friedman χ²) and `NparExtended.ksExact` / `exactKolmogorovCdf` (one-sample KS with an **exact** p-value via the Marsaglia–Tsang–Wang 2003 Durbin matrix method, for a fully specified continuous distribution; use Lilliefors when parameters are estimated from the sample).
 
 Procedures added in statkit **0.5.0** (Jonckheere-Terpstra trend, permutation tests, Lilliefors, multinomial logistic regression, ANCOVA) are marked `@experimental`: their signature may change in a minor release.
 
@@ -35,6 +37,6 @@ Procedures added in statkit **0.5.0** (Jonckheere-Terpstra trend, permutation te
 cd packages/statkit && dart test
 ```
 
-91 cases cover descriptives, distributions, t tests, ANOVA / ANCOVA, correlation, regression, logistic, nonparametric and permutation tests, reliability and K-means. The PSPP 2.1.2 parity cases live in `test/pspp_parity_test.dart` on the app side and run with CI.
+111 cases cover descriptives, distributions, t tests, ANOVA / ANCOVA, correlation, regression, logistic, nonparametric and permutation tests, reliability and K-means. The PSPP 2.1.2 parity cases live in `test/pspp_parity_test.dart` on the app side and run with CI.
 
 See the [statkit API](/en/api/statkit) for the full reference.

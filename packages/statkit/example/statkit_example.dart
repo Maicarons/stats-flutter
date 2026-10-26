@@ -62,6 +62,22 @@ void main() {
       'p=${formatP(mw.p)} mean ranks=${formatNum(mw.meanRank1 ?? double.nan)}'
       ' / ${formatNum(mw.meanRank2 ?? double.nan)}');
 
+  // ---- Kendall W: judge x object agreement --------------------------------
+  final kw = NparExtended.kendallW([
+    [1, 1, 1, 1],
+    [2, 2, 2, 2],
+    [3, 3, 3, 3],
+  ]);
+  print('Kendall W        W=${formatNum(kw.statistic)} '
+      'chi2=${formatNum(kw.extra['chiSquare'] as double)} '
+      'p=${formatP(kw.p)}');
+
+  // ---- Exact one-sample KS against a fully specified U(0,1) ---------------
+  final ksx = NparExtended.ksExact(group1.map((v) => v / 250).toList(),
+      (x) => x.clamp(0.0, 1.0));
+  print('KS exact         D=${formatNum(ksx.statistic)} '
+      'p=${formatP(ksx.p)} (Marsaglia-Tsang-Wang)');
+
   // ---- Permutation test: no distributional assumption ---------------------
   final perm =
       Permutation.twoSampleMeanDifference(group1, group2, permutations: 5000);

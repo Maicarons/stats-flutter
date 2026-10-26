@@ -63,6 +63,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importCsv => 'Import CSV…';
 
   @override
+  String get exportSav => 'Export as SPSS (.sav)';
+
+  @override
   String get exportCsv => 'Export CSV';
 
   @override

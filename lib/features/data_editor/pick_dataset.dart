@@ -6,7 +6,6 @@
 library;
 
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:csv/csv.dart';
@@ -27,19 +26,18 @@ class PickedDataset {
 
 /// 弹出文件选择框并读出一个数据集；用户取消或读不出数据时返回 null。
 Future<PickedDataset?> pickDatasetFile() async {
-  final result = await FilePicker.platform.pickFiles(
+  final f = await FilePicker.pickFile(
     type: FileType.custom,
     allowedExtensions: ['sav', 'csv', 'tsv', 'txt', 'xlsx'],
-    withData: true,
   );
-  if (result == null || result.files.isEmpty) return null;
-  final f = result.files.first;
+  if (f == null) return null;
   final lower = f.name.toLowerCase();
-  Uint8List? bytes = f.bytes;
-  if (bytes == null && f.path != null) {
-    bytes = await File(f.path!).readAsBytes();
+  Uint8List bytes;
+  try {
+    bytes = await f.readAsBytes();
+  } catch (_) {
+    return null;
   }
-  if (bytes == null) return null;
   final base = f.name.replaceAll(RegExp(r'\.(sav|csv|tsv|txt|xlsx)$'), '');
   final Dataset ds;
   if (lower.endsWith('.sav')) {

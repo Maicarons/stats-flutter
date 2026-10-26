@@ -2,12 +2,14 @@
 library;
 
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 
+import '../../core/io/sav_write.dart';
 import '../../core/models/dataset.dart';
 import '../../core/syntax/syntax_engine.dart';
 import '../../shared/dataset_store.dart';
@@ -104,18 +106,17 @@ LIST.
   Future<void> _openSyntax() async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final r = await FilePicker.platform.pickFiles(
+    final f = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['sps', 'txt'],
-      withData: true,
     );
-    if (r == null || r.files.isEmpty) return;
-    final f = r.files.first;
-    var bytes = f.bytes;
-    if (bytes == null && f.path != null) {
-      bytes = await File(f.path!).readAsBytes();
+    if (f == null) return;
+    Uint8List bytes;
+    try {
+      bytes = await f.readAsBytes();
+    } catch (_) {
+      return;
     }
-    if (bytes == null) return;
     final decoded = SpsCodec.decode(bytes);
     if (!mounted) return;
     setState(() {
@@ -142,12 +143,12 @@ LIST.
     var path = saveAs ? null : _spsPath;
     if (path == null) {
       try {
-        path = await FilePicker.platform.saveFile(
+        final uri = await FilePicker.saveFile(
           dialogTitle: l10n.spsSaveAs,
           fileName: _defaultSpsName(),
-          type: FileType.custom,
-          allowedExtensions: const ['sps'],
+          bytes: Uint8List.fromList(SpsCodec.encode(_codeCtrl.text)),
         );
+        path = uri?.toFilePath();
       } catch (_) {
         path = null; // 该平台没有「另存为」对话框
       }
@@ -205,6 +206,20 @@ LIST.
     );
   }
 
+  /// `SAVE OUTFILE` 的写出器（core 不碰 `dart:io`）：相对路径落到应用
+  /// 文档目录；成功与否由写文件的结果决定。
+  bool _saveSav(String path, Dataset ds) {
+    try {
+      var p = path.trim();
+      if (!p.toLowerCase().endsWith('.sav')) p = '$p.sav';
+      final f = File(p);
+      SavWriter.write(ds, f.isAbsolute ? p : '${_spsDir ?? ''}$p');
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   void _run() {
     final l10n = AppLocalizations.of(context);
     final results = SyntaxExecutor.run(
@@ -213,6 +228,7 @@ LIST.
       messages: isZhUi(context) ? SyntaxMessages.zh : SyntaxMessages.en,
       files: _attached,
       include: _resolveInclude,
+      saver: _saveSav,
     );
     var ok = 0, fail = 0;
     for (final r in results) {

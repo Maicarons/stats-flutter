@@ -206,6 +206,12 @@ abstract class AppLocalizations {
   /// **'Import CSV…'**
   String get importCsv;
 
+  /// No description provided for @exportSav.
+  ///
+  /// In en, this message translates to:
+  /// **'Export as SPSS (.sav)'**
+  String get exportSav;
+
   /// No description provided for @exportCsv.
   ///
   /// In en, this message translates to:
