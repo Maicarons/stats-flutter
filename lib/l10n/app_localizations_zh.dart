@@ -63,6 +63,50 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importCsv => '导入 CSV…';
 
   @override
+  String get anKendallW => 'Kendall W 一致性';
+
+  @override
+  String get anKendallWDesc => '多位评委（变量）对同一批对象（个案）排序的一致性系数';
+
+  @override
+  String get anKsExact => 'KS 精确检验';
+
+  @override
+  String get anKsExactDesc => '对完全指定分布（均匀 / 正态 / 指数）的单样本 KS 精确 p';
+
+  @override
+  String get kendallWTitle => 'Kendall W 一致性检验';
+
+  @override
+  String get kendallWNote =>
+      'W ∈ [0,1]：1 = 排序完全一致；p 来自 Friedman χ²(k−1) 渐近。含缺失值的个案整行剔除。';
+
+  @override
+  String get ksExactTitle => '单样本 KS 精确检验';
+
+  @override
+  String get ksTestDist => '检验分布';
+
+  @override
+  String get ksDistUniform => '均匀 U(0,1)';
+
+  @override
+  String get ksDistNormal => '正态 N(μ, σ)';
+
+  @override
+  String get ksDistExponential => '指数 Exp(λ)';
+
+  @override
+  String get ksExactNote =>
+      '精确 p 由 Marsaglia–Tsang–Wang（2003）Durbin 矩阵法给出，要求分布参数完全指定（不由样本估计）；参数未知时请用「正态性」页的 Lilliefors 口径。';
+
+  @override
+  String get meanRank => '平均秩';
+
+  @override
+  String get pExact => '精确 p';
+
+  @override
   String get exportSav => '导出为 SPSS (.sav)';
 
   @override

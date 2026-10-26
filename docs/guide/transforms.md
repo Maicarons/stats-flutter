@@ -102,6 +102,36 @@ SAVE OUTFILE='结果.sav' [FILELABEL='标签'].
 - 相对路径按当前 `.sps` 文件所在目录解析；
 - 数据页菜单的「导出数据」也提供图形化的 `.sav` 导出（写到应用文档目录，可分享）。
 
+## 程序流：DO IF / LOOP / VECTOR（v1.7.0）
+
+```text
+DO IF score >= 85.
+COMPUTE grade = 1.
+ELSE IF score >= 70.
+COMPUTE grade = 2.
+ELSE.
+COMPUTE grade = 3.
+END IF.
+
+LOOP #i = 1 TO 10 BY 2.
+COMPUTE acc = acc + #i.
+END LOOP.
+
+LOOP IF k < 100.
+COMPUTE k = k + 7.
+BREAK IF k >= 50.
+END LOOP.
+
+VECTOR v = x1 TO x10.
+COMPUTE total = v(1) + v(2).
+```
+
+- **DO IF / ELSE IF / ELSE / END IF**：条件**逐案**求值，每个个案取第一个成立的分支；条件支持 `< > <= >= = ~= !=` 与 `AND OR NOT`（不区分大小写）；
+- **LOOP / END LOOP**：`LOOP 变量 = 起点 TO 终点 [BY 步长]`（含端点）与 `LOOP IF 条件` 两种循环头；`BREAK [IF 条件]` 提前退出；`END LOOP [IF 条件]` 按条件终止；循环变量约定 `#i` 风格，体内可直接引用；迭代上限 10000（防死循环）；
+- **VECTOR**：`VECTOR 名 = 首变量 TO 末变量.`（把一组相邻编号变量登记为向量）或 `VECTOR 名(k).`（引用 名1…名k，缺失的自动创建）；表达式里用 `名(下标)` 引用，下标从 1 起；
+- 块内仅支持 COMPUTE 与 RECODE；`INCLUDE` 不能放进块内；
+- 无条件的 `LOOP.` 必须配合 `BREAK` 结束。
+
 ## SPLIT FILE：按组重复分析
 
 ```text
@@ -132,6 +162,14 @@ RANK VARIABLES=post (A) /RANK /NTILES(4).
 SAMPLE 0.5 /SEED=20261016.
 SAVE OUTFILE='结果.sav'.
 SPLIT FILE BY gender.
+DO IF gender = 1.
+COMPUTE bonus = 10.
+ELSE.
+COMPUTE bonus = 20.
+END IF.
+LOOP #i = 1 TO 4.
+COMPUTE acc = acc + #i.
+END LOOP.
 MRSETS /MDGROUP NAME=$m VARIABLES=a b VALUE=1.
 ADD FILES /FILE=* /FILE=其它文件.
 MATCH FILES /FILE=* /TABLE=查表文件 /BY 编号.

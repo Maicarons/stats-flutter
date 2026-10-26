@@ -24,6 +24,8 @@
 | 正态性 | `normalityTest` |
 | 均值表 | `meansTable` |
 
+v1.7.0 起，`NparExtended.kendallW` 与 `NparExtended.ksExact` 同时在应用侧开放：分析中心的 **Kendall W 一致性**（多选变量 = 评委、个案 = 对象，任一评委缺失整行剔除）与 **KS 精确检验**（均匀 U(0,1) / 正态 N(μ,σ) / 指数 Exp(λ) 三种完全指定分布，参数手填而非由样本估计）。
+
 statkit **0.6.0** 新增：`NparExtended.kendallW`（Kendall 一致性系数 W，Friedman χ² 的规范化形式）与 `NparExtended.ksExact` / `exactKolmogorovCdf`（单样本 KS **精确** p，Marsaglia–Tsang–Wang 2003 Durbin 矩阵法，适用于完全指定的连续分布；参数由样本估计时仍用 Lilliefors）。
 
 statkit **0.5.0** 新增的过程（Jonckheere-Terpstra 有序趋势检验、置换检验、Lilliefors 校正、多项 logistic 回归、ANCOVA）标注为 `@experimental`：接口可能在次版本里调整。

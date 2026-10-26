@@ -11,12 +11,21 @@ import '../models/dataset.dart';
 // 因此这里可以有意使用 statkit 标注为 @experimental 的入口。
 // ignore_for_file: experimental_member_use
 
-/// 表达式计算（支持 + - * / ( ) 与常用函数的轻量求值）
+/// 表达式计算：算术 + - * / ^ ( ) 与常用函数；v1.7.0 起支持
+/// 比较（< > <= >= = == ~= !=）与逻辑（AND OR NOT，不区分大小写）、
+/// `#` 临时变量，以及 VECTOR 引用 `向量名(下标)`（下标 1 起）。
+///
+/// 布尔值用 1.0 / 0.0 表示；返回 `null` = 无法求值（调用方按缺失处理）。
 class ComputeEngine {
-  static double? evaluate(String expr, Map<String, double> vars) {
+  /// [vectors] 是 VECTOR 登记表：向量名 → 对应变量名列表（1-based 下标取）。
+  static double? evaluate(
+    String expr,
+    Map<String, double> vars, {
+    Map<String, List<String>>? vectors,
+  }) {
     try {
-      final tokens = _tokenize(expr.replaceAll(' ', ''));
-      final r = _parseExpr(tokens, vars, 0);
+      final tokens = _tokenize(expr);
+      final r = _parseOr(tokens, vars, vectors ?? const {}, 0);
       if (r.pos < tokens.length) return null;
       return r.value;
     } catch (_) {
@@ -29,7 +38,11 @@ class ComputeEngine {
     var i = 0;
     while (i < s.length) {
       final ch = s[i];
-      if ('+-*/()^'.contains(ch)) {
+      final two = i + 1 < s.length ? s.substring(i, i + 2) : '';
+      if (two == '<=' || two == '>=' || two == '~=' || two == '!=') {
+        out.add(two);
+        i += 2;
+      } else if ('+-*/()^=<>&|~'.contains(ch)) {
         out.add(ch);
         i++;
       } else if (RegExp(r'[0-9.]').hasMatch(ch)) {
@@ -38,9 +51,9 @@ class ComputeEngine {
           i++;
         }
         out.add(s.substring(start, i));
-      } else if (RegExp(r'[A-Za-z_]').hasMatch(ch)) {
+      } else if (RegExp(r'[A-Za-z_#]').hasMatch(ch)) {
         final start = i;
-        while (i < s.length && RegExp(r'[A-Za-z0-9_]').hasMatch(s[i])) {
+        while (i < s.length && RegExp(r'[A-Za-z0-9_#]').hasMatch(s[i])) {
           i++;
         }
         out.add(s.substring(start, i));
@@ -51,22 +64,88 @@ class ComputeEngine {
     return out;
   }
 
-  static _Val _parseExpr(List<String> t, Map<String, double> vars, int pos) {
-    var cur = _parseTerm(t, vars, pos);
+  static bool _isWord(String tok, String word) => tok.toUpperCase() == word;
+
+  static _Val _parseOr(List<String> t, Map<String, double> vars,
+      Map<String, List<String>> vectors, int pos) {
+    var cur = _parseAnd(t, vars, vectors, pos);
+    while (cur.pos < t.length &&
+        (_isWord(t[cur.pos], 'OR') || t[cur.pos] == '|')) {
+      final next = _parseAnd(t, vars, vectors, cur.pos + 1);
+      cur = _Val((cur.value != 0 || next.value != 0) ? 1 : 0, next.pos);
+    }
+    return cur;
+  }
+
+  static _Val _parseAnd(List<String> t, Map<String, double> vars,
+      Map<String, List<String>> vectors, int pos) {
+    var cur = _parseNot(t, vars, vectors, pos);
+    while (cur.pos < t.length &&
+        (_isWord(t[cur.pos], 'AND') || t[cur.pos] == '&')) {
+      final next = _parseNot(t, vars, vectors, cur.pos + 1);
+      cur = _Val((cur.value != 0 && next.value != 0) ? 1 : 0, next.pos);
+    }
+    return cur;
+  }
+
+  static _Val _parseNot(List<String> t, Map<String, double> vars,
+      Map<String, List<String>> vectors, int pos) {
+    if (pos < t.length &&
+        (t[pos] == '~' && !(pos + 1 < t.length && t[pos + 1] == '='))) {
+      final v = _parseNot(t, vars, vectors, pos + 1);
+      return _Val(v.value == 0 ? 1 : 0, v.pos);
+    }
+    if (pos < t.length && _isWord(t[pos], 'NOT')) {
+      final v = _parseNot(t, vars, vectors, pos + 1);
+      return _Val(v.value == 0 ? 1 : 0, v.pos);
+    }
+    return _parseComparison(t, vars, vectors, pos);
+  }
+
+  static const _cmpOps = {
+    '<': 0, '>': 0, '<=': 0, '>=': 0, '=': 0, '==': 0, '~=': 0, '!=': 0,
+  };
+
+  static _Val _parseComparison(List<String> t, Map<String, double> vars,
+      Map<String, List<String>> vectors, int pos) {
+    final left = _parseAdditive(t, vars, vectors, pos);
+    if (left.pos < t.length && _cmpOps.containsKey(t[left.pos])) {
+      final op = t[left.pos];
+      final right = _parseAdditive(t, vars, vectors, left.pos + 1);
+      final a = left.value;
+      final b = right.value;
+      final ok = switch (op) {
+        '<' => a < b,
+        '>' => a > b,
+        '<=' => a <= b,
+        '>=' => a >= b,
+        '=' || '==' => a == b,
+        '~=' || '!=' => a != b,
+        _ => false,
+      };
+      return _Val(ok ? 1 : 0, right.pos);
+    }
+    return left;
+  }
+
+  static _Val _parseAdditive(List<String> t, Map<String, double> vars,
+      Map<String, List<String>> vectors, int pos) {
+    var cur = _parseTerm(t, vars, vectors, pos);
     while (cur.pos < t.length && (t[cur.pos] == '+' || t[cur.pos] == '-')) {
       final op = t[cur.pos];
-      final next = _parseTerm(t, vars, cur.pos + 1);
+      final next = _parseTerm(t, vars, vectors, cur.pos + 1);
       cur = _Val(
           op == '+' ? cur.value + next.value : cur.value - next.value, next.pos);
     }
     return cur;
   }
 
-  static _Val _parseTerm(List<String> t, Map<String, double> vars, int pos) {
-    var cur = _parseFactor(t, vars, pos);
+  static _Val _parseTerm(List<String> t, Map<String, double> vars,
+      Map<String, List<String>> vectors, int pos) {
+    var cur = _parseFactor(t, vars, vectors, pos);
     while (cur.pos < t.length && (t[cur.pos] == '*' || t[cur.pos] == '/')) {
       final op = t[cur.pos];
-      final next = _parseFactor(t, vars, cur.pos + 1);
+      final next = _parseFactor(t, vars, vectors, cur.pos + 1);
       cur = _Val(
           op == '*'
               ? cur.value * next.value
@@ -76,29 +155,44 @@ class ComputeEngine {
     return cur;
   }
 
-  static _Val _parseFactor(List<String> t, Map<String, double> vars, int pos) {
+  static _Val _parseFactor(List<String> t, Map<String, double> vars,
+      Map<String, List<String>> vectors, int pos) {
     if (pos >= t.length) throw const FormatException('unexpected end');
     final tok = t[pos];
     if (tok == '(') {
-      final inner = _parseExpr(t, vars, pos + 1);
+      final inner = _parseOr(t, vars, vectors, pos + 1);
       if (inner.pos >= t.length || t[inner.pos] != ')') {
         throw const FormatException('missing )');
       }
       return _Val(inner.value, inner.pos + 1);
     }
     if (tok == '-') {
-      final f = _parseFactor(t, vars, pos + 1);
+      final f = _parseFactor(t, vars, vectors, pos + 1);
       return _Val(-f.value, f.pos);
     }
     if (tok == '+') {
-      return _parseFactor(t, vars, pos + 1);
+      return _parseFactor(t, vars, vectors, pos + 1);
     }
     final num = double.tryParse(tok);
     if (num != null) return _Val(num, pos + 1);
 
     if (pos + 1 < t.length && t[pos + 1] == '(') {
+      // VECTOR 引用：向量名(1-based 下标)，优先于同名函数
+      if (vectors.containsKey(tok)) {
+        final idxV = _parseOr(t, vars, vectors, pos + 2);
+        if (idxV.pos >= t.length || t[idxV.pos] != ')') {
+          throw const FormatException('missing )');
+        }
+        final list = vectors[tok]!;
+        final idx = idxV.value.round();
+        final name = (idx >= 1 && idx <= list.length) ? list[idx - 1] : null;
+        final v = name == null
+            ? double.nan
+            : (vars[name] ?? vars[name.toLowerCase()] ?? double.nan);
+        return _Val(v, idxV.pos + 1);
+      }
       final name = tok.toLowerCase();
-      final arg = _parseExpr(t, vars, pos + 2);
+      final arg = _parseOr(t, vars, vectors, pos + 2);
       if (arg.pos >= t.length || t[arg.pos] != ')') {
         throw const FormatException('missing )');
       }
@@ -194,11 +288,18 @@ class TransformResult {
 }
 
 class Transforms {
-  /// COMPUTE：对每个个案计算表达式写入目标变量
+  /// COMPUTE：对每个个案计算表达式写入目标变量。
+  ///
+  /// [rows] 限定作用的行（DO IF / 程序流的 case 掩码，null = 全部）；
+  /// [extraVars] 注入额外求值变量（如 LOOP 计数变量 `#i`）；
+  /// [vectors] 是 VECTOR 登记表，表达式里可用 `向量名(下标)` 引用。
   static TransformResult compute(
     Dataset ds, {
     required String targetVar,
     required String expression,
+    Set<int>? rows,
+    Map<String, double>? extraVars,
+    Map<String, List<String>>? vectors,
   }) {
     var ti = ds.indexOf(targetVar);
     if (ti < 0) {
@@ -206,13 +307,16 @@ class Transforms {
       ti = ds.nVars - 1;
     }
     var changed = 0;
-    for (final row in ds.cases) {
+    for (var ri = 0; ri < ds.cases.length; ri++) {
+      if (rows != null && !rows.contains(ri)) continue;
+      final row = ds.cases[ri];
       final vars = <String, double>{};
       for (var i = 0; i < ds.nVars && i < row.length; i++) {
         final raw = row[i];
         if (raw is num) vars[ds.variables[i].name] = raw.toDouble();
       }
-      final val = ComputeEngine.evaluate(expression, vars);
+      if (extraVars != null) vars.addAll(extraVars);
+      final val = ComputeEngine.evaluate(expression, vars, vectors: vectors);
       while (row.length <= ti) {
         row.add(null);
       }
@@ -232,6 +336,7 @@ class Transforms {
     required String sourceVar,
     required String targetVar,
     required Map<String, String> rules,
+    Set<int>? rows,
   }) {
     final si = ds.indexOf(sourceVar);
     if (si < 0) throw ArgumentError('source variable not found');
@@ -247,7 +352,9 @@ class Transforms {
       map[oldV] = newV;
     }
     var changed = 0;
-    for (final row in ds.cases) {
+    for (var ri = 0; ri < ds.cases.length; ri++) {
+      if (rows != null && !rows.contains(ri)) continue;
+      final row = ds.cases[ri];
       final raw = si < row.length ? row[si] : null;
       while (row.length <= ti) {
         row.add(null);

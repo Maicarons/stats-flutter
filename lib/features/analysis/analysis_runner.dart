@@ -46,6 +46,11 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   int _kClusters = 3;
   final _muCtrl = TextEditingController(text: '0');
 
+  /// KS 精确检验的分布参数（完全指定，不由样本估计）。
+  _KsDist _ksDist = _KsDist.uniform;
+  final _sigmaCtrl = TextEditingController(text: '1');
+  final _lambdaCtrl = TextEditingController(text: '1');
+
   /// 输出树：同一分析连跑多次会累积（会话内保留，最新在最前）。
   List<AnalysisReport> _reports = const [];
 
@@ -204,6 +209,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     'qqplot',
     'normality',
     'examine_full',
+    'ks_exact',
   };
 
   /// 一个数值变量 + 必需分组变量。
@@ -235,6 +241,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     'correlation',
     'factor_pca',
     'factor_full',
+    'kendall_w',
   };
 
   /// 成对变量（正好 2 个）。
@@ -408,6 +415,50 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                 decoration: InputDecoration(labelText: l10n.testValue),
                 keyboardType: TextInputType.number,
               ),
+            ],
+            if (id == 'ks_exact') ...[
+              const SizedBox(height: 12),
+              Text(l10n.ksTestDist,
+                  style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 6),
+              SegmentedButton<_KsDist>(
+                segments: [
+                  ButtonSegment(value: _KsDist.uniform, label: Text(l10n.ksDistUniform)),
+                  ButtonSegment(value: _KsDist.normal, label: Text(l10n.ksDistNormal)),
+                  ButtonSegment(value: _KsDist.exponential, label: Text(l10n.ksDistExponential)),
+                ],
+                selected: {_ksDist},
+                onSelectionChanged: (sel) =>
+                    setState(() => _ksDist = sel.first),
+              ),
+              if (_ksDist == _KsDist.normal) ...[
+                const SizedBox(height: 12),
+                Row(children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _muCtrl,
+                      decoration: const InputDecoration(labelText: 'μ'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _sigmaCtrl,
+                      decoration: const InputDecoration(labelText: 'σ'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ]),
+              ],
+              if (_ksDist == _KsDist.exponential) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _lambdaCtrl,
+                  decoration: const InputDecoration(labelText: 'λ'),
+                  keyboardType: TextInputType.number,
+                ),
+              ],
             ],
             if (id == 'stepwise') ...[
               _Dropdown(
@@ -649,6 +700,12 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
           break;
         case 'jt_trend':
           _runJtTrend();
+          break;
+        case 'kendall_w':
+          _runKendallW();
+          break;
+        case 'ks_exact':
+          _runKsExact();
           break;
         case 'permutation':
           _runPermutation();
@@ -1976,6 +2033,137 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   }
 
   /// 有序备择的趋势检验：分组按 [_orderedLevels] 的顺序进入检验。
+  /// Kendall W：多选变量 = 评委（列），个案 = 对象（行）；
+  /// 任一评委缺失的整行剔除（PSPP 口径）。
+  void _runKendallW() {
+    if (_selectedVars.length < 2) throw l10n.pleaseSelectVars;
+    final names = _selectedVars;
+    // 完整个案：k 个变量全部非缺失
+    final cols = <List<double>>[
+      for (var t = 0; t < names.length; t++) <double>[],
+    ];
+    for (final row in ds.cases) {
+      final vals = <double>[];
+      var ok = true;
+      for (var t = 0; t < names.length; t++) {
+        final i = ds.indexOf(names[t]);
+        final raw = i >= 0 && i < row.length ? row[i] : null;
+        if (raw is num && raw.isFinite && !ds.variables[i].isMissing(raw)) {
+          vals.add(raw.toDouble());
+        } else {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) {
+        for (var t = 0; t < vals.length; t++) {
+          cols[t].add(vals[t]);
+        }
+      }
+    }
+    final n = cols.isEmpty ? 0 : cols[0].length;
+    if (n < 2) throw l10n.needTwoGroups;
+    final r = NparExtended.kendallW(cols);
+    final meanRanks = (r.extra['meanRanks'] as List?)?.cast<double>();
+    _report = AnalysisReport(
+      title: l10n.kendallWTitle,
+      subtitle: names.map((v) => variableLabel(ds, v)).join(' · '),
+      sections: [
+        ReportSection(
+          heading: l10n.testResult,
+          tables: [
+            ReportTable(
+              headers: [
+                'W',
+                'χ²',
+                'df',
+                l10n.pTwoTail,
+                'k',
+                'N',
+              ],
+              rows: [
+                [
+                  formatNum(r.statistic),
+                  formatNum(r.extra['chiSquare'] as double),
+                  '${(r.extra['k'] as int) - 1}',
+                  formatP(r.p),
+                  '${r.extra['k']}',
+                  '${r.n1}',
+                ],
+              ],
+            ),
+            if (meanRanks != null)
+              ReportTable(
+                caption: l10n.mean,
+                headers: [l10n.analysisVariable, l10n.meanRank],
+                rows: [
+                  for (var t = 0; t < names.length; t++)
+                    [variableLabel(ds, names[t]), formatNum(meanRanks[t])],
+                ],
+              ),
+          ],
+          notes: l10n.kendallWNote,
+        ),
+      ],
+    );
+  }
+
+  /// 单样本 KS 精确检验：分布完全指定（均匀 / 正态 / 指数），
+  /// 精确 p 由 Marsaglia–Tsang–Wang（2003）矩阵法给出。
+  void _runKsExact() {
+    final vName = _selectedVars.isNotEmpty ? _selectedVars.first : null;
+    if (vName == null) throw l10n.pleaseSelectVars;
+    final v = MissingAware.numeric(ds, vName);
+    if (v.isEmpty) throw l10n.pleaseSelectVars;
+    double cdf(double x) => switch (_ksDist) {
+          _KsDist.uniform => x.clamp(0.0, 1.0),
+          _KsDist.normal => normCdf((x - _num(_muCtrl.text)) / _num(_sigmaCtrl.text)),
+          _KsDist.exponential =>
+            x <= 0 ? 0.0 : 1 - math.exp(-_num(_lambdaCtrl.text) * x),
+        };
+    final r = NparExtended.ksExact(v, cdf);
+    final distName = switch (_ksDist) {
+      _KsDist.uniform => 'U(0,1)',
+      _KsDist.normal =>
+        'N(${_num(_muCtrl.text).toStringAsFixed(2)}, '
+            '${_num(_sigmaCtrl.text).toStringAsFixed(2)}²)',
+      _KsDist.exponential => 'Exp(λ=${_num(_lambdaCtrl.text).toStringAsFixed(2)})',
+    };
+    _report = AnalysisReport(
+      title: l10n.ksExactTitle,
+      subtitle: '${variableLabel(ds, vName)} · $distName',
+      sections: [
+        ReportSection(
+          heading: l10n.testResult,
+          tables: [
+            ReportTable(
+              headers: [
+                l10n.statistic,
+                'Z',
+                l10n.pTwoTail,
+                l10n.pExact,
+                'N',
+              ],
+              rows: [
+                [
+                  formatNum(r.statistic),
+                  r.z == null ? '—' : formatNum(r.z!),
+                  formatP(r.extra['pAsymptotic'] as double),
+                  formatP(r.p),
+                  '${r.n1}',
+                ],
+              ],
+            ),
+          ],
+          notes: l10n.ksExactNote,
+        ),
+      ],
+    );
+  }
+
+  double _num(String s) =>
+      double.tryParse(s.trim()) ?? (throw FormatException(s));
+
   void _runJtTrend() {
     final vName = _selectedVars.isNotEmpty ? _selectedVars.first : null;
     if (vName == null || _groupVar == null) throw l10n.pleaseSelectGroup;
@@ -2562,5 +2750,5 @@ class _Dropdown extends StatelessWidget {
   }
 }
 
-
-
+/// KS 精确检验的候选分布（完全指定）
+enum _KsDist { uniform, normal, exponential }

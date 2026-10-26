@@ -59,6 +59,8 @@ Language layer: PSPP comment semantics (`*` / `COMMENT`), macros (`DEFINE`, posi
 
 New in v1.6.0: `SAVE OUTFILE='x.sav'` writes an SPSS system file; `SPLIT FILE BY …` / `OFF` repeats every analysis per split-variable combination (one report card per group)
 
+New in v1.7.0: program flow `DO IF / ELSE IF / ELSE`, `LOOP / BREAK`, `VECTOR` (per-case conditions with `< > <= >= = ~= AND OR NOT`); the analysis center gains **Kendall's W** and **KS exact** (fully specified distributions) pages
+
 ### Output & export
 - Session output tree: one card per run, newest first, newest expanded
 - Per card: copy, share, delete, export; "Export all" merges every card of the procedure

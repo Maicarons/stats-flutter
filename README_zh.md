@@ -58,6 +58,8 @@ COMPUTE · RECODE · COUNT · RANK · SORT CASES · SELECT IF · AGGREGATE · FL
 
 v1.6.0 新增：`SAVE OUTFILE='x.sav'` 写出 SPSS 系统文件；`SPLIT FILE BY …` / `OFF` 使所有分析按拆分变量组合逐组输出（每组一张报告卡片）
 
+v1.7.0 新增：程序流 `DO IF / ELSE IF / ELSE`、`LOOP / BREAK`、`VECTOR`（条件逐案求值，支持 `< > <= >= = ~= AND OR NOT`）；分析中心新增 **Kendall W 一致性** 与 **KS 精确检验**（完全指定分布）页面
+
 ### 输出与导出
 - 会话级输出树：每个分析每次运行一张卡片，最新在前、默认只展开最新一张
 - 每张卡片：复制、分享、删除、导出；「导出全部」把该分析的所有卡片合成一份

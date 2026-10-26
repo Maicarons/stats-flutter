@@ -156,6 +156,12 @@ const List<AnalysisCategory> analysisCatalog = [
         desc: _anKruskalDesc,
       ),
       AnalysisItem(
+        id: 'kendall_w',
+        icon: Icons.how_to_vote,
+        title: _anKendallW,
+        desc: _anKendallWDesc,
+      ),
+      AnalysisItem(
         id: 'jt_trend',
         icon: Icons.trending_up,
         title: _anJtTrend,
@@ -191,6 +197,12 @@ const List<AnalysisCategory> analysisCatalog = [
         icon: Icons.functions,
         title: _anNormality,
         desc: _anNormalityDesc,
+      ),
+      AnalysisItem(
+        id: 'ks_exact',
+        icon: Icons.rule,
+        title: _anKsExact,
+        desc: _anKsExactDesc,
       ),
       AnalysisItem(
         id: 'examine_full',
@@ -366,6 +378,10 @@ String _anKruskalDesc(AppLocalizations l) => l.anKruskalDesc;
 String _anJtTrend(AppLocalizations l) => l.anJtTrend;
 String _anJtTrendDesc(AppLocalizations l) => l.anJtTrendDesc;
 String _anPermutation(AppLocalizations l) => l.anPermutation;
+String _anKendallW(AppLocalizations l) => l.anKendallW;
+String _anKendallWDesc(AppLocalizations l) => l.anKendallWDesc;
+String _anKsExact(AppLocalizations l) => l.anKsExact;
+String _anKsExactDesc(AppLocalizations l) => l.anKsExactDesc;
 String _anPermutationDesc(AppLocalizations l) => l.anPermutationDesc;
 String _anReliability(AppLocalizations l) => l.anReliability;
 String _anReliabilityDesc(AppLocalizations l) => l.anReliabilityDesc;

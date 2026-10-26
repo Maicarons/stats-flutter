@@ -63,6 +63,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importCsv => 'Import CSV…';
 
   @override
+  String get anKendallW => 'Kendall\'s W';
+
+  @override
+  String get anKendallWDesc =>
+      'Concordance of rankings across judges (variables) over objects (cases)';
+
+  @override
+  String get anKsExact => 'KS exact test';
+
+  @override
+  String get anKsExactDesc =>
+      'Exact one-sample KS p-value against a fully specified distribution';
+
+  @override
+  String get kendallWTitle => 'Kendall\'s W concordance';
+
+  @override
+  String get kendallWNote =>
+      'W ∈ [0,1]: 1 = perfect agreement; p from the Friedman χ²(k−1) approximation. Cases with any missing judge are dropped.';
+
+  @override
+  String get ksExactTitle => 'One-sample KS (exact)';
+
+  @override
+  String get ksTestDist => 'Test distribution';
+
+  @override
+  String get ksDistUniform => 'Uniform U(0,1)';
+
+  @override
+  String get ksDistNormal => 'Normal N(μ, σ)';
+
+  @override
+  String get ksDistExponential => 'Exponential Exp(λ)';
+
+  @override
+  String get ksExactNote =>
+      'The exact p uses the Marsaglia–Tsang–Wang (2003) Durbin matrix method and requires fully specified parameters; if parameters are estimated from the sample, use the Lilliefors-based \'Normality\' page instead.';
+
+  @override
+  String get meanRank => 'Mean rank';
+
+  @override
+  String get pExact => 'Exact p';
+
+  @override
   String get exportSav => 'Export as SPSS (.sav)';
 
   @override

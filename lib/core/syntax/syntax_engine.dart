@@ -8,6 +8,7 @@ import '../models/mrset.dart';
 import '../transforms/combine_files.dart';
 import '../transforms/transforms.dart';
 import 'package:statkit/statkit.dart';
+import 'syntax_flow.dart';
 import 'syntax_macro.dart';
 import 'syntax_preprocess.dart';
 
@@ -155,6 +156,15 @@ class SyntaxMessages {
   /// 拆分变量不存在
   final String Function(String) splitUnknownVar;
 
+  /// 程序流块内不支持的命令
+  final String flowOnlyTransform;
+
+  /// 流程命令缺少对应的块（END IF 没有匹配的 DO IF 等）
+  final String Function(String) flowNoBlock;
+
+  /// VECTOR 用法提示
+  final String vectorSyntax;
+
   const SyntaxMessages({
     required this.unsupportedCommand,
     required this.error,
@@ -186,6 +196,9 @@ class SyntaxMessages {
     required this.saveSuccess,
     required this.splitSyntax,
     required this.splitUnknownVar,
+    required this.flowOnlyTransform,
+    required this.flowNoBlock,
+    required this.vectorSyntax,
   });
 
   static const zh = SyntaxMessages(
@@ -226,6 +239,10 @@ class SyntaxMessages {
     saveSuccess: _zhSaveSuccess,
     splitSyntax: 'SPLIT FILE 语法: SPLIT FILE BY 变量1 变量2 … 或 SPLIT FILE OFF',
     splitUnknownVar: _zhSplitUnknown,
+    flowOnlyTransform: 'DO IF / LOOP 块内仅支持 COMPUTE 与 RECODE 命令',
+    flowNoBlock: _zhFlowNoBlock,
+    vectorSyntax: 'VECTOR 语法: VECTOR 名 = 首变量 TO 末变量. 或 VECTOR 名(k). '
+        '（变量需已存在；表达式里用 名(下标) 引用，下标从 1 起）',
   );
 
   static const en = SyntaxMessages(
@@ -268,6 +285,12 @@ class SyntaxMessages {
     saveSuccess: _enSaveSuccess,
     splitSyntax: 'SPLIT FILE syntax: SPLIT FILE BY var1 var2 … or SPLIT FILE OFF',
     splitUnknownVar: _enSplitUnknown,
+    flowOnlyTransform:
+        'Only COMPUTE and RECODE commands are supported inside DO IF / LOOP blocks',
+    flowNoBlock: _enFlowNoBlock,
+    vectorSyntax:
+        'VECTOR syntax: VECTOR name = first TO last. or VECTOR name(k). '
+        '(variables must exist; refer with name(index), 1-based)',
   );
 }
 
@@ -282,6 +305,9 @@ String _enSaveSuccess(String path, int cases, int vars) =>
     'Wrote .sav file: $path ($cases cases × $vars variables, uncompressed)';
 String _zhSplitUnknown(String name) => 'SPLIT FILE: 变量不存在: $name';
 String _enSplitUnknown(String name) => 'SPLIT FILE: unknown variable: $name';
+String _zhFlowNoBlock(String verb) => '$verb 缺少匹配的块（DO IF … END IF / LOOP … END LOOP）';
+String _enFlowNoBlock(String verb) =>
+    '$verb has no matching block (DO IF … END IF / LOOP … END LOOP)';
 String _zhArcCountMismatch(int a, int b) => '源变量数（$a）与目标变量数（$b）不一致';
 String _enArcCountMismatch(int a, int b) =>
     'Source variable count ($a) does not match target variable count ($b)';
@@ -327,7 +353,7 @@ const implementedVerbs = <String>{
   'ADD', 'AUTORECODE', 'COMPUTE', 'CORR', 'CORRELATIONS', 'DESCRIPTIVE',
   'DESCRIPTIVES', 'DISPLAY', 'FREQUENCIES', 'HELP', 'INCLUDE', 'LIST', 'MATCH',
   'MRSETS', 'RANK', 'RECODE', 'SAMPLE', 'SELECT', 'SHOW', 'SORT', 'SPLIT',
-  'T-TEST', 'TTEST', 'SAVE',
+  'T-TEST', 'TTEST', 'SAVE', 'DO', 'ELSE', 'END', 'LOOP', 'BREAK', 'VECTOR',
 };
 
 /// 命令动词表：用于识别「注释吞掉了后续命令」这类误用（提示用）。
@@ -341,6 +367,7 @@ const commandVerbs = <String>{
   'DEFINE', 'CTABLES', 'FACTOR', 'REGRESSION', 'MEANS', 'ONEWAY', 'UNIANOVA',
   'GLM', 'LOGISTIC', 'NONPAR', 'EXAMINE', 'PROCESS', 'TABLES', 'VALUE',
   'MISSING', 'WEIGHT', 'SPLIT', 'USE', 'DATASET', 'SAVE', 'GET', 'OUTPUT',
+  'DO', 'ELSE', 'END', 'LOOP', 'BREAK', 'VECTOR',
 };
 
 const _zhHelp = '''
@@ -366,6 +393,9 @@ const _zhHelp = '''
   DEFINE !名字(!参数 !TOKENS(1)) … !ENDDEFINE.    !名字(取值).
   SAVE OUTFILE='文件名.sav' [FILELABEL='标签'].
   SPLIT FILE BY 变量 …  /  SPLIT FILE OFF.
+  DO IF 条件. COMPUTE … ELSE … END IF.     条件支持 < > <= >= = ~= AND OR NOT.
+  LOOP #i = 1 TO 10 BY 2. COMPUTE … END LOOP.  /  LOOP IF 条件 / BREAK IF 条件.
+  VECTOR v = x1 TO x10.   表达式里用 v(下标) 引用（下标 1 起）.
   HELP.
 注释: `* 文字.` 与 `COMMENT 文字.` 到行尾句点或空行结束；行内用 /* 注释 */。
 宏支持 !LET、!IF/!THEN/!ELSE/!ENDIF、!DO … !TO !BY … !DOEND。
@@ -394,6 +424,9 @@ Supported commands (subset):
   DEFINE !name(!arg !TOKENS(1)) … !ENDDEFINE.    !name(value).
   SAVE OUTFILE='file.sav' [FILELABEL='label'].
   SPLIT FILE BY vars …  /  SPLIT FILE OFF.
+  DO IF cond. COMPUTE … ELSE … END IF.     cond: < > <= >= = ~= AND OR NOT.
+  LOOP #i = 1 TO 10 BY 2. COMPUTE … END LOOP.  /  LOOP IF cond / BREAK IF cond.
+  VECTOR v = x1 TO x10.   refer with v(index) (1-based).
   HELP.
 Comments: `* text.` and `COMMENT text.` end at a dot at end of line or a blank
   line; inline comments use /* … */.
@@ -522,6 +555,9 @@ class _RunContext {
   final SyntaxSaver? saver;
   final Set<String> includeStack = {};
   int includeDepth = 0;
+
+  /// VECTOR 登记（本运行内有效）：名字（含大写副本）→ 变量名列表
+  final Map<String, List<String>> vectors = {};
 }
 
 /// 结果 + 它在原始源文本里的偏移 + 稳定排序用的序号。
@@ -587,11 +623,27 @@ class SyntaxExecutor {
 
       var restart = false;
       var stop = false;
-      for (final span in SyntaxParser.splitCommandSpans(pre.text)) {
-        final (start, end) = pre.toSourceRange(span.start, span.end);
-        final cmd = SyntaxParser.parse(span.text, start: start, end: end);
+      final spans = SyntaxParser.splitCommandSpans(pre.text);
+      // 预解析：命令 → (span 下标, 位置, 流程动词)
+      final cmds = <SyntaxCommand>[];
+      final cmdSpan = <int>[];
+      final cmdPos = <(int, int)>[];
+      final cmdVerbs = <String?>[];
+      for (var k = 0; k < spans.length; k++) {
+        final (start, end) = pre.toSourceRange(spans[k].start, spans[k].end);
+        final cmd = SyntaxParser.parse(spans[k].text, start: start, end: end);
         if (cmd == null) continue;
-        final (line, column) = pre.lineColumn(start);
+        cmds.add(cmd);
+        cmdSpan.add(k);
+        cmdPos.add(pre.lineColumn(start));
+        cmdVerbs.add(flowVerbOf(cmd));
+      }
+      var ci = 0;
+      while (ci < cmds.length) {
+        final cmd = cmds[ci];
+        final start = cmd.start;
+        final end = cmd.end;
+        final (line, column) = cmdPos[ci];
 
         if (cmd.verb == 'INCLUDE') {
           final (marker, nested) = _include(cmd, ds, ctx, line, column, file);
@@ -611,6 +663,98 @@ class SyntaxExecutor {
           break;
         }
 
+        final fv = cmdVerbs[ci];
+        if (fv == 'VECTOR') {
+          final v = parseVector(cmd, ds);
+          final SyntaxResult r;
+          if (v == null) {
+            r = SyntaxResult(
+                command: cmd.raw, ok: false, output: ctx.messages.vectorSyntax);
+          } else {
+            ctx.vectors.addAll(v);
+            final list = v.values.first;
+            r = SyntaxResult(
+                command: cmd.raw,
+                ok: true,
+                output: 'VECTOR ${list.first}…${list.last} '
+                    '(${list.length} vars)');
+          }
+          entries.add(_Entry(
+            start,
+            seq++,
+            r.at(line: line, column: column, start: start, end: end, file: file),
+          ));
+          ci++;
+          continue;
+        }
+        if (fv == 'DO IF' || fv == 'LOOP') {
+          try {
+            final (nodes, next) = collectFlow(cmds, cmdVerbs, ci);
+            final allRows =
+                Set<int>.of(List.generate(ds.nCases, (i) => i));
+            final rs = execFlow(
+              nodes,
+              ds,
+              ctx.vectors,
+              allRows,
+              const {},
+              (c, rows, loopVars) => _execFlowSimple(
+                  c, ds, ctx.messages, rows, loopVars, ctx.vectors),
+              <int>{},
+            );
+            for (final r in rs) {
+              entries.add(_Entry(
+                start,
+                seq++,
+                r.at(
+                    line: line,
+                    column: column,
+                    start: start,
+                    end: end,
+                    file: file),
+              ));
+            }
+            ci = next < cmds.length && next > ci ? next : cmds.length;
+          } on FlowParseException catch (e) {
+            entries.add(_Entry(
+              start,
+              seq++,
+              SyntaxResult(
+                      command: cmd.raw,
+                      ok: false,
+                      output: ctx.messages.flowNoBlock(e.verb))
+                  .at(
+                      line: line,
+                      column: column,
+                      start: start,
+                      end: end,
+                      file: file),
+            ));
+            stop = true;
+          }
+          if (stop) break;
+          continue;
+        }
+        if (fv != null) {
+          // 孤立的 END IF / ELSE / END LOOP / BREAK
+          entries.add(_Entry(
+            start,
+            seq++,
+            SyntaxResult(
+                    command: cmd.raw,
+                    ok: false,
+                    output: ctx.messages.flowNoBlock(fv))
+                .at(
+                    line: line,
+                    column: column,
+                    start: start,
+                    end: end,
+                    file: file),
+          ));
+          ci++;
+          continue;
+        }
+
         final r = _execute(cmd, ds, ctx.messages, ctx.files, saver: ctx.saver);
         entries.add(_Entry(
           start,
@@ -622,6 +766,7 @@ class SyntaxExecutor {
           stop = true;
           break;
         }
+        ci++;
       }
 
       if (stop || !restart) break;
@@ -879,10 +1024,40 @@ class SyntaxExecutor {
             '(${ds.nCases} cases)');
   }
 
+  /// 程序流块内单条命令的执行：仅 COMPUTE / RECODE（带行掩码、循环变量、向量）。
+  static SyntaxResult _execFlowSimple(
+    SyntaxCommand cmd,
+    Dataset ds,
+    SyntaxMessages messages,
+    Set<int> rows,
+    Map<String, double> loopVars,
+    Map<String, List<String>> vectors,
+  ) {
+    switch (cmd.verb) {
+      case 'COMPUTE':
+        return _compute(cmd, ds, messages,
+            rows: rows, extraVars: loopVars, vectors: vectors);
+      case 'RECODE':
+        return _recode(cmd, ds, messages, rows: rows);
+      default:
+        return SyntaxResult(
+          command: cmd.raw,
+          ok: false,
+          output: messages.flowOnlyTransform,
+        );
+    }
+  }
+
   static SyntaxResult _compute(
-      SyntaxCommand cmd, Dataset ds, SyntaxMessages messages) {
+    SyntaxCommand cmd,
+    Dataset ds,
+    SyntaxMessages messages, {
+    Set<int>? rows,
+    Map<String, double>? extraVars,
+    Map<String, List<String>>? vectors,
+  }) {
     final raw = cmd.args.join(' ');
-    final m = RegExp(r'^(\w+)\s*=\s*(.+)$', caseSensitive: false).firstMatch(raw);
+    final m = RegExp(r'^(\S+)\s*=\s*(.+)$', caseSensitive: false).firstMatch(raw);
     if (m == null) {
       return SyntaxResult(
           command: cmd.raw, ok: false, output: messages.computeSyntax);
@@ -891,12 +1066,16 @@ class SyntaxExecutor {
       ds,
       targetVar: m.group(1)!,
       expression: m.group(2)!,
+      rows: rows,
+      extraVars: extraVars,
+      vectors: vectors,
     );
     return SyntaxResult(command: cmd.raw, ok: true, output: r.message);
   }
 
   static SyntaxResult _recode(
-      SyntaxCommand cmd, Dataset ds, SyntaxMessages messages) {
+      SyntaxCommand cmd, Dataset ds, SyntaxMessages messages,
+      {Set<int>? rows}) {
     // RECODE a (1=10) (2=20) INTO b.  简化
     final raw = cmd.args.join(' ');
     final intoM = RegExp(r'INTO\s+(\w+)', caseSensitive: false).firstMatch(raw);
@@ -916,6 +1095,7 @@ class SyntaxExecutor {
       sourceVar: varM.group(1)!,
       targetVar: target,
       rules: rules,
+      rows: rows,
     );
     return SyntaxResult(command: cmd.raw, ok: true, output: r.message);
   }

@@ -19,6 +19,12 @@ Computation lives in the pure-Dart package `statkit` (no Flutter dependency).
 - `KMeans.cluster`
 - Distribution helpers: `normCdf`, `tTwoTail`, `chiSquareSf`, `fSf`, …
 
+Since v1.7.0, `NparExtended.kendallW` and `NparExtended.ksExact` are also
+exposed in the app: **Kendall's W** (multiple selected variables = judges,
+cases = objects; cases with any missing judge are dropped) and **KS exact**
+(Uniform U(0,1) / Normal N(μ,σ) / Exponential Exp(λ) — fully specified
+distributions whose parameters you enter, not estimate).
+
 statkit **0.6.0** adds `NparExtended.kendallW` (Kendall's coefficient of concordance W, the normalized form of the Friedman χ²) and `NparExtended.ksExact` / `exactKolmogorovCdf` (one-sample KS with an **exact** p-value via the Marsaglia–Tsang–Wang 2003 Durbin matrix method, for a fully specified continuous distribution; use Lilliefors when parameters are estimated from the sample).
 
 Procedures added in statkit **0.5.0** (Jonckheere-Terpstra trend, permutation tests, Lilliefors, multinomial logistic regression, ANCOVA) are marked `@experimental`: their signature may change in a minor release.

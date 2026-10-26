@@ -108,6 +108,45 @@ SAVE OUTFILE='results.sav' [FILELABEL='label'].
 - the Data menu's "Export data" also offers a graphical `.sav` export
   (written to the app documents directory, shareable).
 
+## Program flow: DO IF / LOOP / VECTOR (v1.7.0)
+
+```text
+DO IF score >= 85.
+COMPUTE grade = 1.
+ELSE IF score >= 70.
+COMPUTE grade = 2.
+ELSE.
+COMPUTE grade = 3.
+END IF.
+
+LOOP #i = 1 TO 10 BY 2.
+COMPUTE acc = acc + #i.
+END LOOP.
+
+LOOP IF k < 100.
+COMPUTE k = k + 7.
+BREAK IF k >= 50.
+END LOOP.
+
+VECTOR v = x1 TO x10.
+COMPUTE total = v(1) + v(2).
+```
+
+- **DO IF / ELSE IF / ELSE / END IF**: conditions are evaluated **per
+  case**; every case takes the first branch whose condition holds;
+  comparisons `< > <= >= = ~= !=` and `AND OR NOT` (case-insensitive)
+  are supported;
+- **LOOP / END LOOP**: `LOOP var = from TO to [BY step]` (inclusive) and
+  `LOOP IF cond`; `BREAK [IF cond]` exits early; `END LOOP [IF cond]`
+  terminates conditionally; the loop variable (e.g. `#i`) is referenceable
+  in the body; iteration cap 10000 (infinite-loop guard);
+- **VECTOR**: `VECTOR name = first TO last.` registers a run of numbered
+  variables as a vector, or `VECTOR name(k).` (refers to name1…namek,
+  creating missing ones); refer with `name(index)`, 1-based;
+- only COMPUTE and RECODE are allowed inside blocks; `INCLUDE` cannot
+  appear inside a block;
+- a bare `LOOP.` must end via `BREAK`.
+
 ## SPLIT FILE: repeat analyses per group
 
 ```text
@@ -140,6 +179,14 @@ RANK VARIABLES=post (A) /RANK /NTILES(4).
 SAMPLE 0.5 /SEED=20261016.
 SAVE OUTFILE='results.sav'.
 SPLIT FILE BY gender.
+DO IF gender = 1.
+COMPUTE bonus = 10.
+ELSE.
+COMPUTE bonus = 20.
+END IF.
+LOOP #i = 1 TO 4.
+COMPUTE acc = acc + #i.
+END LOOP.
 MRSETS /MDGROUP NAME=$m VARIABLES=a b VALUE=1.
 ADD FILES /FILE=* /FILE=other.
 MATCH FILES /FILE=* /TABLE=lookup /BY id.

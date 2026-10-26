@@ -206,6 +206,90 @@ abstract class AppLocalizations {
   /// **'Import CSV…'**
   String get importCsv;
 
+  /// No description provided for @anKendallW.
+  ///
+  /// In en, this message translates to:
+  /// **'Kendall\'s W'**
+  String get anKendallW;
+
+  /// No description provided for @anKendallWDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Concordance of rankings across judges (variables) over objects (cases)'**
+  String get anKendallWDesc;
+
+  /// No description provided for @anKsExact.
+  ///
+  /// In en, this message translates to:
+  /// **'KS exact test'**
+  String get anKsExact;
+
+  /// No description provided for @anKsExactDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact one-sample KS p-value against a fully specified distribution'**
+  String get anKsExactDesc;
+
+  /// No description provided for @kendallWTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Kendall\'s W concordance'**
+  String get kendallWTitle;
+
+  /// No description provided for @kendallWNote.
+  ///
+  /// In en, this message translates to:
+  /// **'W ∈ [0,1]: 1 = perfect agreement; p from the Friedman χ²(k−1) approximation. Cases with any missing judge are dropped.'**
+  String get kendallWNote;
+
+  /// No description provided for @ksExactTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'One-sample KS (exact)'**
+  String get ksExactTitle;
+
+  /// No description provided for @ksTestDist.
+  ///
+  /// In en, this message translates to:
+  /// **'Test distribution'**
+  String get ksTestDist;
+
+  /// No description provided for @ksDistUniform.
+  ///
+  /// In en, this message translates to:
+  /// **'Uniform U(0,1)'**
+  String get ksDistUniform;
+
+  /// No description provided for @ksDistNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal N(μ, σ)'**
+  String get ksDistNormal;
+
+  /// No description provided for @ksDistExponential.
+  ///
+  /// In en, this message translates to:
+  /// **'Exponential Exp(λ)'**
+  String get ksDistExponential;
+
+  /// No description provided for @ksExactNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The exact p uses the Marsaglia–Tsang–Wang (2003) Durbin matrix method and requires fully specified parameters; if parameters are estimated from the sample, use the Lilliefors-based \'Normality\' page instead.'**
+  String get ksExactNote;
+
+  /// No description provided for @meanRank.
+  ///
+  /// In en, this message translates to:
+  /// **'Mean rank'**
+  String get meanRank;
+
+  /// No description provided for @pExact.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact p'**
+  String get pExact;
+
   /// No description provided for @exportSav.
   ///
   /// In en, this message translates to:
