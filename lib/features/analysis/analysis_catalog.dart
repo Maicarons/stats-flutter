@@ -95,6 +95,12 @@ const List<AnalysisCategory> analysisCatalog = [
         title: _anAnova,
         desc: _anAnovaDesc,
       ),
+      AnalysisItem(
+        id: 'manova',
+        icon: Icons.dynamic_form,
+        title: _anManova,
+        desc: _anManovaDesc,
+      ),
     ],
   ),
   AnalysisCategory(
@@ -377,6 +383,8 @@ String _anKruskal(AppLocalizations l) => l.anKruskal;
 String _anKruskalDesc(AppLocalizations l) => l.anKruskalDesc;
 String _anJtTrend(AppLocalizations l) => l.anJtTrend;
 String _anJtTrendDesc(AppLocalizations l) => l.anJtTrendDesc;
+String _anManova(AppLocalizations l) => l.anManova;
+String _anManovaDesc(AppLocalizations l) => l.anManovaDesc;
 String _anPermutation(AppLocalizations l) => l.anPermutation;
 String _anKendallW(AppLocalizations l) => l.anKendallW;
 String _anKendallWDesc(AppLocalizations l) => l.anKendallWDesc;

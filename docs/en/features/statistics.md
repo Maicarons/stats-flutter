@@ -19,6 +19,11 @@ Computation lives in the pure-Dart package `statkit` (no Flutter dependency).
 - `KMeans.cluster`
 - Distribution helpers: `normCdf`, `tTwoTail`, `chiSquareSf`, `fSf`, …
 
+Since v1.8.0, the app gains a **one-way MANOVA** page (multiple dependent
+variables + grouping variable, complete-case convention); statkit 0.7.0's
+`oneWayManova` matches statsmodels 0.15 on all four statistics (values, F,
+degrees of freedom).
+
 Since v1.7.0, `NparExtended.kendallW` and `NparExtended.ksExact` are also
 exposed in the app: **Kendall's W** (multiple selected variables = judges,
 cases = objects; cases with any missing judge are dropped) and **KS exact**

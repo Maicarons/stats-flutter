@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.7.0
+
+One-way MANOVA (v1.8.0 M2).
+
+### Added
+- `oneWayManova` — one-way multivariate analysis of variance over multiple
+  dependent variables: Wilks' Λ (Rao's F approximation), Pillai's trace,
+  Hotelling–Lawley trace (McKeon's approximation when n > 0, as in
+  SAS / statsmodels) and Roy's largest root (upper-bound F convention).
+  Eigenvalues of the generalized problem E⁻¹H are obtained via a Cholesky
+  reduction to a symmetric matrix and cyclic Jacobi rotations.
+- Validated against statsmodels 0.15 on a fixed three-group / three-DV
+  dataset (frozen expected values in `test/statkit_v07_test.dart`); all
+  four statistics, F values and degrees of freedom match to ~1e-6.
+- Group summaries (n, per-DV means) and per-DV univariate F for the report.
+
+# Changelog
+
 ## 0.6.0
 
 Nonparametric completion (v1.6.0 M3) and exact Kolmogorov distribution.

@@ -61,6 +61,8 @@ New in v1.6.0: `SAVE OUTFILE='x.sav'` writes an SPSS system file; `SPLIT FILE BY
 
 New in v1.7.0: program flow `DO IF / ELSE IF / ELSE`, `LOOP / BREAK`, `VECTOR` (per-case conditions with `< > <= >= = ~= AND OR NOT`); the analysis center gains **Kendall's W** and **KS exact** (fully specified distributions) pages
 
+New in v1.8.0: syntax `TEMPORARY.` (temporary transformations expire after the next procedure); a **one-way MANOVA** page (Wilks / Pillai / Hotelling-Lawley / Roy, validated against statsmodels); **Stata `.dta` (117/118/119) import**
+
 ### Output & export
 - Session output tree: one card per run, newest first, newest expanded
 - Per card: copy, share, delete, export; "Export all" merges every card of the procedure

@@ -10,6 +10,7 @@
 | 频率 | `Frequencies.compute` / `histogramBins` |
 | t 检验 | `TTest.oneSample` / `independentSamples` / `paired` |
 | ANOVA | `OnewayAnova.compute`、`tukeyHsd` |
+| 多元方差 | `oneWayManova`（Wilks / Pillai / Hotelling-Lawley / Roy，v0.7.0） |
 | 协方差分析 | `ancova`（Type III 平方和） |
 | 置换检验 | `Permutation.random` / `Permutation.exact`、`twoSampleMeanDifference`、`pairedDifference` |
 | 相关 | `Correlation.pearson` / `spearman` / `matrix` |
@@ -23,6 +24,8 @@
 | ROC | `rocCurve` |
 | 正态性 | `normalityTest` |
 | 均值表 | `meansTable` |
+
+v1.8.0 起，应用侧新增**多元方差分析 MANOVA** 页面（多因变量 + 分组变量，完整个案口径），statkit 0.7.0 的 `oneWayManova` 与 statsmodels 0.15 对拍一致（Wilks / Pillai / Hotelling-Lawley / Roy 四检验的值、F 与自由度）。
 
 v1.7.0 起，`NparExtended.kendallW` 与 `NparExtended.ksExact` 同时在应用侧开放：分析中心的 **Kendall W 一致性**（多选变量 = 评委、个案 = 对象，任一评委缺失整行剔除）与 **KS 精确检验**（均匀 U(0,1) / 正态 N(μ,σ) / 指数 Exp(λ) 三种完全指定分布，参数手填而非由样本估计）。
 

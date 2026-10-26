@@ -354,6 +354,7 @@ const implementedVerbs = <String>{
   'DESCRIPTIVES', 'DISPLAY', 'FREQUENCIES', 'HELP', 'INCLUDE', 'LIST', 'MATCH',
   'MRSETS', 'RANK', 'RECODE', 'SAMPLE', 'SELECT', 'SHOW', 'SORT', 'SPLIT',
   'T-TEST', 'TTEST', 'SAVE', 'DO', 'ELSE', 'END', 'LOOP', 'BREAK', 'VECTOR',
+  'TEMPORARY',
 };
 
 /// 命令动词表：用于识别「注释吞掉了后续命令」这类误用（提示用）。
@@ -367,7 +368,7 @@ const commandVerbs = <String>{
   'DEFINE', 'CTABLES', 'FACTOR', 'REGRESSION', 'MEANS', 'ONEWAY', 'UNIANOVA',
   'GLM', 'LOGISTIC', 'NONPAR', 'EXAMINE', 'PROCESS', 'TABLES', 'VALUE',
   'MISSING', 'WEIGHT', 'SPLIT', 'USE', 'DATASET', 'SAVE', 'GET', 'OUTPUT',
-  'DO', 'ELSE', 'END', 'LOOP', 'BREAK', 'VECTOR',
+  'DO', 'ELSE', 'END', 'LOOP', 'BREAK', 'VECTOR', 'TEMPORARY',
 };
 
 const _zhHelp = '''
@@ -396,6 +397,7 @@ const _zhHelp = '''
   DO IF 条件. COMPUTE … ELSE … END IF.     条件支持 < > <= >= = ~= AND OR NOT.
   LOOP #i = 1 TO 10 BY 2. COMPUTE … END LOOP.  /  LOOP IF 条件 / BREAK IF 条件.
   VECTOR v = x1 TO x10.   表达式里用 v(下标) 引用（下标 1 起）.
+  TEMPORARY.  后续变换在下一个过程命令（描述/t/相关/频率/LIST）后回滚.
   HELP.
 注释: `* 文字.` 与 `COMMENT 文字.` 到行尾句点或空行结束；行内用 /* 注释 */。
 宏支持 !LET、!IF/!THEN/!ELSE/!ENDIF、!DO … !TO !BY … !DOEND。
@@ -427,6 +429,7 @@ Supported commands (subset):
   DO IF cond. COMPUTE … ELSE … END IF.     cond: < > <= >= = ~= AND OR NOT.
   LOOP #i = 1 TO 10 BY 2. COMPUTE … END LOOP.  /  LOOP IF cond / BREAK IF cond.
   VECTOR v = x1 TO x10.   refer with v(index) (1-based).
+  TEMPORARY.  transformations expire after the next procedure (descriptives/t/corr/freq/LIST).
   HELP.
 Comments: `* text.` and `COMMENT text.` end at a dot at end of line or a blank
   line; inline comments use /* … */.
@@ -558,7 +561,26 @@ class _RunContext {
 
   /// VECTOR 登记（本运行内有效）：名字（含大写副本）→ 变量名列表
   final Map<String, List<String>> vectors = {};
+
+  /// TEMPORARY 状态：快照在 TEMPORARY 命令处拍下，下一个过程命令
+  /// 执行后（或运行结束时）回滚。
+  bool temporary = false;
+  Dataset? tempSnapshot;
+
+  /// 回滚 TEMPORARY 的变换（幂等）。
+  void rollbackTemporary(Dataset ds) {
+    if (!temporary) return;
+    ds.replaceWith(tempSnapshot!);
+    temporary = false;
+    tempSnapshot = null;
+  }
 }
+
+/// TEMPORARY 之后触发回滚的「过程」命令（读数据产生输出的命令）。
+const _procedureVerbs = {
+  'DESCRIPTIVES', 'DESCRIPTIVE', 'FREQUENCIES', 'T-TEST', 'TTEST',
+  'CORRELATIONS', 'CORR', 'LIST',
+};
 
 /// 结果 + 它在原始源文本里的偏移 + 稳定排序用的序号。
 class _Entry {
@@ -590,7 +612,10 @@ class SyntaxExecutor {
       include: include,
       saver: saver,
     );
-    return _runSource(source, ds, ctx, null);
+    final results = _runSource(source, ds, ctx, null);
+    // TEMPORARY 状态到运行结束仍未被过程消费 → 回滚（PSPP 语义）
+    ctx.rollbackTemporary(ds);
+    return results;
   }
 
   /// 执行一段脚本：注释剥离 → 宏展开 → 逐条命令执行，结果带回原始位置。
@@ -664,6 +689,40 @@ class SyntaxExecutor {
         }
 
         final fv = cmdVerbs[ci];
+        if (cmd.verb == 'TEMPORARY') {
+          ctx.tempSnapshot = ds.copy();
+          ctx.temporary = true;
+          entries.add(_Entry(
+            start,
+            seq++,
+            SyntaxResult(
+              command: cmd.raw,
+              ok: true,
+              output: 'TEMPORARY（快照已拍下：后续变换在下一个'
+                  '过程命令后回滚）',
+            ).at(line: line, column: column, start: start, end: end, file: file),
+          ));
+          ci++;
+          continue;
+        }
+        final isProcedure = _procedureVerbs.contains(cmd.verb);
+        if (isProcedure && ctx.temporary) {
+          final r = _execute(cmd, ds, ctx.messages, ctx.files,
+              saver: ctx.saver);
+          entries.add(_Entry(
+            start,
+            seq++,
+            r.at(line: line, column: column, start: start, end: end, file: file),
+          ));
+          // 过程已消费临时状态：回滚到 TEMPORARY 时的数据
+          ctx.rollbackTemporary(ds);
+          if (!r.ok && file != null) {
+            stop = true;
+            break;
+          }
+          ci++;
+          continue;
+        }
         if (fv == 'VECTOR') {
           final v = parseVector(cmd, ds);
           final SyntaxResult r;

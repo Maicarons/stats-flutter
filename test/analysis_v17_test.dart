@@ -114,6 +114,47 @@ void main() {
     expect(find.textContaining('judge1'), findsWidgets);
   });
 
+  testWidgets('MANOVA: report renders four multivariate tests',
+      (tester) async {
+    final vars = [
+      Variable(name: 'y1', decimals: 2),
+      Variable(name: 'y2', decimals: 2),
+      Variable(name: 'grp', decimals: 0),
+    ];
+    // 确定性数据：B/C 组均值抬升，应显著
+    final cases = <List<Object?>>[];
+    var seed = 11;
+    double rnd() {
+      seed = (1103515245 * seed + 12345) % 0x7fffffff;
+      return seed / 0x7fffffff - 0.5;
+    }
+    for (var i = 0; i < 60; i++) {
+      final g = (i % 3) + 1;
+      final off = g == 1 ? 0.0 : (g == 2 ? 0.8 : 1.6);
+      cases.add([
+        rnd() + off,
+        rnd() + off / 2,
+        g.toDouble(),
+      ]);
+    }
+    OutputStore.clear('manova');
+    datasetStore.replace(Dataset(
+        name: 'manova_demo', variables: vars, cases: cases));
+    await drainSaveTimer(tester);
+    await open(tester, 'manova');
+    await chip(tester, 'y1');
+    await chip(tester, 'y2');
+    // 选分组变量（manova 只有一个下拉 = 分组变量）
+    await tester.tap(find.byType(DropdownButtonFormField<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('grp').last);
+    await tester.pumpAndSettle();
+    await run(tester);
+    expect(find.textContaining('Wilks'), findsWidgets);
+    expect(find.textContaining('Roy'), findsWidgets);
+    expect(find.textContaining(l10n.manovaTitle), findsWidgets);
+  });
+
   testWidgets('KS exact: uniform sample vs U(0,1) not significant',
       (tester) async {
     datasetStore.replace(_ksDataset());

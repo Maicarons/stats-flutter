@@ -109,6 +109,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pExact => 'Exact p';
 
   @override
+  String get anManova => 'MANOVA';
+
+  @override
+  String get anManovaDesc =>
+      'One-way MANOVA over multiple dependent variables (Wilks / Pillai / Hotelling-Lawley / Roy)';
+
+  @override
+  String get manovaTitle => 'One-way MANOVA';
+
+  @override
+  String get manovaNote =>
+      'Cases must be complete on all dependent variables (any missing drops the row). F approximations: Wilks via Rao, Hotelling-Lawley via McKeon (n>0), Roy as an upper bound.';
+
+  @override
+  String get importDta => 'Import Stata (.dta)';
+
+  @override
   String get exportSav => 'Export as SPSS (.sav)';
 
   @override

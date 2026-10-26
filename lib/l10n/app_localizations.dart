@@ -290,6 +290,36 @@ abstract class AppLocalizations {
   /// **'Exact p'**
   String get pExact;
 
+  /// No description provided for @anManova.
+  ///
+  /// In en, this message translates to:
+  /// **'MANOVA'**
+  String get anManova;
+
+  /// No description provided for @anManovaDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'One-way MANOVA over multiple dependent variables (Wilks / Pillai / Hotelling-Lawley / Roy)'**
+  String get anManovaDesc;
+
+  /// No description provided for @manovaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'One-way MANOVA'**
+  String get manovaTitle;
+
+  /// No description provided for @manovaNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Cases must be complete on all dependent variables (any missing drops the row). F approximations: Wilks via Rao, Hotelling-Lawley via McKeon (n>0), Roy as an upper bound.'**
+  String get manovaNote;
+
+  /// No description provided for @importDta.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Stata (.dta)'**
+  String get importDta;
+
   /// No description provided for @exportSav.
   ///
   /// In en, this message translates to:

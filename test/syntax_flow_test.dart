@@ -177,6 +177,47 @@ END IF.''', ds);
     expect(_num(ds, 'tier', 3), 3.0); // g=2
   });
 
+  test('TEMPORARY：变换在过程命令后回滚', () {
+    final ds = _ds();
+    final rs = SyntaxExecutor.run('''
+TEMPORARY.
+COMPUTE score = score * 2.
+DESCRIPTIVES score.
+COMPUTE score = score + 1.''', ds);
+    expect(rs.last.ok, isTrue);
+    // DESCRIPTIVES 是过程：之后回滚，其后的 COMPUTE 作用于原始数据
+    // （若无回滚，翻倍值再 +1 会是 121 / 161 / 181）
+    expect(_num(ds, 'score', 0), 61.0);
+    expect(_num(ds, 'score', 1), 81.0);
+    expect(_num(ds, 'score', 2), 91.0);
+    // null + 1 → NaN（缺失值参与算术的结果）
+    expect(_num(ds, 'score', 3), isNaN);
+  });
+
+  test('TEMPORARY：运行结束仍未消费 → 回滚', () {
+    final ds = _ds();
+    final before = [for (final row in ds.cases) row[1]];
+    final rs = SyntaxExecutor.run('''
+TEMPORARY.
+COMPUTE score = score * 2.''', ds);
+    expect(rs.last.ok, isTrue);
+    expect([for (final row in ds.cases) row[1]], before);
+  });
+
+  test('TEMPORARY：过程读到的临时值正确（描述统计翻倍）', () {
+    final ds = _ds();
+    final rs = SyntaxExecutor.run('''
+TEMPORARY.
+COMPUTE score = score * 2.
+LIST.''', ds);
+    // LIST 是过程命令：输出含临时值；回滚后数据还原
+    final listOut = rs.firstWhere((r) => r.command.startsWith('LIST'),
+        orElse: () => rs.last);
+    expect(listOut.ok, isTrue);
+    expect([for (final row in ds.cases) row[1]],
+        [60.0, 80.0, 90.0, null]);
+  });
+
   test('ComputeEngine 直接求值锚点', () {
     expect(
         ComputeEngine.evaluate('1 < 2 AND 2 <= 2', {}),

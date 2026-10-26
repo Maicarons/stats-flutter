@@ -107,6 +107,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pExact => '精确 p';
 
   @override
+  String get anManova => '多元方差分析 MANOVA';
+
+  @override
+  String get anManovaDesc =>
+      '单因素多元方差分析：多因变量组间差异（Wilks / Pillai / Hotelling-Lawley / Roy）';
+
+  @override
+  String get manovaTitle => '单因素 MANOVA';
+
+  @override
+  String get manovaNote =>
+      '条件逐案求值要求个案在各因变量上完整（任一缺失整行剔除）。F 近似口径：Wilks 用 Rao，Hotelling-Lawley 用 McKeon（n>0），Roy 为上界口径。';
+
+  @override
+  String get importDta => '导入 Stata (.dta)';
+
+  @override
   String get exportSav => '导出为 SPSS (.sav)';
 
   @override

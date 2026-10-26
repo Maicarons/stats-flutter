@@ -78,6 +78,20 @@ void main() {
   print('KS exact         D=${formatNum(ksx.statistic)} '
       'p=${formatP(ksx.p)} (Marsaglia-Tsang-Wang)');
 
+  // ---- One-way MANOVA: Wilks / Pillai / Hotelling-Lawley / Roy ------------
+  final mv = oneWayManova(
+    groups: {
+      'A': [for (var i = 0; i < 20; i++) [i * 0.1, i * 0.05 + 1]],
+      'B': [for (var i = 0; i < 20; i++) [i * 0.1 + 2, i * 0.05 + 2]],
+    },
+    dvNames: ['y1', 'y2'],
+    factorName: 'grp',
+  );
+  print('MANOVA Wilks     L=${formatNum(mv.wilks.value)} '
+      'F=${formatNum(mv.wilks.f)} p=${formatP(mv.wilks.p)}');
+  print('MANOVA Pillai    V=${formatNum(mv.pillai.value)} '
+      'F=${formatNum(mv.pillai.f)} p=${formatP(mv.pillai.p)}');
+
   // ---- Permutation test: no distributional assumption ---------------------
   final perm =
       Permutation.twoSampleMeanDifference(group1, group2, permutations: 5000);

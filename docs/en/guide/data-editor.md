@@ -27,6 +27,7 @@ On wide screens (≥600 logical pixels) the **`#` column and the first variable 
 
 - Load demo dataset (30 × 6)
 - Import CSV (auto type inference)
+- Import Stata `.dta` (117/118/119; numerics / fixed strings / names & labels; strL long strings read as empty)
 - Export CSV (share / clipboard)
 
 ## Value labels

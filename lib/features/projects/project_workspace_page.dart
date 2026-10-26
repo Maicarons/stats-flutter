@@ -72,6 +72,11 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
               onTap: () => Navigator.pop(ctx, 'sav'),
             ),
             ListTile(
+              leading: const Icon(Icons.stairs),
+              title: Text(l10n.importDta),
+              onTap: () => Navigator.pop(ctx, 'dta'),
+            ),
+            ListTile(
               leading: const Icon(Icons.science),
               title: Text(l10n.importDemoData),
               onTap: () => Navigator.pop(ctx, 'demo'),
@@ -88,6 +93,8 @@ class _ProjectWorkspacePageState extends State<ProjectWorkspacePage> {
       await importExcelInteractive(context, l10n);
     } else if (v == 'sav') {
       await importSavInteractive(context);
+    } else if (v == 'dta') {
+      await importDtaInteractive(context);
     } else if (v == 'demo') {
       datasetStore.resetDemo(zh: isZhUi(context));
     }

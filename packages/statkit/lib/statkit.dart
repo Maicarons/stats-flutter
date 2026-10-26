@@ -24,3 +24,4 @@ export 'src/ancova.dart';
 export 'src/stepwise.dart';
 export 'src/ctables.dart';
 export 'src/permutation.dart';
+export 'src/manova.dart';

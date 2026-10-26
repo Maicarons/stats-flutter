@@ -242,6 +242,7 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     'factor_pca',
     'factor_full',
     'kendall_w',
+    'manova',
   };
 
   /// 成对变量（正好 2 个）。
@@ -339,6 +340,10 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                 clearable: true,
                 onChanged: (v) => setState(() => _factorB = v),
               ),
+            ],
+            if (id == 'manova') ...[
+              const SizedBox(height: 12),
+              groupDropdown(optional: false),
             ],
             if (id == 'ancova') ...[
               _Dropdown(
@@ -676,6 +681,9 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
           break;
         case 'anova':
           _runAnova();
+          break;
+        case 'manova':
+          _runManova();
           break;
         case 'correlation':
           _runCorrelation();
@@ -2033,6 +2041,102 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   }
 
   /// 有序备择的趋势检验：分组按 [_orderedLevels] 的顺序进入检验。
+  /// 单因素 MANOVA：多选变量 = 因变量，必需分组变量；
+  /// 个案须在各因变量上完整（任一缺失整行剔除）。
+  void _runManova() {
+    if (_selectedVars.length < 2) throw l10n.pleaseSelectVars;
+    if (_groupVar == null) throw l10n.pleaseSelectGroup;
+    final dvNames = _selectedVars;
+    final gi = ds.indexOf(_groupVar!);
+    if (gi < 0) throw l10n.varNotFound;
+    final gv = ds.variables[gi];
+    final idxs = [for (final n in dvNames) ds.indexOf(n)];
+    final groupsMap = <String, List<List<double>>>{};
+    for (final row in ds.cases) {
+      final raw = gi < row.length ? row[gi] : null;
+      if (gv.isMissing(raw)) continue; // 规则 D：组缺失不参与
+      final lv = gv.displayValue(raw);
+      final vals = <double>[];
+      var ok = true;
+      for (var t = 0; t < idxs.length; t++) {
+        final i = idxs[t];
+        final cell = i >= 0 && i < row.length ? row[i] : null;
+        if (cell is num && cell.isFinite && !ds.variables[i].isMissing(cell)) {
+          vals.add(cell.toDouble());
+        } else {
+          ok = false; // 完整个案口径
+          break;
+        }
+      }
+      if (ok) groupsMap.putIfAbsent(lv, () => []).add(vals);
+    }
+    groupsMap.removeWhere((k, v) => v.length < 2);
+    if (groupsMap.length < 2) throw l10n.needTwoGroups;
+    final r = oneWayManova(
+      groups: groupsMap,
+      dvNames: dvNames,
+      factorName: _groupVar!,
+    );
+    String testName(int i) => switch (i) {
+          0 => "Wilks' Λ",
+          1 => "Pillai's trace",
+          2 => 'Hotelling-Lawley',
+          _ => 'Roy',
+        };
+    final tests = [r.wilks, r.pillai, r.hotelling, r.roy];
+    _report = AnalysisReport(
+      title: l10n.manovaTitle,
+      subtitle:
+          '${dvNames.map((v) => variableLabel(ds, v)).join(' · ')} · '
+          '${variableLabel(ds, _groupVar!)}',
+      sections: [
+        ReportSection(
+          heading: l10n.testResult,
+          tables: [
+            ReportTable(
+              headers: [
+                l10n.statistic,
+                l10n.value,
+                'F',
+                'df1',
+                'df2',
+                l10n.pTwoTail,
+              ],
+              rows: [
+                for (var i = 0; i < tests.length; i++)
+                  [
+                    testName(i),
+                    formatNum(tests[i].value),
+                    tests[i].f.isFinite ? formatNum(tests[i].f) : '—',
+                    formatNum(tests[i].df1),
+                    formatNum(tests[i].df2),
+                    tests[i].p.isFinite ? formatP(tests[i].p) : '—',
+                  ],
+              ],
+            ),
+            ReportTable(
+              caption: l10n.groupVariable,
+              headers: [
+                l10n.group,
+                'n',
+                for (final n in dvNames) variableLabel(ds, n),
+              ],
+              rows: [
+                for (final g in r.groupStats)
+                  [
+                    g.level,
+                    '${g.n}',
+                    for (final m in g.means) formatNum(m),
+                  ],
+              ],
+            ),
+          ],
+          notes: l10n.manovaNote,
+        ),
+      ],
+    );
+  }
+
   /// Kendall W：多选变量 = 评委（列），个案 = 对象（行）；
   /// 任一评委缺失的整行剔除（PSPP 口径）。
   void _runKendallW() {

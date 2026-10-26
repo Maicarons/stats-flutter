@@ -1,7 +1,7 @@
 name: stats_flutter
 description: "Stats-flutter — 移动优先的工程化统计分析套件，含学习与测试模块。"
 publish_to: 'none'
-version: 1.7.0+9
+version: 1.8.0+10
 
 environment:
   sdk: ^3.11.5

@@ -7,8 +7,44 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 
+import '../../core/io/dta_io.dart';
 import '../../core/io/sav_io.dart';
 import '../../shared/dataset_store.dart';
+
+/// 导入 Stata .dta（117/118/119）：与 .sav 同一套交互。
+Future<void> importDtaInteractive(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final f = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: ['dta'],
+    );
+    if (f == null) return;
+    Uint8List bytes;
+    try {
+      bytes = await f.readAsBytes();
+    } catch (_) {
+      return;
+    }
+    final ds = DtaReader.readBytes(bytes, name: f.name.replaceAll('.dta', ''));
+    datasetStore.replace(ds);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.savImported(
+            ds.nCases,
+            ds.nVars,
+            '.dta',
+          )),
+        ),
+      );
+    }
+  } catch (e) {
+    messenger.showSnackBar(
+        SnackBar(content: Text(l10n.importFailed(e.toString()))));
+  }
+}
 
 Future<void> importSavInteractive(BuildContext context) async {
   final l10n = AppLocalizations.of(context);
