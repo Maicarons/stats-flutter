@@ -314,11 +314,83 @@ abstract class AppLocalizations {
   /// **'Cases must be complete on all dependent variables (any missing drops the row). F approximations: Wilks via Rao, Hotelling-Lawley via McKeon (n>0), Roy as an upper bound.'**
   String get manovaNote;
 
+  /// No description provided for @importOds.
+  ///
+  /// In en, this message translates to:
+  /// **'Import ODS (LibreOffice)'**
+  String get importOds;
+
   /// No description provided for @importDta.
   ///
   /// In en, this message translates to:
   /// **'Import Stata (.dta)'**
   String get importDta;
+
+  /// No description provided for @ctablesSummaries.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary statistics'**
+  String get ctablesSummaries;
+
+  /// No description provided for @ctablesValueVar.
+  ///
+  /// In en, this message translates to:
+  /// **'Value variable (numeric; required by mean/sum/…)'**
+  String get ctablesValueVar;
+
+  /// No description provided for @ctablesLayer.
+  ///
+  /// In en, this message translates to:
+  /// **'Layer variable (optional; one table per level)'**
+  String get ctablesLayer;
+
+  /// No description provided for @sumNameCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Count'**
+  String get sumNameCount;
+
+  /// No description provided for @sumNamePercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Percent'**
+  String get sumNamePercent;
+
+  /// No description provided for @sumNameMean.
+  ///
+  /// In en, this message translates to:
+  /// **'Mean'**
+  String get sumNameMean;
+
+  /// No description provided for @sumNameSum.
+  ///
+  /// In en, this message translates to:
+  /// **'Sum'**
+  String get sumNameSum;
+
+  /// No description provided for @sumNameSd.
+  ///
+  /// In en, this message translates to:
+  /// **'Std. deviation'**
+  String get sumNameSd;
+
+  /// No description provided for @sumNameMin.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum'**
+  String get sumNameMin;
+
+  /// No description provided for @sumNameMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum'**
+  String get sumNameMax;
+
+  /// No description provided for @sumNameMedian.
+  ///
+  /// In en, this message translates to:
+  /// **'Median'**
+  String get sumNameMedian;
 
   /// No description provided for @exportSav.
   ///

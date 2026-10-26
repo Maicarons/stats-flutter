@@ -24,6 +24,9 @@
 | ROC | `rocCurve` |
 | 正态性 | `normalityTest` |
 | 均值表 | `meansTable` |
+| 透视表 | `crosstabSummary`（CTABLES-lite：行 × 列透视，计数 / 百分比 / 均值 / 总和 / 标准差 / 最小 / 最大 / 中位数八种指标可多选，支持层变量） |
+
+v1.9.0 起，CTABLES-lite 页面支持**多汇总指标**（一次输出计数 / 百分比 / 均值等多张表，数值类指标配一个汇总变量）与**层变量**（每层一张表）；`.dta` 导入补齐**值标签**；新增 **ODS（LibreOffice）导入**。
 
 v1.8.0 起，应用侧新增**多元方差分析 MANOVA** 页面（多因变量 + 分组变量，完整个案口径），statkit 0.7.0 的 `oneWayManova` 与 statsmodels 0.15 对拍一致（Wilks / Pillai / Hotelling-Lawley / Roy 四检验的值、F 与自由度）。
 

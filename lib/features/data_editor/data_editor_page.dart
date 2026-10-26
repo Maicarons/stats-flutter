@@ -241,6 +241,11 @@ class _DataEditorPageState extends State<DataEditorPage>
               title: Text(l10n.importDta),
               onTap: () => Navigator.pop(ctx, 'dta'),
             ),
+            ListTile(
+              leading: const Icon(Icons.language),
+              title: Text(l10n.importOds),
+              onTap: () => Navigator.pop(ctx, 'ods'),
+            ),
           ],
         ),
       ),

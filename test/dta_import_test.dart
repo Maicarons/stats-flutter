@@ -9,6 +9,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stats_flutter/core/io/dta_io.dart';
+import 'package:stats_flutter/core/models/dataset.dart';
 
 void main() {
   test('118：数值 / 字符串 / 缺失与 pandas 原始数据一致', () {
@@ -51,6 +52,20 @@ void main() {
     expect(s[0], 'a');
     expect(s[1], 'bb');
     expect(s[2], isNull);
+  });
+
+  test('118：值标签（pandas Categorical 写出）挂到变量', () {
+    final bytes = File('test/fixtures/labels118.dta').readAsBytesSync();
+    final ds = DtaReader.readBytes(bytes, name: 'labels');
+    final gender = ds.variables.firstWhere((v) => v.name == 'gender');
+    expect(gender.valueLabels[0], '男');
+    expect(gender.valueLabels[1], '女');
+    // 数据码 0/1 与标签一致；名义尺度自动归位
+    expect(gender.measure, MeasureLevel.nominal);
+    // score 不受影响
+    final score = ds.variables.firstWhere((v) => v.name == 'score');
+    expect(score.valueLabels, isEmpty);
+    expect(score.measure, MeasureLevel.scale);
   });
 
   test('旧格式 114 明确报不支持', () {

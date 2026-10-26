@@ -63,6 +63,8 @@ New in v1.7.0: program flow `DO IF / ELSE IF / ELSE`, `LOOP / BREAK`, `VECTOR` (
 
 New in v1.8.0: syntax `TEMPORARY.` (temporary transformations expire after the next procedure); a **one-way MANOVA** page (Wilks / Pillai / Hotelling-Lawley / Roy, validated against statsmodels); **Stata `.dta` (117/118/119) import**
 
+New in v1.9.0: CTABLES-lite upgrade — pivot tables gain **multiple summary statistics** (count / percent / mean / sum / sd / min / max / median, multi-select) and a **layer variable** (one table per level); `.dta` import gains **value labels**; **ODS (LibreOffice) import** added
+
 ### Output & export
 - Session output tree: one card per run, newest first, newest expanded
 - Per card: copy, share, delete, export; "Export all" merges every card of the procedure

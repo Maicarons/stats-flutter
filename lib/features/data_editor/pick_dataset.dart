@@ -12,6 +12,7 @@ import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 
 import '../../core/io/dta_io.dart';
+import '../../core/io/ods_io.dart';
 import '../../core/io/sav_io.dart';
 import '../../core/models/dataset.dart';
 import 'excel_io.dart';
@@ -29,7 +30,7 @@ class PickedDataset {
 Future<PickedDataset?> pickDatasetFile() async {
   final f = await FilePicker.pickFile(
     type: FileType.custom,
-    allowedExtensions: ['sav', 'dta', 'csv', 'tsv', 'txt', 'xlsx'],
+    allowedExtensions: ['sav', 'dta', 'ods', 'csv', 'tsv', 'txt', 'xlsx'],
   );
   if (f == null) return null;
   final lower = f.name.toLowerCase();
@@ -39,12 +40,14 @@ Future<PickedDataset?> pickDatasetFile() async {
   } catch (_) {
     return null;
   }
-  final base = f.name.replaceAll(RegExp(r'\.(sav|dta|csv|tsv|txt|xlsx)$'), '');
+  final base = f.name.replaceAll(RegExp(r'\.(sav|dta|ods|csv|tsv|txt|xlsx)$'), '');
   final Dataset ds;
   if (lower.endsWith('.sav')) {
     ds = readSavBytes(bytes, name: base);
   } else if (lower.endsWith('.dta')) {
     ds = readDtaBytes(bytes, name: base);
+  } else if (lower.endsWith('.ods')) {
+    ds = readOdsBytes(bytes, name: base);
   } else if (lower.endsWith('.xlsx')) {
     ds = datasetFromExcelBytes(bytes, name: base);
   } else {

@@ -8,8 +8,44 @@ import 'package:flutter/material.dart';
 import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/io/dta_io.dart';
+import '../../core/io/ods_io.dart';
 import '../../core/io/sav_io.dart';
 import '../../shared/dataset_store.dart';
+
+/// 导入 ODS（LibreOffice）：与 .sav 同一套交互。
+Future<void> importOdsInteractive(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final f = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: ['ods'],
+    );
+    if (f == null) return;
+    Uint8List bytes;
+    try {
+      bytes = await f.readAsBytes();
+    } catch (_) {
+      return;
+    }
+    final ds = readOdsBytes(bytes, name: f.name.replaceAll('.ods', ''));
+    datasetStore.replace(ds);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.savImported(
+            ds.nCases,
+            ds.nVars,
+            '.ods',
+          )),
+        ),
+      );
+    }
+  } catch (e) {
+    messenger.showSnackBar(
+        SnackBar(content: Text(l10n.importFailed(e.toString()))));
+  }
+}
 
 /// 导入 Stata .dta（117/118/119）：与 .sav 同一套交互。
 Future<void> importDtaInteractive(BuildContext context) async {

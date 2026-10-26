@@ -46,6 +46,11 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
   int _kClusters = 3;
   final _muCtrl = TextEditingController(text: '0');
 
+  /// CTABLES-lite：选中的汇总指标、汇总变量与层变量。
+  final Set<CellSummary> _ctSummaries = {CellSummary.count};
+  String? _ctValueVar;
+  String? _ctLayerVar;
+
   /// KS 精确检验的分布参数（完全指定，不由样本估计）。
   _KsDist _ksDist = _KsDist.uniform;
   final _sigmaCtrl = TextEditingController(text: '1');
@@ -529,6 +534,55 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
                 items: allVars,
                 onChanged: (v) => setState(() => _xVar = v),
               ),
+              if (id == 'ctables') ...[
+                const SizedBox(height: 12),
+                Text(l10n.ctablesSummaries,
+                    style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final cs in const [
+                      CellSummary.count,
+                      CellSummary.percent,
+                      CellSummary.mean,
+                      CellSummary.sum,
+                      CellSummary.sd,
+                      CellSummary.min,
+                      CellSummary.max,
+                      CellSummary.median,
+                    ])
+                      FilterChip(
+                        label: Text(_ctSummaryName(cs, l10n)),
+                        selected: _ctSummaries.contains(cs),
+                        onSelected: (sel) => setState(() {
+                          sel
+                              ? _ctSummaries.add(cs)
+                              : _ctSummaries.remove(cs);
+                          if (_ctSummaries.isEmpty) {
+                            _ctSummaries.add(CellSummary.count);
+                          }
+                        }),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _Dropdown(
+                  label: l10n.ctablesValueVar,
+                  value: _ctValueVar,
+                  items: _numericVars,
+                  clearable: true,
+                  onChanged: (v) => setState(() => _ctValueVar = v),
+                ),
+                const SizedBox(height: 12),
+                _Dropdown(
+                  label: l10n.ctablesLayer,
+                  value: _ctLayerVar,
+                  items: allVars,
+                  clearable: true,
+                  onChanged: (v) => setState(() => _ctLayerVar = v),
+                ),
+              ],
             ],
             if (id == 'correlation') ...[
               const SizedBox(height: 8),
@@ -2729,52 +2783,121 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     );
   }
 
+  String _ctSummaryName(CellSummary cs, AppLocalizations l10n) => switch (cs) {
+        CellSummary.count => l10n.sumNameCount,
+        CellSummary.percent => l10n.sumNamePercent,
+        CellSummary.mean => l10n.sumNameMean,
+        CellSummary.sum => l10n.sumNameSum,
+        CellSummary.sd => l10n.sumNameSd,
+        CellSummary.min => l10n.sumNameMin,
+        CellSummary.max => l10n.sumNameMax,
+        CellSummary.median => l10n.sumNameMedian,
+        CellSummary.validPercent => l10n.sumNamePercent,
+      };
+
+  /// CTABLES-lite：行 × 列透视，可选多个汇总指标与层变量（每层一张表）。
+  /// 数值类指标（mean / sum / sd / min / max / median）需要汇总变量。
   void _runCtables() {
     if (_yVar == null || _xVar == null) throw l10n.pleaseSelectRowCol;
-    // 规则 E：用户缺失值不计入类别（记为缺失）
-    final rowKeys = MissingAware.raw(ds, _yVar!);
-    final colKeys = MissingAware.raw(ds, _xVar!);
-    final r = crosstabSummary(
-      rowKeys: rowKeys,
-      colKeys: colKeys,
-      rowVar: _yVar!,
-      colVar: _xVar!,
-      summary: CellSummary.count,
-      rowLabels: {
-        for (final e in ds.variables[ds.indexOf(_yVar!)].valueLabels.entries)
-          e.key: e.value,
-      },
-      colLabels: {
-        for (final e in ds.variables[ds.indexOf(_xVar!)].valueLabels.entries)
-          e.key: e.value,
-      },
-    );
+    final summaries = _ctSummaries.toList()
+      ..sort((a, b) => a.index.compareTo(b.index));
+    const numericNeeded = {
+      CellSummary.mean, CellSummary.sum, CellSummary.sd,
+      CellSummary.min, CellSummary.max, CellSummary.median,
+    };
+    if (summaries.any(numericNeeded.contains) && _ctValueVar == null) {
+      throw l10n.ctablesValueVar;
+    }
+    final rowKeysAll = MissingAware.raw(ds, _yVar!);
+    final colKeysAll = MissingAware.raw(ds, _xVar!);
+    final valueKeysAll =
+        _ctValueVar == null ? null : MissingAware.raw(ds, _ctValueVar!);
+    final layerKeysAll =
+        _ctLayerVar == null ? null : MissingAware.raw(ds, _ctLayerVar!);
+    final n = rowKeysAll.length;
+
+    // 层：取值顺序（displayValue 沿用值标签）；无层变量 = 单层全部个案
+    final layers = <String?>[];
+    final layerIdxCases = <String?, List<int>>{};
+    if (_ctLayerVar != null) {
+      final lv = ds.variables[ds.indexOf(_ctLayerVar!)];
+      for (var i = 0; i < n; i++) {
+        final raw = layerKeysAll![i];
+        if (raw == null) continue;
+        final key = lv.displayValue(raw);
+        layers.add(key);
+        layerIdxCases.putIfAbsent(key, () => []).add(i);
+      }
+      // 去重保序
+      final seen = <String?>{};
+      layers.retainWhere((k) => seen.add(k) && layerIdxCases[k]!.isNotEmpty);
+    } else {
+      layers.add(null);
+      layerIdxCases[null] = [for (var i = 0; i < n; i++) i];
+    }
+
+    final sections = <ReportSection>[];
+    for (final layer in layers) {
+      final idxs = layerIdxCases[layer] ?? const <int>[];
+      final rowKeys = [for (final i in idxs) rowKeysAll[i]];
+      final colKeys = [for (final i in idxs) colKeysAll[i]];
+      final values = valueKeysAll == null
+          ? null
+          : [
+              for (final i in idxs)
+                (valueKeysAll[i] as num?)?.toDouble(),
+            ];
+      final tables = <ReportTable>[];
+      for (final cs in summaries) {
+        final r = crosstabSummary(
+          rowKeys: rowKeys,
+          colKeys: colKeys,
+          values: values,
+          rowVar: _yVar!,
+          colVar: _xVar!,
+          valueVar: _ctValueVar ?? '',
+          summary: cs,
+          rowLabels: {
+            for (final e in ds.variables[ds.indexOf(_yVar!)].valueLabels.entries)
+              e.key: e.value,
+          },
+          colLabels: {
+            for (final e in ds.variables[ds.indexOf(_xVar!)].valueLabels.entries)
+              e.key: e.value,
+          },
+        );
+        tables.add(ReportTable(
+          caption:
+              summaries.length > 1 ? _ctSummaryName(cs, l10n) : null,
+          headers: ['', ...r.colLabels, l10n.total],
+          rows: [
+            for (var i = 0; i < r.rowLabels.length; i++)
+              [
+                r.rowLabels[i],
+                for (final c in r.cells[i]) c.display,
+                r.rowTotals[i].display,
+              ],
+            [
+              l10n.total,
+              for (final c in r.colTotals) c.display,
+              r.grandTotal.display,
+            ],
+          ],
+        ));
+      }
+      sections.add(ReportSection(
+        heading: layer == null
+            ? (summaries.length == 1
+                ? _ctSummaryName(summaries.first, l10n)
+                : l10n.summaryCounts)
+            : '${variableLabel(ds, _ctLayerVar!)} = $layer',
+        tables: tables,
+      ));
+    }
     _report = AnalysisReport(
       title: l10n.ctablesTitle,
       subtitle: '${variableLabel(ds, _yVar!)} × ${variableLabel(ds, _xVar!)}',
-      sections: [
-        ReportSection(
-          heading: l10n.summaryCounts,
-          tables: [
-            ReportTable(
-              headers: ['', ...r.colLabels, l10n.total],
-              rows: [
-                for (var i = 0; i < r.rowLabels.length; i++)
-                  [
-                    r.rowLabels[i],
-                    for (final c in r.cells[i]) c.display,
-                    r.rowTotals[i].display,
-                  ],
-                [
-                  l10n.total,
-                  for (final c in r.colTotals) c.display,
-                  r.grandTotal.display,
-                ],
-              ],
-            ),
-          ],
-        ),
-      ],
+      sections: sections,
     );
   }
 

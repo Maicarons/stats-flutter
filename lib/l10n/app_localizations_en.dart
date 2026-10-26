@@ -123,7 +123,44 @@ class AppLocalizationsEn extends AppLocalizations {
       'Cases must be complete on all dependent variables (any missing drops the row). F approximations: Wilks via Rao, Hotelling-Lawley via McKeon (n>0), Roy as an upper bound.';
 
   @override
+  String get importOds => 'Import ODS (LibreOffice)';
+
+  @override
   String get importDta => 'Import Stata (.dta)';
+
+  @override
+  String get ctablesSummaries => 'Summary statistics';
+
+  @override
+  String get ctablesValueVar =>
+      'Value variable (numeric; required by mean/sum/…)';
+
+  @override
+  String get ctablesLayer => 'Layer variable (optional; one table per level)';
+
+  @override
+  String get sumNameCount => 'Count';
+
+  @override
+  String get sumNamePercent => 'Percent';
+
+  @override
+  String get sumNameMean => 'Mean';
+
+  @override
+  String get sumNameSum => 'Sum';
+
+  @override
+  String get sumNameSd => 'Std. deviation';
+
+  @override
+  String get sumNameMin => 'Minimum';
+
+  @override
+  String get sumNameMax => 'Maximum';
+
+  @override
+  String get sumNameMedian => 'Median';
 
   @override
   String get exportSav => 'Export as SPSS (.sav)';

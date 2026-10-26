@@ -121,7 +121,43 @@ class AppLocalizationsZh extends AppLocalizations {
       '条件逐案求值要求个案在各因变量上完整（任一缺失整行剔除）。F 近似口径：Wilks 用 Rao，Hotelling-Lawley 用 McKeon（n>0），Roy 为上界口径。';
 
   @override
+  String get importOds => '导入 ODS (LibreOffice)';
+
+  @override
   String get importDta => '导入 Stata (.dta)';
+
+  @override
+  String get ctablesSummaries => '汇总指标';
+
+  @override
+  String get ctablesValueVar => '汇总变量（数值，mean/sum 等需要）';
+
+  @override
+  String get ctablesLayer => '层变量（可选，每层一张表）';
+
+  @override
+  String get sumNameCount => '计数';
+
+  @override
+  String get sumNamePercent => '百分比';
+
+  @override
+  String get sumNameMean => '均值';
+
+  @override
+  String get sumNameSum => '总和';
+
+  @override
+  String get sumNameSd => '标准差';
+
+  @override
+  String get sumNameMin => '最小值';
+
+  @override
+  String get sumNameMax => '最大值';
+
+  @override
+  String get sumNameMedian => '中位数';
 
   @override
   String get exportSav => '导出为 SPSS (.sav)';

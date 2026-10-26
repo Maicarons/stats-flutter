@@ -19,6 +19,11 @@ Computation lives in the pure-Dart package `statkit` (no Flutter dependency).
 - `KMeans.cluster`
 - Distribution helpers: `normCdf`, `tTwoTail`, `chiSquareSf`, `fSf`, …
 
+Since v1.9.0, the CTABLES-lite page supports **multiple summary
+statistics** (count / percent / mean tables in one run, numeric ones backed
+by a value variable) and a **layer variable** (one table per level); `.dta`
+import gains **value labels**; and **ODS (LibreOffice) import** is added.
+
 Since v1.8.0, the app gains a **one-way MANOVA** page (multiple dependent
 variables + grouping variable, complete-case convention); statkit 0.7.0's
 `oneWayManova` matches statsmodels 0.15 on all four statistics (values, F,
