@@ -3,7 +3,8 @@
 # for repository Maicarons/stats-flutter
 #
 # Required file name: .github/workflows/publish.yml
-# Tags: v1.2.3 (must match packages/statkit/pubspec.yaml version)
+# Tags: v1.2.3 or statkit-v1.2.3 (version must match packages/statkit/pubspec.yaml).
+# statkit-v* avoids colliding with the app's early bare v1.x release tags.
 
 name: Publish to pub.dev
 
@@ -11,6 +12,7 @@ on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
+      - 'statkit-v[0-9]+.[0-9]+.[0-9]+*'
 
 jobs:
   publish:
