@@ -2,8 +2,6 @@ import 'dart:math' as math;
 
 // 应用是 statkit 的同仓第一消费者：应用发布与 statkit 版本绑定（当前
 // statkit 0.5.0 ↔ app 1.4.0），两者的 API 调整在同一次发布里一起改，
-// 因此这里可以有意使用 statkit 标注为 @experimental 的入口。
-// ignore_for_file: experimental_member_use
 
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
@@ -12,6 +10,7 @@ import 'package:stats_flutter/l10n/app_localizations.dart';
 
 import '../../core/io/missing_aware.dart';
 import '../../core/models/dataset.dart';
+import '../../core/models/mrset.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../shared/dataset_store.dart';
 import '../../shared/ui/charts/charts.dart';
@@ -524,14 +523,18 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
               _Dropdown(
                 label: l10n.rowVariable,
                 value: _yVar,
-                items: allVars,
+                items: id == 'ctables'
+                    ? [...allVars, for (final m in ds.mrSets) m.name]
+                    : allVars,
                 onChanged: (v) => setState(() => _yVar = v),
               ),
               const SizedBox(height: 12),
               _Dropdown(
                 label: l10n.columnVariable,
                 value: _xVar,
-                items: allVars,
+                items: id == 'ctables'
+                    ? [...allVars, for (final m in ds.mrSets) m.name]
+                    : allVars,
                 onChanged: (v) => setState(() => _xVar = v),
               ),
               if (id == 'ctables') ...[
@@ -2808,23 +2811,61 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     if (summaries.any(numericNeeded.contains) && _ctValueVar == null) {
       throw l10n.ctablesValueVar;
     }
-    final rowKeysAll = MissingAware.raw(ds, _yVar!);
-    final colKeysAll = MissingAware.raw(ds, _xVar!);
-    final valueKeysAll =
-        _ctValueVar == null ? null : MissingAware.raw(ds, _ctValueVar!);
-    final layerKeysAll =
-        _ctLayerVar == null ? null : MissingAware.raw(ds, _ctLayerVar!);
-    final n = rowKeysAll.length;
+    // 扁平三元组：普通变量每案一条；多响应集（MRSETS，$开头）每案展开为
+    // 0..k 条响应——行/列任一侧是集都按「响应 × 对侧」组合展开。
+    final rowSet = _findMrSet(_yVar!);
+    final colSet = _findMrSet(_xVar!);
+    final fRow = <Object?>[];
+    final fCol = <Object?>[];
+    final fVal = <double?>[];
+    final fLayer = <String?>[];
+    final yi = rowSet == null ? ds.indexOf(_yVar!) : -1;
+    final xi = colSet == null ? ds.indexOf(_xVar!) : -1;
+    final vi = _ctValueVar == null ? -1 : ds.indexOf(_ctValueVar!);
+    final li = _ctLayerVar == null ? -1 : ds.indexOf(_ctLayerVar!);
+    for (var r = 0; r < ds.nCases; r++) {
+      final row = ds.cases[r];
+      if (li >= 0) {
+        final lraw = li < row.length ? row[li] : null;
+        if (ds.variables[li].isMissing(lraw)) continue; // 规则 D
+      }
+      final rks = <Object?>[];
+      if (rowSet != null) {
+        rks.addAll(_mrResponses(rowSet, row));
+      } else {
+        final raw = yi >= 0 && yi < row.length ? row[yi] : null;
+        if (!ds.variables[yi].isMissing(raw)) rks.add(raw);
+      }
+      final cks = <Object?>[];
+      if (colSet != null) {
+        cks.addAll(_mrResponses(colSet, row));
+      } else {
+        final raw = xi >= 0 && xi < row.length ? row[xi] : null;
+        if (!ds.variables[xi].isMissing(raw)) cks.add(raw);
+      }
+      final val = vi >= 0 && vi < row.length
+          ? (row[vi] as num?)?.toDouble()
+          : null;
+      final layerKey =
+          li >= 0 ? ds.variables[li].displayValue(row[li]) : null;
+      for (final rk in rks) {
+        for (final ck in cks) {
+          fRow.add(rk);
+          fCol.add(ck);
+          fVal.add(val);
+          fLayer.add(layerKey);
+        }
+      }
+    }
+    final n = fRow.length;
 
     // 层：取值顺序（displayValue 沿用值标签）；无层变量 = 单层全部个案
     final layers = <String?>[];
     final layerIdxCases = <String?, List<int>>{};
     if (_ctLayerVar != null) {
-      final lv = ds.variables[ds.indexOf(_ctLayerVar!)];
       for (var i = 0; i < n; i++) {
-        final raw = layerKeysAll![i];
-        if (raw == null) continue;
-        final key = lv.displayValue(raw);
+        final key = fLayer[i];
+        if (key == null) continue;
         layers.add(key);
         layerIdxCases.putIfAbsent(key, () => []).add(i);
       }
@@ -2839,14 +2880,11 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     final sections = <ReportSection>[];
     for (final layer in layers) {
       final idxs = layerIdxCases[layer] ?? const <int>[];
-      final rowKeys = [for (final i in idxs) rowKeysAll[i]];
-      final colKeys = [for (final i in idxs) colKeysAll[i]];
-      final values = valueKeysAll == null
+      final rowKeys = [for (final i in idxs) fRow[i]];
+      final colKeys = [for (final i in idxs) fCol[i]];
+      final values = _ctValueVar == null
           ? null
-          : [
-              for (final i in idxs)
-                (valueKeysAll[i] as num?)?.toDouble(),
-            ];
+          : [for (final i in idxs) fVal[i]];
       final tables = <ReportTable>[];
       for (final cs in summaries) {
         final r = crosstabSummary(
@@ -2857,14 +2895,10 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
           colVar: _xVar!,
           valueVar: _ctValueVar ?? '',
           summary: cs,
-          rowLabels: {
-            for (final e in ds.variables[ds.indexOf(_yVar!)].valueLabels.entries)
-              e.key: e.value,
-          },
-          colLabels: {
-            for (final e in ds.variables[ds.indexOf(_xVar!)].valueLabels.entries)
-              e.key: e.value,
-          },
+          rowLabels: _ctLabelsFor(_yVar!, rowSet),
+          colLabels: _ctLabelsFor(_xVar!, colSet),
+          rowOrder: _ctOrderFor(_yVar!, rowSet),
+          colOrder: _ctOrderFor(_xVar!, colSet),
         );
         tables.add(ReportTable(
           caption:
@@ -2896,9 +2930,97 @@ class _AnalysisRunnerState extends State<AnalysisRunner> {
     }
     _report = AnalysisReport(
       title: l10n.ctablesTitle,
-      subtitle: '${variableLabel(ds, _yVar!)} × ${variableLabel(ds, _xVar!)}',
+      subtitle:
+          '${_ctVarDisplay(_yVar!, rowSet)} × ${_ctVarDisplay(_xVar!, colSet)}',
       sections: sections,
     );
+  }
+
+  /// 多响应集成员在个案 [row] 里的响应类别键（MDGROUP：选中成员的类别；
+  /// MCGROUP：各成员的非缺失取值显示）。
+  List<Object?> _mrResponses(MrSet set0, List<Object?> row) {
+    final out = <Object?>[];
+    for (final mv in set0.variables) {
+      final i = ds.indexOf(mv);
+      if (i < 0 || i >= row.length) continue;
+      final raw = row[i];
+      if (ds.variables[i].isMissing(raw)) continue;
+      if (set0.isDichotomy) {
+        final counted = set0.counted;
+        final isCounted = counted is num &&
+            raw is num &&
+            (raw - counted).abs() < 1e-12;
+        if (isCounted) out.add(_mrCategory(set0, i, raw));
+      } else {
+        out.add(_mrCategory(set0, i, raw));
+      }
+    }
+    return out;
+  }
+
+  Object _mrCategory(MrSet set0, int varIndex, Object? raw) {
+    final v = ds.variables[varIndex];
+    if (set0.isDichotomy) {
+      if (set0.categoryLabels == MrCategorySource.countedValues) {
+        final counted = set0.counted;
+        if (counted is num && v.valueLabels.containsKey(counted)) {
+          return v.valueLabels[counted]!;
+        }
+      }
+      return v.label.isNotEmpty ? v.label : v.name;
+    }
+    if (raw is num && v.valueLabels.containsKey(raw)) {
+      return v.valueLabels[raw]!;
+    }
+    return v.displayValue(raw);
+  }
+
+  MrSet? _findMrSet(String name) {
+    final bare = name.startsWith('\$') || name.startsWith('＄')
+        ? name.substring(1)
+        : name;
+    if (bare.isEmpty) return null;
+    for (final m in ds.mrSets) {
+      final mn = m.name.replaceFirst('\$', '').toLowerCase();
+      if (mn == bare.toLowerCase()) return m;
+    }
+    return null;
+  }
+
+  Map<Object?, String>? _ctLabelsFor(String varName, MrSet? set0) {
+    if (set0 != null) return null; // 集的类别键本身就是显示文本
+    final i = ds.indexOf(varName);
+    if (i < 0) return null;
+    return {
+      for (final e in ds.variables[i].valueLabels.entries) e.key: e.value,
+    };
+  }
+
+  List<Object?>? _ctOrderFor(String varName, MrSet? set0) {
+    if (set0 == null) return null;
+    if (set0.isDichotomy) {
+      return [
+        for (var k = 0; k < set0.variables.length; k++)
+          _mrCategory(set0, ds.indexOf(set0.variables[k]), set0.counted),
+      ];
+    }
+    final seen = <Object?>[];
+    for (final mv in set0.variables) {
+      final i = ds.indexOf(mv);
+      if (i < 0) continue;
+      for (final row in ds.cases) {
+        final raw = i < row.length ? row[i] : null;
+        if (raw == null || ds.variables[i].isMissing(raw)) continue;
+        final key = _mrCategory(set0, i, raw);
+        if (!seen.contains(key)) seen.add(key);
+      }
+    }
+    return seen;
+  }
+
+  String _ctVarDisplay(String varName, MrSet? set0) {
+    if (set0 == null) return variableLabel(ds, varName);
+    return set0.label.isNotEmpty ? set0.label : varName;
   }
 
   AnalysisReport _nonparamReport(NonparametricResult r) {

@@ -59,6 +59,12 @@ CTablesResult crosstabSummary({
   CellSummary summary = CellSummary.count,
   Map<Object?, String>? rowLabels,
   Map<Object?, String>? colLabels,
+
+  /// 显式类别顺序（如多响应组的成员顺序）；缺省按键的字典序。
+  /// 顺序里出现但数据里没有的键会被跳过，数据里有而顺序里没有的键
+  /// 追加在末尾。
+  List<Object?>? rowOrder,
+  List<Object?>? colOrder,
 }) {
   final n = rowKeys.length;
   final rMap = <Object?, List<double?>>{};
@@ -75,10 +81,25 @@ CTablesResult crosstabSummary({
     cellsMap.putIfAbsent((r, c), () => []).add(v);
   }
 
-  final rKeys = rMap.keys.toList()
-    ..sort((a, b) => a.toString().compareTo(b.toString()));
-  final cKeys = cMap.keys.toList()
-    ..sort((a, b) => a.toString().compareTo(b.toString()));
+  List<Object?> orderKeys(
+    Iterable<Object?> keys,
+    List<Object?>? order,
+  ) {
+    final present = keys.toSet();
+    final out = <Object?>[
+      if (order != null)
+        for (final k in order)
+          if (present.remove(k)) k,
+      ...present,
+    ];
+    if (order == null) {
+      out.sort((a, b) => a.toString().compareTo(b.toString()));
+    }
+    return out;
+  }
+
+  final rKeys = orderKeys(rMap.keys, rowOrder);
+  final cKeys = orderKeys(cMap.keys, colOrder);
 
   String labR(Object? k) =>
       rowLabels != null && rowLabels.containsKey(k) ? rowLabels[k]! : k.toString();

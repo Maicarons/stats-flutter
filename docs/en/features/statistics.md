@@ -37,7 +37,14 @@ distributions whose parameters you enter, not estimate).
 
 statkit **0.6.0** adds `NparExtended.kendallW` (Kendall's coefficient of concordance W, the normalized form of the Friedman χ²) and `NparExtended.ksExact` / `exactKolmogorovCdf` (one-sample KS with an **exact** p-value via the Marsaglia–Tsang–Wang 2003 Durbin matrix method, for a fully specified continuous distribution; use Lilliefors when parameters are estimated from the sample).
 
-Procedures added in statkit **0.5.0** (Jonckheere-Terpstra trend, permutation tests, Lilliefors, multinomial logistic regression, ANCOVA) are marked `@experimental`: their signature may change in a minor release.
+**statkit 1.0.0** (with v1.10.0) freezes the public API: every entry point
+from 0.2 → 0.7 is now stable and all `@experimental` annotations are
+removed; breaking changes will only happen in 2.0.0.
+
+Since v1.10.0, CTABLES-lite supports **multiple-response sets** (MRSETS
+`$` sets; both MDGROUP and MCGROUP can be row or column variables; cases
+expand per response, percentages are of responses, MDGROUP rows follow
+member order).
 
 ## Conventions fixed and aligned in v1.4.0
 

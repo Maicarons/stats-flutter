@@ -34,7 +34,9 @@ v1.7.0 起，`NparExtended.kendallW` 与 `NparExtended.ksExact` 同时在应用�
 
 statkit **0.6.0** 新增：`NparExtended.kendallW`（Kendall 一致性系数 W，Friedman χ² 的规范化形式）与 `NparExtended.ksExact` / `exactKolmogorovCdf`（单样本 KS **精确** p，Marsaglia–Tsang–Wang 2003 Durbin 矩阵法，适用于完全指定的连续分布；参数由样本估计时仍用 Lilliefors）。
 
-statkit **0.5.0** 新增的过程（Jonckheere-Terpstra 有序趋势检验、置换检验、Lilliefors 校正、多项 logistic 回归、ANCOVA）标注为 `@experimental`：接口可能在次版本里调整。
+statkit **1.0.0**（随 v1.10.0）冻结公开 API：0.2 → 0.7 的全部入口转为稳定，`@experimental` 标注全部移除；破坏性改动只会在 2.0.0 发生。
+
+v1.10.0 起，CTABLES-lite 支持**多响应集**（MRSETS 定义的 `$` 集，MDGROUP / MCGROUP 皆可作行或列变量；个案按响应数展开，百分比按响应数计，MDGROUP 行序即成员序）。
 
 ## v1.4.0 修正与对齐的口径
 

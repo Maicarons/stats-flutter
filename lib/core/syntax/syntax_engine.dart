@@ -165,6 +165,9 @@ class SyntaxMessages {
   /// VECTOR 用法提示
   final String vectorSyntax;
 
+  /// DO REPEAT 各哑变量替换个数不一致
+  final String repeatCountMismatch;
+
   const SyntaxMessages({
     required this.unsupportedCommand,
     required this.error,
@@ -199,6 +202,7 @@ class SyntaxMessages {
     required this.flowOnlyTransform,
     required this.flowNoBlock,
     required this.vectorSyntax,
+    required this.repeatCountMismatch,
   });
 
   static const zh = SyntaxMessages(
@@ -243,6 +247,7 @@ class SyntaxMessages {
     flowNoBlock: _zhFlowNoBlock,
     vectorSyntax: 'VECTOR 语法: VECTOR 名 = 首变量 TO 末变量. 或 VECTOR 名(k). '
         '（变量需已存在；表达式里用 名(下标) 引用，下标从 1 起）',
+    repeatCountMismatch: 'DO REPEAT: 各哑变量的替换个数不一致',
   );
 
   static const en = SyntaxMessages(
@@ -291,6 +296,8 @@ class SyntaxMessages {
     vectorSyntax:
         'VECTOR syntax: VECTOR name = first TO last. or VECTOR name(k). '
         '(variables must exist; refer with name(index), 1-based)',
+    repeatCountMismatch:
+        'DO REPEAT: dummy variables have different replacement counts',
   );
 }
 
@@ -398,6 +405,7 @@ const _zhHelp = '''
   LOOP #i = 1 TO 10 BY 2. COMPUTE … END LOOP.  /  LOOP IF 条件 / BREAK IF 条件.
   VECTOR v = x1 TO x10.   表达式里用 v(下标) 引用（下标 1 起）.
   TEMPORARY.  后续变换在下一个过程命令（描述/t/相关/频率/LIST）后回滚.
+  DO REPEAT v = x1 TO x5. COMPUTE … v … END REPEAT.   文本替换宏.
   HELP.
 注释: `* 文字.` 与 `COMMENT 文字.` 到行尾句点或空行结束；行内用 /* 注释 */。
 宏支持 !LET、!IF/!THEN/!ELSE/!ENDIF、!DO … !TO !BY … !DOEND。
@@ -430,6 +438,7 @@ Supported commands (subset):
   LOOP #i = 1 TO 10 BY 2. COMPUTE … END LOOP.  /  LOOP IF cond / BREAK IF cond.
   VECTOR v = x1 TO x10.   refer with v(index) (1-based).
   TEMPORARY.  transformations expire after the next procedure (descriptives/t/corr/freq/LIST).
+  DO REPEAT v = x1 TO x5. COMPUTE … v … END REPEAT.   textual substitution macro.
   HELP.
 Comments: `* text.` and `COMMENT text.` end at a dot at end of line or a blank
   line; inline comments use /* … */.
@@ -745,6 +754,111 @@ class SyntaxExecutor {
           ));
           ci++;
           continue;
+        }
+        if (fv == 'DO REPEAT') {
+          // 文本替换宏（PSPP 语义）：扫到配对 END REPEAT（计嵌套深度），
+          // 按哑变量逐次整词替换体命令文本，把展开结果原位拼回命令流。
+          var depth = 1;
+          var endIdx = -1;
+          for (var j = ci + 1; j < cmds.length; j++) {
+            final vj = cmdVerbs[j];
+            if (vj == 'DO REPEAT') {
+              depth++;
+            } else if (vj == 'END REPEAT') {
+              depth--;
+              if (depth == 0) {
+                endIdx = j;
+                break;
+              }
+            }
+          }
+          if (endIdx < 0) {
+            entries.add(_Entry(
+              start,
+              seq++,
+              SyntaxResult(
+                      command: cmd.raw,
+                      ok: false,
+                      output: ctx.messages.flowNoBlock('DO REPEAT'))
+                  .at(
+                      line: line,
+                      column: column,
+                      start: start,
+                      end: end,
+                      file: file),
+            ));
+            stop = true;
+            break;
+          }
+          try {
+            final dummies = _parseRepeatDummies(cmd, ds, ctx.messages);
+            final newCmds = <SyntaxCommand>[];
+            final newSpan = <int>[];
+            final newPos = <(int, int)>[];
+            final newVerbs = <String?>[];
+            void emit(SyntaxCommand c, int span, (int, int) pos) {
+              newCmds.add(c);
+              newSpan.add(span);
+              newPos.add(pos);
+              newVerbs.add(flowVerbOf(c));
+            }
+
+            for (var k = 0; k < cmds.length; k++) {
+              if (k == ci) {
+                for (var rep = 0;
+                    rep < dummies.first.$2.length;
+                    rep++) {
+                  for (var b = ci + 1; b < endIdx; b++) {
+                    var text = cmds[b].raw;
+                    for (final (name, values) in dummies) {
+                      text = text.replaceAllMapped(
+                        RegExp('\\b${RegExp.escape(name)}\\b',
+                            caseSensitive: false),
+                        (_) => values[rep],
+                      );
+                    }
+                    final parsed = SyntaxParser.parse(text,
+                        start: cmds[b].start, end: cmds[b].end);
+                    if (parsed != null) {
+                      emit(parsed, cmdSpan[b], cmdPos[b]);
+                    }
+                  }
+                }
+              } else if (k > ci && k <= endIdx) {
+                continue;
+              } else {
+                emit(cmds[k], cmdSpan[k], cmdPos[k]);
+              }
+            }
+            cmds
+              ..clear()
+              ..addAll(newCmds);
+            cmdSpan
+              ..clear()
+              ..addAll(newSpan);
+            cmdPos
+              ..clear()
+              ..addAll(newPos);
+            cmdVerbs
+              ..clear()
+              ..addAll(newVerbs);
+            continue; // 从展开后的第一条继续
+          } on FormatException catch (e) {
+            entries.add(_Entry(
+              start,
+              seq++,
+              SyntaxResult(
+                      command: cmd.raw, ok: false, output: e.message)
+                  .at(
+                      line: line,
+                      column: column,
+                      start: start,
+                      end: end,
+                      file: file),
+            ));
+            stop = true;
+            break;
+          }
         }
         if (fv == 'DO IF' || fv == 'LOOP') {
           try {
@@ -1081,6 +1195,131 @@ class SyntaxExecutor {
     return SyntaxResult(command: cmd.raw, ok: true,
         output: 'SPLIT FILE BY ${names.join(", ")} '
             '(${ds.nCases} cases)');
+  }
+
+  /// 解析 `DO REPEAT 名 = 展开 [/ 名2 = 展开2 …].` 的哑变量表。
+  /// 展开形式：变量列表（含 `x1 TO x10`）、`ALL`、数字列表（含 `1 TO 5`）、
+  /// 引号字符串列表。各哑变量个数必须一致。
+  static List<(String, List<String>)> _parseRepeatDummies(
+    SyntaxCommand cmd,
+    Dataset ds,
+    SyntaxMessages messages,
+  ) {
+    var rest = cmd.raw
+        .replaceFirst(RegExp(r'^\s*DO\s+REPEAT\b', caseSensitive: false), '')
+        .trim();
+    if (rest.endsWith('.')) rest = rest.substring(0, rest.length - 1).trim();
+    final out = <(String, List<String>)>[];
+    for (final specRaw in rest.split('/')) {
+      final spec = specRaw.trim();
+      if (spec.isEmpty) continue;
+      final eq = spec.indexOf('=');
+      if (eq <= 0) {
+        throw const FormatException(
+            'DO REPEAT 语法: DO REPEAT 名=展开 [/ 名2=展开2 …].');
+      }
+      final name = spec.substring(0, eq).trim();
+      final exp = spec.substring(eq + 1).trim();
+      if (name.isEmpty || exp.isEmpty) {
+        throw const FormatException(
+            'DO REPEAT 语法: DO REPEAT 名=展开 [/ 名2=展开2 …].');
+      }
+      out.add((name, _expandRepeatList(exp, ds)));
+    }
+    if (out.isEmpty) {
+      throw const FormatException(
+          'DO REPEAT 语法: DO REPEAT 名=展开 [/ 名2=展开2 …].');
+    }
+    final count = out.first.$2.length;
+    for (final (_, values) in out) {
+      if (values.length != count) {
+        throw FormatException(messages.repeatCountMismatch);
+      }
+    }
+    return out;
+  }
+
+  /// 展开 DO REPEAT 的替换列表（PSPP：var_list / ALL / 数字或范围 / 字符串）。
+  /// DO REPEAT 替换列表切词：引号段（'…' 或 "…"）作为整体，
+  /// 其余按空白切分。
+  static List<String> _tokenizeRepeatList(String exp) {
+    final out = <String>[];
+    final buf = StringBuffer();
+    var quote = '';
+    for (var i = 0; i < exp.length; i++) {
+      final ch = exp[i];
+      if (quote.isNotEmpty) {
+        buf.write(ch);
+        if (ch == quote) quote = '';
+      } else if (ch == "'" || ch == '"') {
+        buf.write(ch);
+        quote = ch;
+      } else if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r') {
+        if (buf.isNotEmpty) {
+          out.add(buf.toString());
+          buf.clear();
+        }
+      } else {
+        buf.write(ch);
+      }
+    }
+    if (buf.isNotEmpty) out.add(buf.toString());
+    return out;
+  }
+
+  static List<String> _expandRepeatList(String exp, Dataset ds) {
+    final up = exp.toUpperCase().trim();
+    if (up == 'ALL') {
+      return [for (final v in ds.variables) v.name];
+    }
+    final tokens = _tokenizeRepeatList(exp);
+    final out = <String>[];
+    for (var i = 0; i < tokens.length; i++) {
+      final t = tokens[i];
+      if (i + 2 < tokens.length &&
+          tokens[i + 1].toUpperCase() == 'TO') {
+        final a = t;
+        final b = tokens[i + 2];
+        final na = int.tryParse(a);
+        final nb = int.tryParse(b);
+        if (na != null && nb != null) {
+          if (nb < na || nb - na > 10000) {
+            throw FormatException('DO REPEAT: 无效范围 $a TO $b');
+          }
+          for (var v = na; v <= nb; v++) {
+            out.add('$v');
+          }
+        } else {
+          final ma = RegExp(r'^(.*?)(\d+)$').firstMatch(a);
+          final mb = RegExp(r'^(.*?)(\d+)$').firstMatch(b);
+          if (ma == null ||
+              mb == null ||
+              ma.group(1) != mb.group(1) ||
+              ma.group(1)!.isEmpty) {
+            throw FormatException('DO REPEAT: 无效范围 $a TO $b');
+          }
+          final from = int.parse(ma.group(2)!);
+          final to = int.parse(mb.group(2)!);
+          if (to < from || to - from > 10000) {
+            throw FormatException('DO REPEAT: 无效范围 $a TO $b');
+          }
+          for (var v = from; v <= to; v++) {
+            out.add('${ma.group(1)!}$v');
+          }
+        }
+        i += 2;
+        continue;
+      }
+      // 引号字符串去引号
+      if (t.length >= 2 &&
+          (t.startsWith("'") && t.endsWith("'") ||
+              t.startsWith('"') && t.endsWith('"'))) {
+        out.add(t.substring(1, t.length - 1));
+      } else {
+        out.add(t);
+      }
+    }
+    return out;
   }
 
   /// 程序流块内单条命令的执行：仅 COMPUTE / RECODE（带行掩码、循环变量、向量）。

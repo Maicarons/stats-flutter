@@ -3,7 +3,6 @@ library;
 
 import 'dart:math' as math;
 
-import 'package:meta/meta.dart';
 
 /// 标准正态 CDF Φ(z)
 double normCdf(double z) {
@@ -48,7 +47,6 @@ double zCritical(double alpha) {
 ///
 /// 用于秩的正态得分（Blom 绘图位置）等需要把概率反解成 z 的场合。
 /// p 超出 (0,1) 时钳到 ±6。
-@experimental
 double normalQuantile(double p) {
   // Acklam's inverse normal approximation
   if (p <= 0) return -6;

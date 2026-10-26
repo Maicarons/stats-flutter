@@ -218,6 +218,69 @@ LIST.''', ds);
         [60.0, 80.0, 90.0, null]);
   });
 
+  test('DO REPEAT：文本替换宏（变量列表展开）', () {
+    final ds = _ds();
+    final rs = SyntaxExecutor.run('''
+DO REPEAT v = x1 TO x3.
+COMPUTE v = v * 10.
+END REPEAT.''', ds);
+    expect(rs.last.ok, isTrue);
+    expect(_num(ds, 'x1', 0), 10.0);
+    expect(_num(ds, 'x2', 0), 20.0);
+    expect(_num(ds, 'x3', 0), 30.0);
+    expect(_num(ds, 'x1', 1), 40.0);
+  });
+
+  test('DO REPEAT：多哑变量同步展开（哑变量作目标名）', () {
+    final ds = _ds();
+    final rs = SyntaxExecutor.run('''
+DO REPEAT v = t_1 TO t_2 / src = gender score.
+COMPUTE v = src.
+END REPEAT.''', ds);
+    expect(rs.last.ok, isTrue);
+    // rep1: t_1 = gender；rep2: t_2 = score（PSPP 整词替换口径）
+    expect(_num(ds, 't_1', 0), 1.0);
+    expect(_num(ds, 't_2', 0), 60.0);
+  });
+
+  test('DO REPEAT：个数不一致报错（PSPP 要求各哑变量等长）', () {
+    final ds = _ds();
+    final r = SyntaxExecutor.run('''
+DO REPEAT a = x1 x2 / b = 1 TO 3.
+COMPUTE a = b.
+END REPEAT.''', ds);
+    expect(r.last.ok, isFalse);
+  });
+
+  test('DO REPEAT：哑变量整词替换不误伤（v 不吃 vars）', () {
+    final ds = _ds();
+    final rs = SyntaxExecutor.run('''
+COMPUTE vars = 1.
+DO REPEAT v = x1.
+COMPUTE v = vars + 1.
+END REPEAT.''', ds);
+    expect(rs.last.ok, isTrue);
+    expect(_num(ds, 'vars', 0), 1.0); // 未被替换破坏
+    expect(_num(ds, 'x1', 0), 2.0);
+  });
+
+  test('DO REPEAT：未闭合报错', () {
+    final ds = _ds();
+    final r2 = SyntaxExecutor.run('DO REPEAT a = x1.', ds);
+    expect(r2.last.ok, isFalse);
+  });
+
+  test('DO REPEAT：ALL 展开为全部变量名', () {
+    final ds = _ds();
+    final rs = SyntaxExecutor.run('''
+DO REPEAT v = ALL.
+COMPUTE v = v + 100.
+END REPEAT.''', ds);
+    expect(rs.last.ok, isTrue);
+    expect(_num(ds, 'x1', 0), 101.0);
+    expect(_num(ds, 'score', 0), 160.0);
+  });
+
   test('ComputeEngine 直接求值锚点', () {
     expect(
         ComputeEngine.evaluate('1 < 2 AND 2 <= 2', {}),

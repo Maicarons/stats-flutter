@@ -147,6 +147,25 @@ COMPUTE total = v(1) + v(2).
   appear inside a block;
 - a bare `LOOP.` must end via `BREAK`.
 
+## DO REPEAT: textual substitution macro (v1.10.0)
+
+```text
+DO REPEAT v = x1 TO x10 / n = 1 TO 10.
+COMPUTE v = v * n.
+END REPEAT.
+```
+
+- `DO REPEAT name = expansion [/ name2 = expansion2 …]. … END REPEAT.`
+  substitutes whole words in the block textually and runs the block once
+  per replacement set (PSPP semantics: only whole words — the `n` inside
+  `t_n` is not substituted);
+- expansions: a variable list (`x1 TO x10`), `ALL`, a number list
+  (`1 TO 5` = 1 2 3 4 5), or quoted strings;
+- multiple dummies must have equal replacement counts and expand in
+  lockstep; any implemented command may appear in the block (including
+  DO IF / LOOP); nested DO REPEAT is legal; unclosed blocks and count
+  mismatches error out.
+
 ## SPLIT FILE: repeat analyses per group
 
 ```text

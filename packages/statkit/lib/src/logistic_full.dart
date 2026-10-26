@@ -3,7 +3,6 @@ library;
 
 import 'dart:math' as math;
 
-import 'package:meta/meta.dart';
 
 import 'distributions.dart';
 
@@ -347,7 +346,6 @@ HosmerLemeshow hosmerLemeshow(
 }
 
 /// 多项 logistic 回归的一个系数（某条 logit 方程中的某一项）
-@experimental
 class MultinomialWald {
   /// 该方程对应的响应类别（与 [MultinomialResult.reference] 对比）
   final String level;
@@ -379,7 +377,6 @@ class MultinomialWald {
 }
 
 /// 多项 logistic 回归结果（softmax / 参考类别参数化）
-@experimental
 class MultinomialResult {
   /// 全部响应类别（升序，即原始响应取值）
   final List<int> levels;
@@ -475,7 +472,6 @@ class MultinomialResult {
 /// [xs] 按「自变量优先」组织（xs[j] 是第 j 个自变量的 n 个观测），与
 /// [logisticRegressionFull] 一致；[names] 给变量名，[levelLabels] 给类别显示名
 /// （按升序类别一一对应）。
-@experimental
 MultinomialResult multinomialLogistic(
   List<List<double>> xs,
   List<int> y, {

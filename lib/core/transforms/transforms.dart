@@ -7,9 +7,6 @@ import 'package:statkit/statkit.dart';
 
 import '../models/dataset.dart';
 
-// 应用是 statkit 的同仓第一消费者（statkit 0.5.0 ↔ app 1.4.0），
-// 因此这里可以有意使用 statkit 标注为 @experimental 的入口。
-// ignore_for_file: experimental_member_use
 
 /// 表达式计算：算术 + - * / ^ ( ) 与常用函数；v1.7.0 起支持
 /// 比较（< > <= >= = == ~= !=）与逻辑（AND OR NOT，不区分大小写）、

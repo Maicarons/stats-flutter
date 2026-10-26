@@ -7,12 +7,10 @@ library;
 
 import 'dart:math' as math;
 
-import 'package:meta/meta.dart';
 
 import 'distributions.dart';
 
 /// 方差分析表的一行（因子项或协变量项）
-@experimental
 class AnovaTerm {
   /// 项名：因子名、`A×B` 交互，或协变量名
   final String name;
@@ -52,7 +50,6 @@ class AnovaTerm {
 }
 
 /// 协变量斜率（原始尺度，未标准化：每增加 1 个单位因变量的变化）
-@experimental
 class AncovaSlope {
   /// 协变量名
   final String name;
@@ -90,7 +87,6 @@ class AncovaSlope {
 /// 调整均值（EMM）。协变量以相加形式进入模型，因此 EMM 等于
 /// 「把协变量固定在各自均值、因子固定在该水平」时的模型预测值；
 /// 边缘均值对另一个因子的各水平等权平均。
-@experimental
 class AncovaMean {
   /// 'A' / 'B' / 'A×B'
   final String factor;
@@ -130,7 +126,6 @@ class AncovaMean {
 }
 
 /// 协方差分析结果
-@experimental
 class AncovaResult {
   /// 因子项（A、可选 B、可选 A×B）+ 每个协变量一项
   final List<AnovaTerm> terms;
@@ -296,7 +291,6 @@ List<List<double>> _invert(List<List<double>> a) {
 /// [y] / [a] / [b] / [covariates] 都是逐观测的，长度必须一致（n）。
 /// [a] 的每个水平至少 2 个观测、[b] 提供时要求 A×B 是完整的交叉设计
 /// （否则交互项不可估计，会抛 ArgumentError）。
-@experimental
 AncovaResult ancova({
   required List<double> y,
   required List<String> a,

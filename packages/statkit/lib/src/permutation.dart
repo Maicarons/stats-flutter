@@ -10,10 +10,8 @@ library;
 
 import 'dart:math' as math;
 
-import 'package:meta/meta.dart';
 
 /// 置换检验结果
-@experimental
 class PermutationResult {
   /// 原始数据的统计量
   final double observed;
@@ -84,7 +82,6 @@ class PermutationResult {
 }
 
 /// 置换检验入口（随机置换与完全枚举）
-@experimental
 class Permutation {
   /// 随机置换检验
   ///

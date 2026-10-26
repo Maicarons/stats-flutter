@@ -7,10 +7,6 @@
 /// 参数装配（列序、缺失处理、标签映射），也覆盖报告表的拼装。
 library;
 
-// 应用是 statkit 的同仓第一消费者：应用发布与 statkit 版本绑定（statkit 0.5.0
-// ↔ app 1.4.0），两者 API 调整在同一次发布里一起改，因此这里可以有意使用
-// statkit 标注为 @experimental 的入口。
-// ignore_for_file: experimental_member_use
 
 import 'dart:math' as math;
 

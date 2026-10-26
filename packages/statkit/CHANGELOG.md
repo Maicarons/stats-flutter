@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.0
+
+**API freeze.** The public surface that shipped across 0.2 → 0.7
+(descriptives, distributions, t / ANOVA / ANCOVA, correlation, regression
+incl. stepwise, logistic (binary / multinomial / full), GLM, factor & PCA,
+nonparametric + extended set incl. Kendall's W and exact KS, reliability,
+clustering, ROC, permutation tests, weights, examine, ctables-lite, MANOVA)
+is now stable: breaking changes will only happen in a 2.0.0.
+
+### Changed
+- All `@experimental` annotations (added in 0.5.0 for the then-new
+  procedures) are removed — those APIs have been stable in practice across
+  app releases v1.4.0 → v1.9.0.
+- No computational result changes in this release.
+
+# Changelog
+
 ## 0.7.0
 
 One-way MANOVA (v1.8.0 M2).

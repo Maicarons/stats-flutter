@@ -65,6 +65,8 @@ New in v1.8.0: syntax `TEMPORARY.` (temporary transformations expire after the n
 
 New in v1.9.0: CTABLES-lite upgrade — pivot tables gain **multiple summary statistics** (count / percent / mean / sum / sd / min / max / median, multi-select) and a **layer variable** (one table per level); `.dta` import gains **value labels**; **ODS (LibreOffice) import** added
 
+New in v1.10.0: **statkit 1.0.0** (public API frozen, `@experimental` removed); syntax `DO REPEAT / END REPEAT` textual substitution macro; CTABLES-lite accepts **MRSETS multiple-response sets** as row/column variables
+
 ### Output & export
 - Session output tree: one card per run, newest first, newest expanded
 - Per card: copy, share, delete, export; "Export all" merges every card of the procedure

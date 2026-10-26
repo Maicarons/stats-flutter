@@ -20,10 +20,12 @@ String? flowVerbOf(SyntaxCommand cmd) {
   bool head(String pat) =>
       RegExp('^\\s*$pat', caseSensitive: false).hasMatch(raw);
   if (head('DO\\s+IF\\b')) return 'DO IF';
+  if (head('DO\\s+REPEAT\\b')) return 'DO REPEAT';
   if (head('ELSE\\s+IF\\b')) return 'ELSE IF';
   if (head('ELSE\\b')) return 'ELSE';
   if (head('END\\s+IF\\b')) return 'END IF';
   if (head('END\\s+LOOP\\b')) return 'END LOOP';
+  if (head('END\\s+REPEAT\\b')) return 'END REPEAT';
   switch (cmd.verb.toUpperCase()) {
     case 'LOOP':
     case 'BREAK':
@@ -163,6 +165,10 @@ class FlowParseException implements Exception {
     } else if (v == 'BREAK') {
       final c = cmds[i];
       body.add(FlowBreak(c, _hasWord(c, 'IF') ? _afterWord(c, 'IF') : null));
+      i++;
+    } else if (v == 'DO REPEAT' || v == 'END REPEAT') {
+      // DO REPEAT 由引擎的命令循环做文本替换展开，不在此处理
+      body.add(FlowSimple(cmds[i]));
       i++;
     } else if (v == 'ELSE IF' || v == 'ELSE' || v == 'END IF') {
       // 只可能在匹配 expectEnd 时返回；这里意味着嵌套错位
